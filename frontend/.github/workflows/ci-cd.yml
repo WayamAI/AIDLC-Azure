@@ -1,0 +1,124 @@
+name: CI-CD
+
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+    branches:
+      - "**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-cd-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: Frontend Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Lint frontend
+        continue-on-error: true
+        run: npm run lint
+
+      - name: Test frontend
+        run: npm run test
+
+      - name: Build frontend
+        run: npm run build
+
+  backend:
+    name: Backend Checks
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Validate backend imports and syntax
+        run: python -m compileall app main.py
+
+  deploy:
+    name: Trigger Vercel Deployment
+    runs-on: ubuntu-latest
+    needs:
+      - frontend
+      - backend
+    if: github.event_name == 'push' && secrets.VERCEL_TOKEN != '' && vars.VERCEL_PROJECT_NAME != '' && vars.VERCEL_GITHUB_REPO_ID != ''
+    steps:
+      - name: Trigger deployment via Vercel API
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_PROJECT_NAME: ${{ vars.VERCEL_PROJECT_NAME }}
+          GITHUB_REPO_ID: ${{ vars.VERCEL_GITHUB_REPO_ID }}
+          GIT_BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          TARGET="preview"
+          if [ "${GIT_BRANCH}" = "main" ]; then
+            TARGET="production"
+          fi
+
+          DEPLOY_PAYLOAD=$(jq -n \
+            --arg name "${VERCEL_PROJECT_NAME}" \
+            --arg repoId "${GITHUB_REPO_ID}" \
+            --arg ref "${GIT_BRANCH}" \
+            --arg target "${TARGET}" \
+            --arg projectId "${VERCEL_PROJECT_ID:-}" \
+            '{
+              name: $name,
+              target: $target,
+              gitSource: {
+                type: "github",
+                repoId: ($repoId | tonumber),
+                ref: $ref
+              }
+            } + (if $projectId != "" then {project: $projectId} else {} end)')
+
+          QUERY=""
+          if [ -n "${VERCEL_TEAM_ID:-}" ]; then
+            QUERY="?teamId=${VERCEL_TEAM_ID}"
+          fi
+
+          RESPONSE=$(curl --silent --show-error --fail \
+            --request POST "https://api.vercel.com/v13/deployments${QUERY}" \
+            --header "Authorization: Bearer ${VERCEL_TOKEN}" \
+            --header "Content-Type: application/json" \
+            --data "${DEPLOY_PAYLOAD}")
+
+          DEPLOYMENT_ID=$(echo "${RESPONSE}" | jq -r '.id')
+          DEPLOYMENT_URL=$(echo "${RESPONSE}" | jq -r '.url')
+          DEPLOYMENT_STATE=$(echo "${RESPONSE}" | jq -r '.readyState')
+
+          echo "Deployment ID: ${DEPLOYMENT_ID}"
+          echo "Deployment URL: https://${DEPLOYMENT_URL}"
+          echo "Initial state: ${DEPLOYMENT_STATE}"

@@ -1,0 +1,471 @@
+/*
+ * Typography: Inter everywhere (headings, body, forms, tables, inputs,
+ * cards). JetBrains Mono is kept for code/monospace contexts only.
+ */
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Warm neutral surfaces slight orange undertone to match Wayam */
+    --background: 30 25% 97%;
+    --foreground: 25 20% 12%;
+
+    --card: 30 30% 99%;
+    --card-foreground: 25 20% 12%;
+
+    --popover: 30 30% 99%;
+    --popover-foreground: 25 20% 12%;
+
+    /* ── Wayam brand gradient (from logo SVG) ───────────────────────────── */
+    --brand-from: #FFA12B;
+    --brand-via: #FA8D23;
+    --brand-via-2: #F0731A;
+    --brand-to: #DC440C;
+
+    --primary: 25 88% 52%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 30 18% 93%;
+    --secondary-foreground: 25 18% 18%;
+
+    --muted: 30 16% 92%;
+    --muted-foreground: 25 12% 38%;
+
+    --accent: 32 95% 94%;
+    --accent-foreground: 18 85% 28%;
+
+    --destructive: 8 85% 44%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Positive = pass/success/complete warm gold, never green */
+    --positive: 32 82% 42%;
+    --positive-foreground: 0 0% 100%;
+
+    --success: 32 82% 42%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 36 90% 40%;
+    --warning-foreground: 36 90% 12%;
+
+    --info: 25 10% 42%;
+    --info-foreground: 0 0% 100%;
+
+    --border: 30 14% 88%;
+    --input: 30 14% 88%;
+    --ring: 25 88% 52%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 32 22% 98%;
+    --sidebar-foreground: 25 12% 38%;
+    --sidebar-primary: 25 88% 52%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 32 20% 94%;
+    --sidebar-accent-foreground: 25 20% 12%;
+    --sidebar-border: 30 14% 90%;
+    --sidebar-ring: 25 88% 52%;
+
+    --glow-primary: 25 88% 52%;
+    --glow-secondary: 18 90% 45%;
+    --gradient-start: 25 88% 52%;
+    --gradient-end: 18 90% 45%;
+
+    /* Custom cursor white arrow / orange arrow (hotspot 3 2) */
+    --cursor-default: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 24 24'%3E%3Cpath d='M5.5 3.21V20.8c0 .45.54.67.85.35l4.86-4.86a.5.5 0 0 1 .35-.15h6.87a.5.5 0 0 0 .35-.85L6.35 2.85a.5.5 0 0 0-.85.36Z' fill='white' stroke='%23F0731A' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E") 3 2, auto;
+    --cursor-pointer: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 24 24'%3E%3Cpath d='M5.5 3.21V20.8c0 .45.54.67.85.35l4.86-4.86a.5.5 0 0 1 .35-.15h6.87a.5.5 0 0 0 .35-.85L6.35 2.85a.5.5 0 0 0-.85.36Z' fill='%23F0731A' stroke='white' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E") 3 2, pointer;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--primary) / 0.55) hsl(var(--muted) / 0.4);
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+    cursor: var(--cursor-default);
+  }
+
+  a,
+  button,
+  label,
+  summary,
+  [role="button"],
+  [role="tab"],
+  [role="menuitem"],
+  [role="option"],
+  [type="button"],
+  [type="submit"],
+  [type="reset"],
+  input[type="checkbox"],
+  input[type="radio"],
+  select {
+    cursor: var(--cursor-pointer);
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="range"]),
+  textarea {
+    cursor: text;
+  }
+
+  :disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+
+  /* WebKit scrollbars */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--muted) / 0.35);
+    border-radius: 999px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, var(--brand-from), var(--brand-to));
+    border-radius: 999px;
+    border: 2px solid hsl(var(--background));
+    background-clip: padding-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, var(--brand-via-2), var(--brand-to));
+    border: 2px solid hsl(var(--background));
+    background-clip: padding-box;
+  }
+
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
+  }
+
+  ::selection {
+    background: hsl(var(--primary) / 0.25);
+    color: hsl(var(--foreground));
+  }
+}
+
+@layer utilities {
+  /* Wayam brand gradient matches logo SVG stops */
+  .bg-gradient-brand {
+    background: linear-gradient(
+      90deg,
+      var(--brand-from) 0%,
+      var(--brand-via) 30%,
+      var(--brand-via-2) 65%,
+      var(--brand-to) 100%
+    );
+  }
+
+  .text-gradient-brand,
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(
+      90deg,
+      var(--brand-from) 0%,
+      var(--brand-via) 30%,
+      var(--brand-via-2) 65%,
+      var(--brand-to) 100%
+    );
+  }
+
+  .border-gradient-brand {
+    border: 1px solid transparent;
+    background-image: linear-gradient(hsl(var(--card)), hsl(var(--card))),
+      linear-gradient(
+        90deg,
+        var(--brand-from) 0%,
+        var(--brand-via) 30%,
+        var(--brand-via-2) 65%,
+        var(--brand-to) 100%
+      );
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+  }
+
+  .glow-primary {
+    box-shadow: 0 0 20px hsl(var(--glow-primary) / 0.18),
+                0 0 60px hsl(var(--glow-primary) / 0.06);
+  }
+
+  .glow-primary-strong {
+    box-shadow: 0 0 20px hsl(var(--glow-primary) / 0.35),
+                0 0 80px hsl(var(--glow-primary) / 0.12);
+  }
+
+  .glow-secondary {
+    box-shadow: 0 0 20px hsl(var(--glow-secondary) / 0.18),
+                0 0 60px hsl(var(--glow-secondary) / 0.06);
+  }
+
+  .bg-gradient-hero {
+    background: radial-gradient(ellipse 80% 50% at 50% -20%, hsl(var(--glow-primary) / 0.14), transparent),
+                radial-gradient(ellipse 60% 40% at 80% 50%, hsl(var(--glow-secondary) / 0.08), transparent),
+                hsl(var(--background));
+  }
+
+  .bg-card-glow {
+    background: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--card)) 100%);
+  }
+
+  .border-glow {
+    border: 1px solid hsl(var(--glow-primary) / 0.25);
+  }
+
+  .glass {
+    @apply bg-card/80 backdrop-blur-xl;
+  }
+
+  /* Premium surface panels floating-card, page-card, dash-panel */
+  .floating-card,
+  .page-card,
+  .dash-panel {
+    @apply relative overflow-hidden rounded-2xl border border-border/60 bg-card/95 text-card-foreground backdrop-blur-md;
+    box-shadow:
+      0 1px 1px rgba(15, 23, 42, 0.04),
+      0 8px 32px rgba(240, 115, 26, 0.07),
+      0 24px 48px rgba(15, 23, 42, 0.04);
+    transition: box-shadow 0.35s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.35s ease;
+  }
+
+  .floating-card::before,
+  .page-card::before {
+    content: "";
+    @apply pointer-events-none absolute inset-0 z-0 opacity-40;
+    background:
+      radial-gradient(ellipse 80% 50% at 0% 0%, rgba(255, 161, 43, 0.12), transparent 55%),
+      radial-gradient(ellipse 60% 40% at 100% 100%, rgba(220, 68, 12, 0.05), transparent 50%);
+  }
+
+  .floating-card > *,
+  .page-card > * {
+    @apply relative z-[1];
+  }
+
+  .floating-card:hover,
+  .page-card:hover,
+  .dash-panel:hover {
+    @apply border-primary/20;
+    box-shadow:
+      0 1px 1px rgba(15, 23, 42, 0.04),
+      0 12px 40px rgba(240, 115, 26, 0.12),
+      0 28px 56px rgba(15, 23, 42, 0.06);
+  }
+
+  .neon-line {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, hsl(var(--glow-primary) / 0.55), transparent);
+  }
+
+  .stat-card {
+    @apply dash-kpi dash-kpi-accent-primary relative overflow-hidden rounded-2xl border border-white/70 p-5;
+    min-height: auto;
+  }
+
+  .stat-card::before {
+    display: none;
+  }
+
+  .stat-card:hover {
+    transform: translateY(-2px);
+  }
+
+  .app-page-bg {
+    background:
+      radial-gradient(ellipse 70% 45% at 100% 0%, rgba(255, 161, 43, 0.07), transparent 55%),
+      radial-gradient(ellipse 50% 40% at 0% 100%, rgba(220, 68, 12, 0.04), transparent 50%),
+      hsl(30 20% 96%);
+  }
+
+  /* Login page Sutra-style shell with Wayam colors */
+  .login-shell {
+    background:
+      radial-gradient(circle at top left, rgba(255, 161, 43, 0.18), transparent 32%),
+      radial-gradient(circle at bottom right, rgba(220, 68, 12, 0.12), transparent 28%),
+      linear-gradient(180deg, #fff8f2 0%, #fff0e6 100%);
+  }
+
+  .login-shell--video {
+    background: #1a1008;
+  }
+
+  .login-bg {
+    background:
+      radial-gradient(circle at 15% 20%, rgba(240, 115, 26, 0.22), transparent 24%),
+      radial-gradient(circle at 85% 15%, rgba(255, 161, 43, 0.35), transparent 20%),
+      radial-gradient(circle at 80% 80%, rgba(220, 68, 12, 0.12), transparent 18%);
+  }
+
+  .modern-shadow {
+    box-shadow:
+      0 24px 60px rgba(240, 115, 26, 0.14),
+      0 10px 24px rgba(15, 23, 42, 0.06);
+  }
+
+  .login-enter {
+    animation: login-enter 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  /* Sidebar active item Sutra-style white pill */
+  [data-sidebar="menu-button"][data-active="true"] {
+    @apply bg-white font-medium text-foreground shadow-[0_4px_14px_rgba(15,23,42,0.06)];
+  }
+
+  [data-sidebar="menu-sub-button"][data-active="true"] {
+    @apply bg-sidebar-accent font-medium text-sidebar-accent-foreground;
+  }
+
+  /* ── Dashboard: editorial analytics panels ── */
+  .dash-panel-shine {
+    @apply pointer-events-none absolute inset-0 opacity-40;
+    background:
+      radial-gradient(ellipse 80% 50% at 0% 0%, rgba(255, 161, 43, 0.12), transparent 55%),
+      radial-gradient(ellipse 60% 40% at 100% 100%, rgba(220, 68, 12, 0.05), transparent 50%);
+  }
+
+  .dash-panel-icon {
+    @apply flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-gradient-to-br from-primary/10 to-primary/5 text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.9)];
+  }
+
+  .dash-kpi {
+    @apply relative overflow-hidden rounded-2xl border border-border/60 p-5 text-foreground backdrop-blur-md;
+    min-height: 132px;
+    box-shadow: 0 1px 1px rgba(15, 23, 42, 0.03), 0 6px 24px rgba(15, 23, 42, 0.04);
+    transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s ease;
+  }
+
+  .dash-kpi:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(240, 115, 26, 0.1), 0 12px 32px rgba(15, 23, 42, 0.06);
+  }
+
+  .dash-kpi-mesh {
+    @apply pointer-events-none absolute inset-0;
+    background: radial-gradient(circle at 100% 0%, rgba(255, 161, 43, 0.12), transparent 45%);
+  }
+
+  .dash-kpi-icon {
+    @apply flex h-9 w-9 items-center justify-center rounded-xl border border-white/80 bg-white/90 shadow-sm;
+  }
+
+  .dash-kpi-value {
+    @apply text-[1.75rem] font-semibold leading-none tracking-tight tabular-nums text-foreground;
+    font-feature-settings: "tnum" 1;
+  }
+
+  .dash-kpi-delta {
+    @apply rounded-full bg-white/80 px-2 py-0.5 text-[10px] font-semibold tabular-nums shadow-sm ring-1 ring-black/[0.04];
+  }
+
+  .dash-kpi-accent-positive .dash-kpi-icon,
+  .dash-kpi-accent-success .dash-kpi-icon { @apply text-positive; }
+  .dash-kpi-accent-destructive .dash-kpi-icon { @apply text-destructive; }
+  .dash-kpi-accent-warning .dash-kpi-icon { @apply text-warning; }
+
+  .dash-kpi-accent-primary { @apply bg-gradient-to-br from-white to-orange-50/80; }
+  .dash-kpi-accent-positive,
+  .dash-kpi-accent-success { @apply bg-gradient-to-br from-white to-orange-50/60; }
+  .dash-kpi-accent-destructive { @apply bg-gradient-to-br from-white to-red-50/60; }
+  .dash-kpi-accent-warning { @apply bg-gradient-to-br from-white to-amber-50/70; }
+
+  .dash-chart-tooltip {
+    @apply rounded-xl border border-border/60 bg-card px-4 py-3 text-foreground shadow-[0_8px_32px_rgba(15,23,42,0.12)];
+  }
+
+  .dash-legend-dot {
+    @apply h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-white shadow-sm;
+  }
+
+  .dash-severity-track {
+    @apply h-2.5 overflow-hidden rounded-full bg-black/[0.04];
+  }
+
+  .dash-severity-fill {
+    @apply h-full rounded-full;
+    box-shadow: 0 0 12px currentColor;
+  }
+
+  .dash-activity-item {
+    @apply relative flex items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 transition-all duration-200;
+  }
+
+  .dash-activity-item:hover {
+    @apply border-primary/10 bg-white/70 shadow-sm;
+  }
+
+  .dash-metric-hero {
+    @apply relative overflow-hidden rounded-2xl border border-white/70 p-6 text-left backdrop-blur-md;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 248, 242, 0.9) 100%);
+    box-shadow: 0 1px 1px rgba(15, 23, 42, 0.04), 0 10px 36px rgba(240, 115, 26, 0.08);
+  }
+
+  .dash-metric-hero-value {
+    @apply mt-3 block text-4xl font-semibold tracking-tight tabular-nums;
+    background: linear-gradient(90deg, #ffa12b 0%, #f0731a 45%, #dc440c 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .dash-workflow-step {
+    @apply relative flex flex-col gap-3 overflow-hidden rounded-2xl border border-white/60 bg-white/60 p-4 backdrop-blur-sm transition-all duration-300 cursor-pointer;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+  }
+
+  .dash-workflow-step:hover {
+    @apply border-primary/25 bg-white/90;
+    box-shadow: 0 8px 28px rgba(240, 115, 26, 0.1);
+    transform: translateY(-2px);
+  }
+
+  .dash-donut-center {
+    @apply pointer-events-none absolute inset-0 flex flex-col items-center justify-center;
+  }
+}
+
+@keyframes login-enter {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-enter {
+    animation: none;
+  }
+
+  *,
+  body,
+  a,
+  button {
+    cursor: auto;
+  }
+
+  button,
+  a,
+  [role="button"] {
+    cursor: pointer;
+  }
+}
