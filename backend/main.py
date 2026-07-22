@@ -1,11 +1,11 @@
 from contextlib import asynccontextmanager
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.database import connect_db, close_db
+from app.database import connect_db, close_db, ensure_connected
 from app.routes import (
     requirements, test_cases, test_execution, synthetic_data,
     prioritization, dashboard, repo_analysis,
@@ -47,6 +47,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def serverless_db_warmup(request: Request, call_next):
+    """Ensure MongoDB is reachable on cold starts (Vercel serverless)."""
+    if request.url.path.startswith("/api") or request.url.path == "/health":
+        await ensure_connected()
+    return await call_next(request)
+
 
 # Register all routers under /api prefix
 API_PREFIX = "/api"

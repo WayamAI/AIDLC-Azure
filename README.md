@@ -167,6 +167,10 @@ AIDLC/
 │   │   └── lib/             # API client, design system, brand
 │   └── public/
 │       └── videos/          # Login hero video assets
+├── VERCEL_DEPLOY.md         # Step-by-step Vercel deployment guide
+├── vercel.json              # Full-stack Vercel config (frontend + API)
+├── api/index.py             # Serverless FastAPI entrypoint
+├── requirements.txt         # Python deps for Vercel (slim, no Playwright)
 ├── SETUP.md                 # Detailed local setup guide
 └── DEV_CHECKLIST.md         # Development checklist
 ```
@@ -204,7 +208,30 @@ cd backend && uvicorn main:app --reload --port 8000
 
 ## Deployment
 
-Both `frontend/` and `backend/` include `vercel.json` for independent Vercel deployment. Set environment variables in the Vercel dashboard and point the frontend `VITE_API_URL` at your deployed API.
+### Vercel (recommended)
+
+**One-click full stack** — import the repo on [Vercel](https://vercel.com/new). The root `vercel.json` builds the frontend and runs the FastAPI API at `/api` on the same domain.
+
+```bash
+# Or deploy via CLI
+npm i -g vercel && vercel login && vercel --prod
+```
+
+**Required Vercel env vars:** `MONGODB_URI` (Atlas), `OLLAMA_BASE_URL`, `OLLAMA_API_KEY`, `OLLAMA_MODEL`
+
+Full guide: **[VERCEL_DEPLOY.md](./VERCEL_DEPLOY.md)**
+
+| Deploy mode | Root directory | Config |
+|-------------|----------------|--------|
+| Full stack (recommended) | `.` | `vercel.json` |
+| Frontend only | `frontend` | `frontend/vercel.json` + `VITE_API_URL` |
+| Backend only | `backend` | `backend/vercel.json` |
+
+> **Note:** Live Playwright execution and AI IDE WebSockets require a VM — see `frontend/DEPLOY_AZURE_VM.md`.
+
+### Other platforms
+
+Both `frontend/` and `backend/` can also deploy independently. Point `VITE_API_URL` at your API URL for split deployments.
 
 ---
 

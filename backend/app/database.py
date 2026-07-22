@@ -26,6 +26,13 @@ async def connect_db() -> None:
         _client = None
 
 
+async def ensure_connected() -> None:
+    """Lazy connect for serverless cold starts (e.g. Vercel) where lifespan may not run."""
+    global _client
+    if _client is None:
+        await connect_db()
+
+
 async def close_db() -> None:
     global _client
     if _client:

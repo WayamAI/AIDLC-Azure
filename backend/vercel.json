@@ -1,16 +1,16 @@
 {
-  "version": 2,
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "builds": [
     {
       "src": "main.py",
       "use": "@vercel/python",
-      "config": { "maxLambdaSize": "50mb", "maxDuration": 60 }
+      "config": {
+        "maxLambdaSize": "50mb",
+        "maxDuration": 60
+      }
     }
   ],
   "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "main.py"
-    }
+    { "src": "/(.*)", "dest": "main.py" }
   ]
 }
