@@ -1,12 +1,12 @@
 <p align="center">
-  <img src="frontend/public/logo.png" alt="AIDLC" width="220" />
+  <img src="frontend/public/logo-light.svg" alt="AIDLC" width="200" />
 </p>
 
 <h1 align="center">AIDLC</h1>
 <p align="center"><strong>AI-Powered SDLC Platform</strong></p>
 
 <p align="center">
-  Ship faster with intelligent quality from requirements to release, in one workspace.
+  Requirements → tests → review → release → monitoring — in one workspace, with AI at every stage.
 </p>
 
 <p align="center">
@@ -14,63 +14,67 @@
   <img src="https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=black" alt="React" />
   <img src="https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript" />
   <img src="https://img.shields.io/badge/MongoDB-47A248?style=flat-square&logo=mongodb&logoColor=white" alt="MongoDB" />
+  <img src="https://img.shields.io/badge/Azure-0078D4?style=flat-square&logo=microsoftazure&logoColor=white" alt="Azure" />
   <img src="https://img.shields.io/badge/Ollama-000000?style=flat-square" alt="Ollama" />
+</p>
+
+<p align="center">
+  <a href="#quick-start">Quick Start</a> ·
+  <a href="#deployment">Deployment</a> ·
+  <a href="https://github.com/WayamAI/AIDLC-Azure">GitHub</a>
 </p>
 
 ---
 
 ## Overview
 
-**AIDLC** is a full-stack platform that brings AI into every stage of the software delivery lifecycle. It helps teams analyze requirements, generate tests, review code, predict defects, gate releases, and monitor production with a polished React dashboard and a FastAPI backend powered by Ollama.
-
-Built by [WayamAI](https://github.com/WayamAI).
+**AIDLC** (by [WayamAI](https://github.com/WayamAI)) embeds AI across the software delivery lifecycle: requirement analysis, test generation, code review, defect prediction, release gating, and production monitoring.
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  Frontend (Vite + React + shadcn/ui)          :8080         │
-│  Dashboard · Pipeline · AI Workspace · Code Review          │
-└──────────────────────────┬──────────────────────────────────┘
-                           │  /api/*
-┌──────────────────────────▼──────────────────────────────────┐
-│  Backend (FastAPI)                            :8000         │
-│  Requirements · Test Gen · GitHub · Jira · CI Intel         │
-└──────────────────────────┬──────────────────────────────────┘
-                           │
-         ┌─────────────────┼─────────────────┐
-         ▼                 ▼                 ▼
-    MongoDB            Ollama AI         GitHub / Jira
+┌──────────────────────────────────────────────────────────────┐
+│  Frontend  React 18 + Vite + shadcn/ui            :8080      │
+│  Dashboard · Pipeline · AI Workspace · IMCC modules          │
+└────────────────────────────┬─────────────────────────────────┘
+                             │  /api/*
+┌────────────────────────────▼─────────────────────────────────┐
+│  Backend  FastAPI + Motor                         :8000      │
+│  Auth · Orgs · Test Gen · GitHub · Healing · RCA             │
+└────────────────────────────┬─────────────────────────────────┘
+                             │
+         ┌───────────────────┼───────────────────┐
+         ▼                   ▼                   ▼
+     MongoDB              Ollama AI         GitHub / Jira
 ```
 
 ---
 
 ## Features
 
-### Build & Code
+### Core workflow
 | Module | Description |
 |--------|-------------|
-| **AI App Builder** | Generate React apps from natural-language prompts |
-| **AI Workspace** | Monaco editor with Copilot, Git ops, and impact analysis |
-| **Code Reviewer** | AI-powered inline PR review via GitHub integration |
-| **Code Impact** | Dependency graph and affected-test mapping |
-| **PRD Generator** | Turn ideas into structured product requirements |
+| **Requirements → Tests** | Analyze requirements and auto-generate structured test suites |
+| **Synthetic Data** | Generate realistic datasets for test scenarios |
+| **Test Execution** | Run and track suite results |
+| **Risk Ranking** | Prioritize tests and defects by impact |
 
-### Testing & Quality
+### Intelligence (IMCC)
 | Module | Description |
 |--------|-------------|
-| **Repo Test Baseline** | Scan repos and generate categorized Playwright tests |
-| **Doc-Driven Tests** | Extract test scenarios from documentation |
-| **Live Test Runner** | AI-driven browser test execution |
-| **Defect Prediction** | File-level risk scoring from commit history |
-| **Requirements → Tests** | Analyze requirements and auto-generate test cases |
+| **Self-Healing Tests** | Detect flaky selectors and propose healed locators |
+| **Root Cause Analysis** | AI-assisted failure diagnosis from logs and diffs |
+| **Intelligent Test Selection** | Pick the smallest high-value regression set for a change |
+| **CI Intelligence** | Workflow health, flaky detection, failure explanation |
+| **Defect Prediction** | File-level risk from commit history |
 
-### Release & Ops
+### Build & ship
 | Module | Description |
 |--------|-------------|
-| **SDLC Pipeline** | End-to-end delivery workflow across stages |
-| **Deployments** | Vercel deployment tracking |
-| **Release Gate** | AI-assisted go / no-go release decisions |
-| **CI Intelligence** | Workflow health, flaky test detection, failure explanation |
-| **Monitoring** | Anomaly detection on time-series metrics |
+| **AI Workspace** | Monaco editor, Copilot, Git ops, impact graphs |
+| **AI App Builder** | Generate React apps from natural language |
+| **Code Reviewer** | AI PR review via GitHub |
+| **Release Gate** | Go / no-go decisions with evidence |
+| **Auth & Orgs** | WorkOS sessions with multi-tenant isolation |
 
 ---
 
@@ -85,17 +89,18 @@ Built by [WayamAI](https://github.com/WayamAI).
 | MongoDB | 7+ (Docker recommended) |
 | Ollama | Local or [Ollama Cloud](https://ollama.com) |
 
-### 1. Clone & configure
+### 1. Clone
 
 ```bash
-git clone https://github.com/WayamAI/AIDLC.git
-cd AIDLC
+git clone https://github.com/WayamAI/AIDLC-Azure.git
+cd AIDLC-Azure
 ```
 
-### 2. Start MongoDB
+### 2. MongoDB
 
 ```bash
 docker run -d --name aidlc-mongo -p 27017:27017 -v aidlc-mongo-data:/data/db mongo:7
+# later: docker start aidlc-mongo
 ```
 
 ### 3. Backend
@@ -103,19 +108,20 @@ docker run -d --name aidlc-mongo -p 27017:27017 -v aidlc-mongo-data:/data/db mon
 ```bash
 cd backend
 cp .env.example .env
-# Edit .env set MONGODB_URI, OLLAMA_BASE_URL, OLLAMA_API_KEY, OLLAMA_MODEL
+# Set MONGODB_URI, OLLAMA_*, SESSION_SECRET (and WorkOS keys if using auth)
 
 python -m venv .venv
-# Windows
-.venv\Scripts\activate
-# macOS / Linux
-source .venv/bin/activate
+# Windows:  .venv\Scripts\activate
+# macOS/Linux: source .venv/bin/activate
 
 pip install -r requirements.txt
 uvicorn main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-API docs: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+API docs: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)  
+Health: `GET /health` · Ready: `GET /ready`
+
+> **Port 8000 busy?** Use `uvicorn ... --port 8001` and start the frontend with `BACKEND_PORT=8001 npm run dev`.
 
 ### 4. Frontend
 
@@ -126,7 +132,7 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:8080](http://localhost:8080) the Vite dev server proxies `/api` to the backend.
+Open [http://localhost:8080](http://localhost:8080) — Vite proxies `/api` to the backend.
 
 ---
 
@@ -136,59 +142,55 @@ Open [http://localhost:8080](http://localhost:8080) the Vite dev server proxies 
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `MONGODB_URI` | Yes | MongoDB connection string |
-| `MONGODB_DB` | Yes | Database name (default: `aidlc`) |
+| `MONGODB_URI` | Yes | MongoDB / Atlas / Cosmos connection string |
+| `MONGODB_DB` | Yes | Database name (default `aidlc`) |
+| `SESSION_SECRET` | Yes (prod) | Strong random secret (≥32 chars in production) |
 | `OLLAMA_BASE_URL` | For AI | `http://localhost:11434` or `https://ollama.com` |
-| `OLLAMA_API_KEY` | For AI | API key for Ollama Cloud |
-| `OLLAMA_MODEL` | For AI | e.g. `gpt-oss:120b` or `llama3.1` |
+| `OLLAMA_API_KEY` | For AI | Ollama Cloud API key |
+| `OLLAMA_MODEL` | For AI | e.g. `gpt-oss:120b`, `kimi-k3:cloud` |
+| `WORKOS_*` | Auth | WorkOS API key, client ID, redirect URI, webhook secret |
+| `FRONTEND_URL` / `CORS_ORIGINS` | Prod | Frontend origin(s) for cookies and CORS |
 | `GITHUB_TOKEN` | Optional | Private repos & higher rate limits |
-| `JIRA_DOMAIN` / `JIRA_EMAIL` / `JIRA_TOKEN` | Optional | Jira sprint intelligence |
-| `VERCEL_TOKEN` | Optional | Deployment tracking |
+| `JIRA_*` / `VERCEL_*` / `SLACK_*` / `DATADOG_*` | Optional | Integrations |
 
-See `backend/.env.example` for the full list.
+Full templates: `backend/.env.example`, `backend/.env.azure.example`.
 
 ---
 
 ## Project Structure
 
 ```
-AIDLC/
-├── backend/                 # FastAPI API server
+AIDLC-Azure/
+├── backend/                 # FastAPI API
 │   ├── app/
+│   │   ├── auth/            # WorkOS sessions & dependencies
 │   │   ├── routes/          # REST endpoints
 │   │   ├── services/        # Business logic & integrations
-│   │   ├── engines/         # AI test generation pipeline
+│   │   ├── engines/         # AI test-generation pipeline
 │   │   └── models/          # Pydantic / DB models
+│   ├── tests/               # Pytest suite
+│   ├── Dockerfile           # API container (Playwright + Chromium)
 │   └── main.py
 ├── frontend/                # Vite + React SPA
-│   ├── src/
-│   │   ├── pages/           # Route-level views
-│   │   ├── components/      # UI components (shadcn/ui)
-│   │   └── lib/             # API client, design system, brand
-│   └── public/
-│       └── videos/          # Login hero video assets
-├── VERCEL_DEPLOY.md         # Step-by-step Vercel deployment guide
-├── vercel.json              # Full-stack Vercel config (frontend + API)
-├── api/index.py             # Serverless FastAPI entrypoint
-├── requirements.txt         # Python deps for Vercel (slim, no Playwright)
-├── SETUP.md                 # Detailed local setup guide
-└── DEV_CHECKLIST.md         # Development checklist
+│   ├── src/pages/           # Route-level views
+│   ├── src/components/      # shadcn/ui + IMCC UI
+│   └── src/lib/             # API client, design system, brand
+├── infra/azure/             # ACR + Container Apps deploy scripts
+├── api/index.py             # Optional Vercel serverless entry
+├── Dockerfile               # Unified SPA + API image
+├── SETUP.md                 # Detailed local setup
+└── VERCEL_DEPLOY.md         # Optional Vercel path
 ```
 
 ---
 
 ## Tech Stack
 
-**Frontend**
-- React 18 · TypeScript · Vite
-- Tailwind CSS · shadcn/ui · Framer Motion
-- TanStack Query · React Router · Recharts
-- Monaco Editor · Sigma.js (dependency graphs)
+**Frontend:** React 18 · TypeScript · Vite · Tailwind · shadcn/ui · TanStack Query · Monaco · Sigma.js  
 
-**Backend**
-- FastAPI · Motor (async MongoDB) · Pydantic v2
-- Ollama / OpenAI-compatible API for LLM calls
-- Playwright · GitPython · httpx
+**Backend:** FastAPI · Motor (async MongoDB) · Pydantic v2 · Ollama-compatible LLM · Playwright · WorkOS  
+
+**Deploy:** Azure Container Apps + ACR (primary) · optional Vercel · Docker
 
 ---
 
@@ -196,51 +198,61 @@ AIDLC/
 
 ```bash
 # Frontend
-cd frontend && npm run dev      # Dev server (:8080)
-cd frontend && npm run build    # Production build
-cd frontend && npm test         # Vitest
+cd frontend && npm run dev       # :8080
+cd frontend && npm run build
+cd frontend && npm test
 
 # Backend
 cd backend && uvicorn main:app --reload --port 8000
+cd backend && pytest
 ```
 
 ---
 
 ## Deployment
 
-### Vercel (recommended)
+### Azure Container Apps (recommended)
 
-**One-click full stack** import the repo on [Vercel](https://vercel.com/new). The root `vercel.json` builds the frontend and runs the FastAPI API at `/api` on the same domain.
+Long-lived API with Playwright and AI jobs — not Functions.
 
-```bash
-# Or deploy via CLI
-npm i -g vercel && vercel login && vercel --prod
+```powershell
+# 1. Configure secrets
+cd backend
+cp .env.azure.example .env.azure
+# Fill MONGODB_URI, SESSION_SECRET, OLLAMA_*, FRONTEND_URL, CORS_ORIGINS, ...
+
+# 2. Deploy
+cd ../infra/azure
+.\deploy.ps1 -ResourceGroup aidlc-rg -Location eastus
 ```
 
-**Required Vercel env vars:** `MONGODB_URI` (Atlas), `OLLAMA_BASE_URL`, `OLLAMA_API_KEY`, `OLLAMA_MODEL`
+Linux/macOS: `./deploy.sh` (see [`infra/azure/README.md`](./infra/azure/README.md)).
 
-Full guide: **[VERCEL_DEPLOY.md](./VERCEL_DEPLOY.md)**
+| Resource | Default name |
+|----------|----------------|
+| Resource group | `aidlc-rg` |
+| ACR | `aidlcregistry` |
+| Container App | `aidlc-api` |
 
-| Deploy mode | Root directory | Config |
-|-------------|----------------|--------|
-| Full stack (recommended) | `.` | `vercel.json` |
-| Frontend only | `frontend` | `frontend/vercel.json` + `VITE_API_URL` |
-| Backend only | `backend` | `backend/vercel.json` |
+Probes: `GET /health` (liveness), `GET /ready` (Mongo).
 
-> **Note:** Live Playwright execution and AI IDE WebSockets require a VM see `frontend/DEPLOY_AZURE_VM.md`.
+Serve the SPA via Azure Static Web Apps (or any static host) and point `FRONTEND_URL` / `CORS_ORIGINS` at that origin.
 
-### Other platforms
+VM + PM2 fallback: [`frontend/DEPLOY_AZURE_VM.md`](./frontend/DEPLOY_AZURE_VM.md).
 
-Both `frontend/` and `backend/` can also deploy independently. Point `VITE_API_URL` at your API URL for split deployments.
+### Vercel (optional)
+
+Full-stack import with root `vercel.json`. Required env: `MONGODB_URI`, `OLLAMA_*`. Guide: [`VERCEL_DEPLOY.md`](./VERCEL_DEPLOY.md).
+
+> Live Playwright and AI IDE WebSockets need a container or VM, not serverless alone.
 
 ---
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/my-feature`)
-3. Commit your changes
-4. Open a pull request against `main`
+1. Fork [WayamAI/AIDLC-Azure](https://github.com/WayamAI/AIDLC-Azure)
+2. Create a branch: `git checkout -b feature/my-feature`
+3. Commit and open a PR against `main`
 
 ---
 
@@ -251,6 +263,5 @@ Proprietary © [WayamAI](https://github.com/WayamAI). All rights reserved.
 ---
 
 <p align="center">
-  <sub>Built with care by the WayamAI team</sub>
+  <sub>Built by the WayamAI team</sub>
 </p>
-# AIDLC_final
