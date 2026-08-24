@@ -151,8 +151,7 @@ function IdeaScreen({ onBuild }: { onBuild: (idea: string) => void }) {
           transition={{ delay: 0.3, duration: 0.5 }}
           className="relative group"
         >
-          <div className="absolute -inset-0.5 bg-gradient-brand rounded-2xl blur opacity-30 group-focus-within:opacity-60 group-focus-within:duration-200 transition duration-1000"></div>
-          <div className="relative floating-card glass p-2 rounded-2xl">
+          <div className="relative floating-card glass p-2 rounded-2xl border border-border">
             <Textarea
               value={idea}
               onChange={(e) => {
@@ -346,7 +345,7 @@ function GitChangesPane() {
     s === "A"
       ? "border-positive/25 bg-positive/10 text-positive"
       : s === "M"
-        ? "border-orange-200 bg-orange-50 text-orange-600"
+        ? "border-[var(--color-status-warning)]/30 bg-[var(--color-warning-bg)] text-[var(--color-warning)]"
         : "border-sky-500/30 bg-sky-500/10 text-sky-600";
 
   return (

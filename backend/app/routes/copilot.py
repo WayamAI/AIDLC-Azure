@@ -1,9 +1,11 @@
 """Copilot routes AI code generation, comments, explanation, snippets."""
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 
+from app.auth.dependencies import get_current_org
 from app.database import get_db
+from app.models.organization import OrganizationOut
 from app.models.workspace_models import (
     SuggestCodeRequest, SuggestCodeResponse,
     AddCommentsRequest, ExplainCodeRequest, ExplainCodeResponse,
@@ -90,11 +92,16 @@ async def suggest_workspace(req: WorkspaceSuggestRequest):
 # ── Snippet Library ─────────────────────────────────────────────────────────
 
 @router.get("/snippets")
-async def list_snippets(lang: str = "", tag: str = "", workspace_id: str = ""):
+async def list_snippets(
+    lang: str = "",
+    tag: str = "",
+    workspace_id: str = "",
+    org: OrganizationOut = Depends(get_current_org),
+    db=Depends(get_db),
+):
     """List saved snippets with optional lang/tag/workspace filters."""
     try:
-        db = get_db()
-        query: dict = {}
+        query: dict = {"org_id": org.id}
         if lang:
             query["language"] = lang
         if tag:
@@ -111,11 +118,15 @@ async def list_snippets(lang: str = "", tag: str = "", workspace_id: str = ""):
 
 
 @router.post("/snippets", response_model=SnippetResponse)
-async def create_snippet(req: CreateSnippetRequest):
+async def create_snippet(
+    req: CreateSnippetRequest,
+    org: OrganizationOut = Depends(get_current_org),
+    db=Depends(get_db),
+):
     """Save a code snippet to the library."""
     try:
-        db = get_db()
         doc = {
+            "org_id": org.id,
             "workspace_id": req.workspace_id,
             "name": req.name,
             "code": req.code,
@@ -133,12 +144,15 @@ async def create_snippet(req: CreateSnippetRequest):
 
 
 @router.delete("/snippets/{snippet_id}")
-async def delete_snippet(snippet_id: str):
+async def delete_snippet(
+    snippet_id: str,
+    org: OrganizationOut = Depends(get_current_org),
+    db=Depends(get_db),
+):
     """Delete a snippet by ID."""
     try:
         from bson import ObjectId
-        db = get_db()
-        result = await db["snippets"].delete_one({"_id": ObjectId(snippet_id)})
+        result = await db["snippets"].delete_one({"_id": ObjectId(snippet_id), "org_id": org.id})
         if result.deleted_count == 0:
             raise HTTPException(status_code=404, detail="Snippet not found")
         return {"status": "deleted", "id": snippet_id}

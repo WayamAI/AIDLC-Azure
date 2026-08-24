@@ -14,7 +14,6 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from app.database import get_db
 from app.models.test_execution import RunStarted, RunSummary, TestResultOut
 from app.services.test_case_service import get_test_cases
 
@@ -145,14 +144,13 @@ def _simulate_result(
     }
 
 
-async def _load_past_fail_rates(tc_ids: list[str], lookback: int = 10) -> dict[str, float]:
+async def _load_past_fail_rates(db, org_id: str, tc_ids: list[str], lookback: int = 10) -> dict[str, float]:
     """
     For each tc_id, look at the last `lookback` runs and compute what fraction failed.
     Returns a dict tc_id → fail_rate (0.0 = always passed, 1.0 = always failed).
     """
-    db = get_db()
     pipeline = [
-        {"$match": {"tc_id": {"$in": tc_ids}}},
+        {"$match": {"tc_id": {"$in": tc_ids}, "org_id": org_id}},
         {"$sort": {"timestamp": -1}},
         {"$group": {
             "_id": "$tc_id",
@@ -171,6 +169,8 @@ async def _load_past_fail_rates(tc_ids: list[str], lookback: int = 10) -> dict[s
 
 
 async def _execute_run_background(
+    db,
+    org_id: str,
     run_id: str,
     tests: list[Any],
     data_context: dict[str, Any] | None,
@@ -181,7 +181,6 @@ async def _execute_run_background(
     so the frontend can poll and see results appearing in real-time.
     Results are written to MongoDB one-by-one as they complete.
     """
-    db = get_db()
     for tc in tests:
         past_rate = past_fail_rates.get(tc.tc_id, 0.0)
         res = _simulate_result(
@@ -198,6 +197,7 @@ async def _execute_run_background(
 
         doc = {
             **res,
+            "org_id": org_id,
             "run_id": run_id,
             "timestamp": datetime.utcnow(),
         }
@@ -209,6 +209,8 @@ async def _execute_run_background(
 
 
 async def start_run(
+    db,
+    org_id: str,
     requirement_id: str | None = None,
     data_context: dict[str, Any] | None = None,
 ) -> RunStarted:
@@ -218,24 +220,23 @@ async def start_run(
     """
     run_id = str(uuid.uuid4())
 
-    tests = await get_test_cases(requirement_id=requirement_id)
+    tests = await get_test_cases(db, org_id, requirement_id=requirement_id)
     if not tests:
-        tests = await get_test_cases()
+        tests = await get_test_cases(db, org_id)
 
     tc_ids = [tc.tc_id for tc in tests]
-    past_fail_rates = await _load_past_fail_rates(tc_ids)
+    past_fail_rates = await _load_past_fail_rates(db, org_id, tc_ids)
 
     # Fire and forget results land in DB one by one as the background task runs
     asyncio.create_task(
-        _execute_run_background(run_id, tests, data_context, past_fail_rates)
+        _execute_run_background(db, org_id, run_id, tests, data_context, past_fail_rates)
     )
 
     return RunStarted(run_id=run_id, total=len(tests))
 
 
-async def get_results(run_id: str | None = None, limit: int = 100) -> list[TestResultOut]:
-    db = get_db()
-    query: dict[str, Any] = {}
+async def get_results(db, org_id: str, run_id: str | None = None, limit: int = 100) -> list[TestResultOut]:
+    query: dict[str, Any] = {"org_id": org_id}
     if run_id:
         query["run_id"] = run_id
 
@@ -257,9 +258,8 @@ async def get_results(run_id: str | None = None, limit: int = 100) -> list[TestR
     ]
 
 
-async def get_run_summary(run_id: str) -> RunSummary | None:
-    db = get_db()
-    cursor = db.test_results.find({"run_id": run_id})
+async def get_run_summary(db, org_id: str, run_id: str) -> RunSummary | None:
+    cursor = db.test_results.find({"run_id": run_id, "org_id": org_id})
     docs = await cursor.to_list(length=1000)
     if not docs:
         return None

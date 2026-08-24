@@ -469,6 +469,7 @@ export function useLiveTesting() {
 
         const syntheticAnalysis: RepoAnalysisResult = {
           analysis_id: `spec-${Date.now()}`,
+          target_url: "",
           summary: `Imported from ${res.filename} ${parsedTests.length} test${parsedTests.length !== 1 ? "s" : ""} ready to run`,
           tech_stack: "Playwright TypeScript (uploaded spec)",
           pages: [],

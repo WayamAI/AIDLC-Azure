@@ -3,23 +3,21 @@ Prioritization service: uses Gemini to rank test cases by risk/failure history.
 """
 from typing import Any
 
-from app.database import get_db
 from app.models.prioritization import PrioritizedTestOut
 from app.services import ai_service
 
 
-async def get_prioritized_tests(refresh: bool = False) -> list[PrioritizedTestOut]:
-    db = get_db()
-
+async def get_prioritized_tests(db, org_id: str, refresh: bool = False) -> list[PrioritizedTestOut]:
     # Return cached prioritization unless caller wants a fresh ranking
     if not refresh:
-        cursor = db.prioritized_tests.find().sort("priority", -1).limit(50)
+        cursor = db.prioritized_tests.find({"org_id": org_id}).sort("priority", -1).limit(50)
         cached = await cursor.to_list(length=50)
         if cached:
             return [_to_out(d) for d in cached]
 
     # Build summary from test_results collection
     pipeline = [
+        {"$match": {"org_id": org_id}},
         {
             "$group": {
                 "_id": "$tc_id",
@@ -28,7 +26,7 @@ async def get_prioritized_tests(refresh: bool = False) -> list[PrioritizedTestOu
                 "total": {"$sum": 1},
                 "last_status": {"$last": "$status"},
             }
-        }
+        },
     ]
     agg = await db.test_results.aggregate(pipeline).to_list(length=500)
 
@@ -52,10 +50,11 @@ async def get_prioritized_tests(refresh: bool = False) -> list[PrioritizedTestOu
     # Upsert into mongo
     for item in ranked:
         await db.prioritized_tests.update_one(
-            {"tc_id": item["tc_id"]},
+            {"tc_id": item["tc_id"], "org_id": org_id},
             {
                 "$set": {
                     "tc_id": item["tc_id"],
+                    "org_id": org_id,
                     "name": item.get("name", ""),
                     "priority": item.get("priority", 0),
                     "status": item.get("status", "stable"),
@@ -67,7 +66,7 @@ async def get_prioritized_tests(refresh: bool = False) -> list[PrioritizedTestOu
             upsert=True,
         )
 
-    cursor = db.prioritized_tests.find().sort("priority", -1).limit(50)
+    cursor = db.prioritized_tests.find({"org_id": org_id}).sort("priority", -1).limit(50)
     docs = await cursor.to_list(length=50)
     return [_to_out(d) for d in docs]
 

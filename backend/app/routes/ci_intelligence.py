@@ -8,8 +8,10 @@ from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
+from app.auth.dependencies import get_current_org
+from app.models.organization import OrganizationOut
 from app.services import github_service
 from app.services.ai_service import explain_ci_failure, AIQuotaError
 
@@ -24,7 +26,7 @@ def _parse_dt(s: str) -> datetime:
 
 
 @router.get("/health")
-async def build_health(owner: str, repo: str):
+async def build_health(owner: str, repo: str, org: OrganizationOut = Depends(get_current_org)):
     """Compute build health metrics from the last 30 workflow runs."""
     try:
         runs = await github_service.get_workflow_runs(owner, repo, per_page=50)
@@ -92,7 +94,7 @@ async def build_health(owner: str, repo: str):
 
 
 @router.get("/flaky-tests")
-async def detect_flaky_tests(owner: str, repo: str):
+async def detect_flaky_tests(owner: str, repo: str, org: OrganizationOut = Depends(get_current_org)):
     """
     Detect potentially flaky tests by looking at repeated failure patterns.
     Since GitHub doesn't expose per-test results via REST, we use workflow name
@@ -130,7 +132,7 @@ async def detect_flaky_tests(owner: str, repo: str):
 
 
 @router.post("/runs/{run_id}/explain")
-async def explain_run(owner: str, repo: str, run_id: int):
+async def explain_run(owner: str, repo: str, run_id: int, org: OrganizationOut = Depends(get_current_org)):
     """Download CI run logs and generate an AI explanation of the failure."""
     try:
         logs = await github_service.get_run_logs_text(owner, repo, run_id)

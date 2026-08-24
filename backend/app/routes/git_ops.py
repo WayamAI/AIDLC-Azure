@@ -1,6 +1,8 @@
 """Git operation routes status, log, branch, commit+push, diff."""
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
+from app.auth.dependencies import get_current_org
+from app.models.organization import OrganizationOut
 from app.models.workspace_models import (
     CommitRequest, CommitResponse,
     BranchRequest, GitStatusResponse,
@@ -11,7 +13,7 @@ router = APIRouter(prefix="/git", tags=["Git Operations"])
 
 
 @router.get("/status", response_model=GitStatusResponse)
-async def git_status(workspace_id: str):
+async def git_status(workspace_id: str, org: OrganizationOut = Depends(get_current_org)):
     try:
         return await git_service.get_status(workspace_id)
     except KeyError:
@@ -21,7 +23,11 @@ async def git_status(workspace_id: str):
 
 
 @router.get("/log")
-async def git_log(workspace_id: str, max_count: int = 20):
+async def git_log(
+    workspace_id: str,
+    max_count: int = 20,
+    org: OrganizationOut = Depends(get_current_org),
+):
     try:
         entries = await git_service.get_log(workspace_id, max_count)
         return {"workspace_id": workspace_id, "commits": entries}
@@ -32,7 +38,7 @@ async def git_log(workspace_id: str, max_count: int = 20):
 
 
 @router.get("/diff")
-async def git_diff(workspace_id: str, file_path: str):
+async def git_diff(workspace_id: str, file_path: str, org: OrganizationOut = Depends(get_current_org)):
     try:
         diff = await git_service.get_file_diff(workspace_id, file_path)
         return {"workspace_id": workspace_id, "file_path": file_path, "diff": diff}
@@ -43,7 +49,7 @@ async def git_diff(workspace_id: str, file_path: str):
 
 
 @router.post("/branch")
-async def create_branch(req: BranchRequest):
+async def create_branch(req: BranchRequest, org: OrganizationOut = Depends(get_current_org)):
     try:
         result = await git_service.create_branch(
             workspace_id=req.workspace_id,
@@ -58,7 +64,7 @@ async def create_branch(req: BranchRequest):
 
 
 @router.post("/commit", response_model=CommitResponse)
-async def commit_and_push(req: CommitRequest):
+async def commit_and_push(req: CommitRequest, org: OrganizationOut = Depends(get_current_org)):
     """Stage files, commit, and push to GitHub."""
     try:
         result = await git_service.commit_and_push(

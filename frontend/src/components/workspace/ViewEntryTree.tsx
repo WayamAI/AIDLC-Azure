@@ -567,7 +567,7 @@ function RunTestWizard({ open, onClose, workspaceId, repoUrl, branch, selectedFi
 type StatusCode = "M" | "U" | "A" | "D" | " ";
 
 const STATUS_STYLE: Record<StatusCode, string> = {
-  M: "text-orange-700",
+  M: "text-[var(--color-warning)]",
   U: "text-sky-700",
   A: "text-positive",
   D: "text-red-700",
@@ -690,7 +690,7 @@ function FileTreeNodeRow({
       title={node.path}
     >
       {isEntry ? (
-        <Flame className="h-3.5 w-3.5 text-orange-700 flex-shrink-0" />
+        <Flame className="h-3.5 w-3.5 text-[var(--color-warning)] flex-shrink-0" />
       ) : (
         fileIcon(node.path)
       )}
@@ -849,7 +849,7 @@ export function ViewEntryTree({ refreshNonce = 0 }: { refreshNonce?: number } = 
 
         {(summary || changedCount > 0) && (
           <div className="mt-1 flex items-center gap-2 text-[9px] text-muted-foreground/80">
-            <span className="text-orange-700">{summary?.status_counts.M ?? 0}M</span>
+            <span className="text-[var(--color-warning)]">{summary?.status_counts.M ?? 0}M</span>
             <span className="text-sky-700">{summary?.status_counts.U ?? 0}U</span>
             <span className="text-positive">{summary?.status_counts.A ?? 0}A</span>
             <span className="ml-auto">{changedCount} changed</span>

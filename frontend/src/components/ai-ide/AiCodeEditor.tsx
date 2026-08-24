@@ -53,7 +53,7 @@ export function AiCodeEditor() {
                 )}
               >
                 <span className="truncate max-w-[120px]">{fileName}</span>
-                {isDirty && <span className="h-1.5 w-1.5 rounded-full bg-orange-400 flex-shrink-0" />}
+                {isDirty && <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-warning)] flex-shrink-0" />}
                 <X
                   className="h-3 w-3 opacity-50 hover:opacity-100 flex-shrink-0"
                   onClick={(e) => {

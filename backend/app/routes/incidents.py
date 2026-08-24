@@ -6,9 +6,11 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Body
+from fastapi import APIRouter, HTTPException, Body, Depends
 
+from app.auth.dependencies import get_current_org
 from app.database import get_db
+from app.models.organization import OrganizationOut
 from app.services.ai_service import investigate_incident, AIQuotaError
 from app.services import slack_service
 
@@ -20,7 +22,11 @@ def _now_iso() -> str:
 
 
 @router.post("", status_code=201)
-async def create_incident(body: dict = Body(...)):
+async def create_incident(
+    body: dict = Body(...),
+    org: OrganizationOut = Depends(get_current_org),
+    db=Depends(get_db),
+):
     """Create an incident from an anomaly and trigger AI root cause analysis."""
     anomaly: dict = body.get("anomaly", {})
     column_comparison: list[dict] = body.get("column_comparison", [])
@@ -47,6 +53,7 @@ async def create_incident(body: dict = Body(...)):
     incident = {
         "_id": incident_id,
         "id": incident_id,
+        "org_id": org.id,
         "title": title,
         "status": "investigating",
         "triggered_at": _now_iso(),
@@ -62,7 +69,6 @@ async def create_incident(body: dict = Body(...)):
         ],
     }
 
-    db = get_db()
     await db.incidents.insert_one(dict(incident))
 
     # Notify Slack
@@ -79,9 +85,12 @@ async def create_incident(body: dict = Body(...)):
 
 
 @router.get("")
-async def list_incidents(limit: int = 20):
-    db = get_db()
-    cursor = db.incidents.find({}).sort("triggered_at", -1).limit(limit)
+async def list_incidents(
+    limit: int = 20,
+    org: OrganizationOut = Depends(get_current_org),
+    db=Depends(get_db),
+):
+    cursor = db.incidents.find({"org_id": org.id}).sort("triggered_at", -1).limit(limit)
     docs = await cursor.to_list(length=limit)
     for d in docs:
         d["id"] = d.pop("_id", d.get("id", ""))
@@ -89,9 +98,12 @@ async def list_incidents(limit: int = 20):
 
 
 @router.get("/{incident_id}")
-async def get_incident(incident_id: str):
-    db = get_db()
-    doc = await db.incidents.find_one({"_id": incident_id})
+async def get_incident(
+    incident_id: str,
+    org: OrganizationOut = Depends(get_current_org),
+    db=Depends(get_db),
+):
+    doc = await db.incidents.find_one({"_id": incident_id, "org_id": org.id})
     if not doc:
         raise HTTPException(status_code=404, detail="Incident not found")
     doc["id"] = doc.pop("_id")
@@ -99,9 +111,13 @@ async def get_incident(incident_id: str):
 
 
 @router.put("/{incident_id}/resolve")
-async def resolve_incident(incident_id: str, body: dict = Body(default={})):
-    db = get_db()
-    doc = await db.incidents.find_one({"_id": incident_id})
+async def resolve_incident(
+    incident_id: str,
+    body: dict = Body(default={}),
+    org: OrganizationOut = Depends(get_current_org),
+    db=Depends(get_db),
+):
+    doc = await db.incidents.find_one({"_id": incident_id, "org_id": org.id})
     if not doc:
         raise HTTPException(status_code=404, detail="Incident not found")
 
@@ -114,17 +130,22 @@ async def resolve_incident(incident_id: str, body: dict = Body(default={})):
         },
     }
     push_op = update.pop("$push")
-    await db.incidents.update_one({"_id": incident_id}, {"$set": update, "$push": push_op})
-    updated = await db.incidents.find_one({"_id": incident_id})
+    await db.incidents.update_one(
+        {"_id": incident_id, "org_id": org.id}, {"$set": update, "$push": push_op}
+    )
+    updated = await db.incidents.find_one({"_id": incident_id, "org_id": org.id})
     updated["id"] = updated.pop("_id")
     return updated
 
 
 @router.post("/{incident_id}/postmortem")
-async def generate_postmortem(incident_id: str):
+async def generate_postmortem(
+    incident_id: str,
+    org: OrganizationOut = Depends(get_current_org),
+    db=Depends(get_db),
+):
     """Generate a structured post-mortem report for an incident."""
-    db = get_db()
-    doc = await db.incidents.find_one({"_id": incident_id})
+    doc = await db.incidents.find_one({"_id": incident_id, "org_id": org.id})
     if not doc:
         raise HTTPException(status_code=404, detail="Incident not found")
 

@@ -361,7 +361,7 @@ export function CopilotChat() {
         </div>
 
         {!workspace && (
-          <p className="text-[10px] text-orange-700 px-1">Connect a repository to start chatting</p>
+          <p className="text-[10px] text-[var(--color-warning)] px-1">Connect a repository to start chatting</p>
         )}
       </div>
     </div>

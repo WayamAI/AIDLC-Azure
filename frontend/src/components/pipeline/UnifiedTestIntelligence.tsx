@@ -118,7 +118,7 @@ function exportMarkdown(tests: WorkspacePlaywrightTest[]): string {
 
 const severityClass: Record<string, string> = {
   Critical: "bg-red-500/15 text-red-700 border-red-200",
-  High: "bg-orange-500/15 text-orange-700 border-orange-200",
+  High: "bg-[var(--color-warning-bg)] text-[var(--color-warning)] border-[var(--color-status-warning)]/30",
   Medium: "bg-yellow-500/15 text-amber-700 border-amber-200",
   Low: "bg-slate-500/15 text-slate-400 border-slate-500/30",
 };

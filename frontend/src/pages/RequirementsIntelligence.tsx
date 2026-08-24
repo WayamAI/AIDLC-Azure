@@ -25,7 +25,7 @@ import { PageShell } from "@/components/PageShell";
 const PRIORITY_COLORS: Record<string, string> = {
   Critical: "text-red-700 border-red-200 bg-red-50",
   Highest: "text-red-700 border-red-200 bg-red-50",
-  High: "text-orange-700 border-orange-200 bg-orange-50",
+  High: "text-[var(--color-warning)] border-[var(--color-status-warning)]/30 bg-[var(--color-warning-bg)]",
   Medium: "text-amber-700 border-amber-200 bg-amber-50",
   Low: "text-sky-700 border-sky-200 bg-sky-50",
   Lowest: "text-muted-foreground border-border/30",
@@ -56,7 +56,7 @@ function StoryCard({ item, canPushToJira = false }: { item: any; canPushToJira?:
   const riskScore = ai_analysis?.risk_score || 0;
   const riskColor =
     riskScore >= 75 ? "text-red-700" :
-    riskScore >= 50 ? "text-orange-700" :
+    riskScore >= 50 ? "text-[var(--color-warning)]" :
     riskScore >= 25 ? "text-amber-700" :
     "text-positive";
 

@@ -14,7 +14,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { PageShell } from "@/components/PageShell";
 
 function ScoreGauge({ score }: { score: number }) {
-  const color = score >= 75 ? "#FFA12B" : score >= 50 ? "#f59e0b" : "#DC440C";
+  const color = score >= 75 ? "#B45309" : score >= 50 ? "#AFAFAF" : "#DC2626";
   return (
     <div className="relative flex items-center justify-center">
       <ResponsiveContainer width={200} height={200}>
@@ -168,10 +168,10 @@ export default function ReleaseGate() {
                 </div>
                 <div className="p-3 rounded-lg border border-border/30">
                   <div className="flex items-center gap-2 mb-2">
-                    <Shield className="h-4 w-4 text-orange-700" />
+                    <Shield className="h-4 w-4 text-[var(--color-warning)]" />
                     <span className="text-xs font-medium">Security Findings</span>
                   </div>
-                  <p className="text-2xl font-display font-bold text-orange-700">{signals.unresolved_security_findings || 0}</p>
+                  <p className="text-2xl font-display font-bold text-[var(--color-warning)]">{signals.unresolved_security_findings || 0}</p>
                   <p className="text-xs text-muted-foreground">unresolved</p>
                 </div>
                 <div className="p-3 rounded-lg border border-border/30">

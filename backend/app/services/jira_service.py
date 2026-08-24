@@ -9,10 +9,18 @@ from typing import Any
 import httpx
 
 from app.config import settings
+from app.services import connector_settings_service as connectors
+
+
+def _jira_cfg() -> dict[str, str]:
+    return connectors.active("jira")
 
 
 def _auth_header() -> str:
-    creds = f"{settings.JIRA_EMAIL.strip()}:{settings.JIRA_TOKEN.strip()}"
+    cfg = _jira_cfg()
+    email = (cfg.get("email") or settings.JIRA_EMAIL or "").strip()
+    token = (cfg.get("token") or settings.JIRA_TOKEN or "").strip()
+    creds = f"{email}:{token}"
     return "Basic " + base64.b64encode(creds.encode()).decode()
 
 
@@ -24,8 +32,16 @@ def _headers() -> dict[str, str]:
     }
 
 
+def _base_url() -> str:
+    cfg = _jira_cfg()
+    domain = (cfg.get("domain") or settings.JIRA_DOMAIN or "").strip().rstrip("/")
+    if domain.startswith("http"):
+        return domain
+    return f"https://{domain}" if domain else settings.jira_base_url
+
+
 async def _get(path: str, params: dict | None = None) -> Any:
-    url = f"{settings.jira_base_url}{path}"
+    url = f"{_base_url()}{path}"
     async with httpx.AsyncClient(timeout=30) as client:
         resp = await client.get(url, headers=_headers(), params=params)
         resp.raise_for_status()
@@ -33,7 +49,7 @@ async def _get(path: str, params: dict | None = None) -> Any:
 
 
 async def _post(path: str, body: dict) -> Any:
-    url = f"{settings.jira_base_url}{path}"
+    url = f"{_base_url()}{path}"
     async with httpx.AsyncClient(timeout=30) as client:
         resp = await client.post(url, headers=_headers(), json=body)
         resp.raise_for_status()
@@ -41,7 +57,7 @@ async def _post(path: str, body: dict) -> Any:
 
 
 async def _put(path: str, body: dict) -> Any:
-    url = f"{settings.jira_base_url}{path}"
+    url = f"{_base_url()}{path}"
     async with httpx.AsyncClient(timeout=30) as client:
         resp = await client.put(url, headers=_headers(), json=body)
         resp.raise_for_status()

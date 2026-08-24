@@ -6,8 +6,10 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 from urllib.parse import urlparse
 
-from fastapi import APIRouter, HTTPException, Body
+from fastapi import APIRouter, Body, Depends, HTTPException
 
+from app.auth.dependencies import get_current_org
+from app.models.organization import OrganizationOut
 from app.services import github_service, jira_service
 from app.services.ai_service import generate_sprint_summary, AIQuotaError
 
@@ -29,7 +31,7 @@ router = APIRouter(prefix="/sprint", tags=["Sprint Intelligence"])
 
 
 @router.post("/report")
-async def generate_sprint_report(body: dict = Body(...)):
+async def generate_sprint_report(body: dict = Body(...), org: OrganizationOut = Depends(get_current_org)):
     """
     Generate a full sprint intelligence report.
 
@@ -116,7 +118,7 @@ async def generate_sprint_report(body: dict = Body(...)):
 
 
 @router.get("/dora")
-async def dora_metrics(owner: str, repo: str):
+async def dora_metrics(owner: str, repo: str, org: OrganizationOut = Depends(get_current_org)):
     """Compute DORA metrics from GitHub Actions data."""
     try:
         runs = await github_service.get_workflow_runs(owner, repo, per_page=100)

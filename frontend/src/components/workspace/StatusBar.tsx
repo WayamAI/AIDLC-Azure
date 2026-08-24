@@ -17,7 +17,7 @@ export function StatusBar() {
       </div>
       {dirtyCount > 0 && (
         <div className="flex items-center gap-1">
-          <Circle className="h-2 w-2 fill-orange-300 text-orange-700" />
+          <Circle className="h-2 w-2 fill-[var(--color-warning)] text-[var(--color-warning)]" />
           <span>{dirtyCount} unsaved</span>
         </div>
       )}

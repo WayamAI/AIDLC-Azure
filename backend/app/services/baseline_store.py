@@ -8,7 +8,6 @@ import logging
 from datetime import datetime, timezone
 from typing import List, Optional
 
-from app.database import get_db
 from app.models.repo_baseline import BaselineTest, RepoBaseline, ScanSession
 
 log = logging.getLogger("baseline_store")
@@ -19,23 +18,21 @@ SESSION_STATUS_COLLECTION = "baseline_scan_sessions"
 
 # ── read ────────────────────────────────────────────────────────────────────
 
-async def get_repo(repo_id: str) -> Optional[RepoBaseline]:
-    db = get_db()
-    doc = await db[COLLECTION].find_one({"repo_id": repo_id})
+async def get_repo(db, org_id: str, repo_id: str) -> Optional[RepoBaseline]:
+    doc = await db[COLLECTION].find_one({"repo_id": repo_id, "org_id": org_id})
     if not doc:
         return None
     doc.pop("_id", None)
     return RepoBaseline(**doc)
 
 
-async def get_session(session_id: str) -> Optional[ScanSession]:
+async def get_session(db, org_id: str, session_id: str) -> Optional[ScanSession]:
     """
     Quick lookup of a single session searched across all repo documents.
     Used by the status-polling endpoint.
     """
-    db = get_db()
     doc = await db[COLLECTION].find_one(
-        {"sessions.session_id": session_id},
+        {"sessions.session_id": session_id, "org_id": org_id},
         {"sessions.$": 1, "repo_id": 1},
     )
     if not doc:
@@ -48,11 +45,10 @@ async def get_session(session_id: str) -> Optional[ScanSession]:
 
 # ── write ───────────────────────────────────────────────────────────────────
 
-async def create_repo(baseline: RepoBaseline) -> None:
+async def create_repo(db, org_id: str, baseline: RepoBaseline) -> None:
     """Insert a brand-new repo baseline document."""
-    db = get_db()
     data = baseline.model_dump(mode="json")
-    data["_id"] = baseline.repo_id
+    data["org_id"] = org_id
     try:
         await db[COLLECTION].insert_one(data)
     except Exception as exc:
@@ -61,6 +57,8 @@ async def create_repo(baseline: RepoBaseline) -> None:
 
 
 async def update_session_status(
+    db,
+    org_id: str,
     repo_id: str,
     session_id: str,
     status: str,
@@ -68,7 +66,6 @@ async def update_session_status(
     progress_message: str = "",
 ) -> None:
     """Patch a single session's status / progress_message in-place."""
-    db = get_db()
     update = {
         "sessions.$.status": status,
         "sessions.$.progress_message": progress_message,
@@ -76,12 +73,14 @@ async def update_session_status(
     if error is not None:
         update["sessions.$.error"] = error
     await db[COLLECTION].update_one(
-        {"repo_id": repo_id, "sessions.session_id": session_id},
+        {"repo_id": repo_id, "org_id": org_id, "sessions.session_id": session_id},
         {"$set": update},
     )
 
 
 async def append_tests_and_finish_session(
+    db,
+    org_id: str,
     repo_id: str,
     session_id: str,
     new_tests: List[BaselineTest],
@@ -94,7 +93,6 @@ async def append_tests_and_finish_session(
     - Mark the session as done, record counts
     - Update updated_at + last_commit_sha
     """
-    db = get_db()
     test_dicts = [t.model_dump(mode="json") for t in new_tests]
 
     set_part: dict = {
@@ -112,17 +110,16 @@ async def append_tests_and_finish_session(
         update_op["$push"] = {"tests": {"$each": test_dicts}}
 
     await db[COLLECTION].update_one(
-        {"repo_id": repo_id, "sessions.session_id": session_id},
+        {"repo_id": repo_id, "org_id": org_id, "sessions.session_id": session_id},
         update_op,
     )
 
 
 async def mark_session_failed(
-    repo_id: str, session_id: str, error: str
+    db, org_id: str, repo_id: str, session_id: str, error: str
 ) -> None:
-    db = get_db()
     await db[COLLECTION].update_one(
-        {"repo_id": repo_id, "sessions.session_id": session_id},
+        {"repo_id": repo_id, "org_id": org_id, "sessions.session_id": session_id},
         {
             "$set": {
                 "sessions.$.status": "failed",
@@ -133,11 +130,10 @@ async def mark_session_failed(
     )
 
 
-async def add_session_to_repo(repo_id: str, session: ScanSession) -> None:
+async def add_session_to_repo(db, org_id: str, repo_id: str, session: ScanSession) -> None:
     """Push a new ScanSession object onto an existing repo's sessions array."""
-    db = get_db()
     await db[COLLECTION].update_one(
-        {"repo_id": repo_id},
+        {"repo_id": repo_id, "org_id": org_id},
         {
             "$push": {"sessions": session.model_dump(mode="json")},
             "$set": {"updated_at": datetime.now(timezone.utc).isoformat()},
@@ -146,6 +142,8 @@ async def add_session_to_repo(repo_id: str, session: ScanSession) -> None:
 
 
 async def sync_external_tests(
+    db,
+    org_id: str,
     repo_id: str,
     new_tests: List[BaselineTest],
     from_source: str = "workspace",
@@ -154,8 +152,7 @@ async def sync_external_tests(
     Merge externally generated tests into the baseline.
     Only unique tests are added. Returns the count of newly added tests.
     """
-    db = get_db()
-    existing = await get_repo(repo_id)
+    existing = await get_repo(db, org_id, repo_id)
     if not existing:
         return 0
 
@@ -170,7 +167,7 @@ async def sync_external_tests(
         d["added_in_session"] = f"manual_{from_source}"
 
     await db[COLLECTION].update_one(
-        {"repo_id": repo_id},
+        {"repo_id": repo_id, "org_id": org_id},
         {
             "$push": {"tests": {"$each": test_dicts}},
             "$set": {"updated_at": datetime.now(timezone.utc).isoformat()},
@@ -181,10 +178,24 @@ async def sync_external_tests(
 
 # ── index creation ──────────────────────────────────────────────────────────
 
-async def ensure_indexes() -> None:
-    db = get_db()
+async def ensure_indexes(db) -> None:
     coll = db[COLLECTION]
-    await coll.create_index("repo_id", unique=True)
+
+    # Drop the old unique index on repo_id alone (pre-org_id schema): if it's
+    # still there, it collides the moment two different orgs scan the same
+    # public repo URL and create_repo() raises DuplicateKeyError, defeating
+    # the whole point of the compound (org_id, repo_id) index below.
+    try:
+        existing = await coll.index_information()
+        for name, info in existing.items():
+            key = info.get("key", [])
+            if key == [("repo_id", 1)] and info.get("unique"):
+                await coll.drop_index(name)
+                log.info("Dropped stale unique index %r on repo_id", name)
+    except Exception as exc:
+        log.warning("Could not inspect/drop legacy repo_id index (non-fatal): %s", exc)
+
+    await coll.create_index([("org_id", 1), ("repo_id", 1)], unique=True)
     await coll.create_index("github_url")
     await coll.create_index("sessions.session_id")
     await coll.create_index("tests.test_id")

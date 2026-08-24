@@ -10,7 +10,7 @@ import { usePipelineContext } from "@/context/PipelineContext";
 import { useEvaluatePipeline } from "@/hooks/use-pipeline";
 
 function ScoreGauge({ score }: { score: number }) {
-  const color = score >= 75 ? "#FFA12B" : score >= 50 ? "#f59e0b" : "#DC440C";
+  const color = score >= 75 ? "#B45309" : score >= 50 ? "#AFAFAF" : "#DC2626";
   return (
     <div className="relative flex items-center justify-center">
       <ResponsiveContainer width={180} height={180}>

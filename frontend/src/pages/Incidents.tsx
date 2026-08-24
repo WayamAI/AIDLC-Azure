@@ -28,7 +28,7 @@ import { PageShell } from "@/components/PageShell";
 // Incidents require MongoDB to be running (see MONGODB_URI in backend .env).
 
 const STATUS_CONFIG: Record<string, { color: string; bg: string; border: string; icon: React.ElementType }> = {
-  investigating: { color: "text-orange-700", bg: "bg-orange-50", border: "border-orange-200", icon: Clock },
+  investigating: { color: "text-[var(--color-warning)]", bg: "bg-[var(--color-warning-bg)]", border: "border-[var(--color-status-warning)]/30", icon: Clock },
   identified: { color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-200", icon: Target },
   resolved: { color: "text-positive", bg: "bg-positive/10", border: "border-positive/25", icon: CheckCircle },
 };

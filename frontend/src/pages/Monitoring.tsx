@@ -29,11 +29,11 @@ import { CHART_AXIS, CHART_CURSOR, CHART_GRID } from "@/lib/analytics-charts";
 // REAL DATA mode: you paste in your actual daily quality scores as CSV
 
 const DIM_COLORS: Record<string, string> = {
-  completeness: "#F0731A",
-  uniqueness: "#FA8D23",
-  validity: "#C27803",
-  consistency: "#D97706",
-  overall: "#DC440C",
+  completeness: "#B45309",
+  uniqueness: "#AFAFAF",
+  validity: "#6B7280",
+  consistency: "#9CA3AF",
+  overall: "#DC2626",
 };
 
 const DIM_DESCRIPTIONS: Record<string, string> = {

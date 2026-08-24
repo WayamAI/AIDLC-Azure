@@ -13,9 +13,9 @@ AIDLC supports two Vercel deployment modes. **Option A (recommended)** deploys f
 
 ---
 
-## Option A — One-click full stack (recommended)
+## Option A One-click full stack (recommended)
 
-Deploys the React app and FastAPI API on **one domain**. The frontend calls `/api` on the same host — no CORS setup needed.
+Deploys the React app and FastAPI API on **one domain**. The frontend calls `/api` on the same host no CORS setup needed.
 
 ### Steps
 
@@ -38,13 +38,13 @@ Deploys the React app and FastAPI API on **one domain**. The frontend calls `/ap
 
    See [`.env.vercel.example`](../.env.vercel.example) for optional integrations.
 
-6. **Deploy** — no `VITE_API_URL` needed (defaults to `/api`)
+6. **Deploy** no `VITE_API_URL` needed (defaults to `/api`)
 
 ### Verify
 
 - App: `https://your-project.vercel.app`
 - API health: `https://your-project.vercel.app/health`
-- API docs: `https://your-project.vercel.app/api` (routes listed at `/docs` won't work on serverless — use `/health`)
+- API docs: `https://your-project.vercel.app/api` (routes listed at `/docs` won't work on serverless use `/health`)
 
 ### CLI deploy
 
@@ -56,7 +56,7 @@ vercel --prod
 
 ---
 
-## Option B — Split projects (frontend + backend)
+## Option B Split projects (frontend + backend)
 
 Use this if you want separate scaling or custom domains per service.
 
@@ -126,7 +126,7 @@ For full Playwright + WebSocket support, use local dev or the [Azure VM guide](f
 
 ### Cold starts
 - First request after idle may take 3–10s
-- MongoDB Atlas free tier adds latency — consider M10 for production
+- MongoDB Atlas free tier adds latency consider M10 for production
 
 ---
 

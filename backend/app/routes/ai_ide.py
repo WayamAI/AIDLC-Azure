@@ -1,10 +1,12 @@
 """AI IDE routes workspace creation (REST) + streaming generation (WebSocket)."""
-from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 
+from app.auth.dependencies import get_current_org
 from app.engines.injector import inject_routes
 from app.engines.planner import plan_files
 from app.engines.generator import stream_file
+from app.models.organization import OrganizationOut
 from app.services import ai_ide_service
 from app.services import vercel_service
 
@@ -82,14 +84,14 @@ class DeployWorkspaceRequest(BaseModel):
 # ── REST ─────────────────────────────────────────────────────────────────────
 
 @router.post("/workspace/create")
-async def create_workspace():
+async def create_workspace(org: OrganizationOut = Depends(get_current_org)):
     workspace_id = await ai_ide_service.create_workspace()
     files = ai_ide_service.list_file_paths(workspace_id)
     return {"workspace_id": workspace_id, "file_paths": files}
 
 
 @router.get("/workspace/{workspace_id}/files")
-async def get_files(workspace_id: str):
+async def get_files(workspace_id: str, org: OrganizationOut = Depends(get_current_org)):
     try:
         return ai_ide_service.get_workspace_files(workspace_id)
     except KeyError:
@@ -97,7 +99,7 @@ async def get_files(workspace_id: str):
 
 
 @router.post("/file/create")
-async def create_file(payload: CreateFileRequest):
+async def create_file(payload: CreateFileRequest, org: OrganizationOut = Depends(get_current_org)):
     try:
         content = payload.content if payload.content.strip() else _fallback_content(payload.path)
         ai_ide_service.create_file(payload.workspace_id, payload.path, content)
@@ -107,7 +109,7 @@ async def create_file(payload: CreateFileRequest):
 
 
 @router.post("/file/update")
-async def update_file(payload: UpdateFileRequest):
+async def update_file(payload: UpdateFileRequest, org: OrganizationOut = Depends(get_current_org)):
     try:
         ai_ide_service.save_file(payload.workspace_id, payload.path, payload.content)
         return {"ok": True, "path": payload.path}
@@ -116,7 +118,7 @@ async def update_file(payload: UpdateFileRequest):
 
 
 @router.post("/file/delete")
-async def delete_file(payload: DeletePathRequest):
+async def delete_file(payload: DeletePathRequest, org: OrganizationOut = Depends(get_current_org)):
     try:
         deleted = ai_ide_service.delete_path(payload.workspace_id, payload.path)
         return {"ok": True, "deleted": deleted}
@@ -125,7 +127,7 @@ async def delete_file(payload: DeletePathRequest):
 
 
 @router.post("/file/rename")
-async def rename_path(payload: RenamePathRequest):
+async def rename_path(payload: RenamePathRequest, org: OrganizationOut = Depends(get_current_org)):
     try:
         updated = ai_ide_service.rename_or_move_path(
             payload.workspace_id,
@@ -138,7 +140,7 @@ async def rename_path(payload: RenamePathRequest):
 
 
 @router.post("/file/move")
-async def move_path(payload: MovePathRequest):
+async def move_path(payload: MovePathRequest, org: OrganizationOut = Depends(get_current_org)):
     try:
         updated = ai_ide_service.rename_or_move_path(
             payload.workspace_id,
@@ -151,7 +153,7 @@ async def move_path(payload: MovePathRequest):
 
 
 @router.post("/git/init-and-push")
-async def ai_ide_git_init_and_push(payload: GitInitPushRequest):
+async def ai_ide_git_init_and_push(payload: GitInitPushRequest, org: OrganizationOut = Depends(get_current_org)):
     try:
         return await ai_ide_service.init_git_and_create_repo(
             workspace_id=payload.workspace_id,
@@ -168,7 +170,7 @@ async def ai_ide_git_init_and_push(payload: GitInitPushRequest):
 
 
 @router.post("/git/commit-and-push")
-async def ai_ide_git_commit_and_push(payload: GitCommitPushRequest):
+async def ai_ide_git_commit_and_push(payload: GitCommitPushRequest, org: OrganizationOut = Depends(get_current_org)):
     try:
         return await ai_ide_service.commit_and_push_workspace(
             workspace_id=payload.workspace_id,
@@ -182,7 +184,7 @@ async def ai_ide_git_commit_and_push(payload: GitCommitPushRequest):
 
 
 @router.post("/deploy")
-async def ai_ide_deploy(payload: DeployWorkspaceRequest):
+async def ai_ide_deploy(payload: DeployWorkspaceRequest, org: OrganizationOut = Depends(get_current_org)):
     try:
         meta = ai_ide_service.get_workspace_meta(payload.workspace_id)
         repo_url = meta.get("repo_url")
@@ -204,6 +206,20 @@ async def ai_ide_deploy(payload: DeployWorkspaceRequest):
 
 # ── WebSocket ─────────────────────────────────────────────────────────────────
 
+def _ws_session_payload(ws: WebSocket) -> dict | None:
+    """Read and verify the session cookie. Does not touch the socket state."""
+    import jwt
+    from app.auth.session import COOKIE_NAME, decode_session_cookie
+
+    token = ws.cookies.get(COOKIE_NAME)
+    if not token:
+        return None
+    try:
+        return decode_session_cookie(token)
+    except jwt.InvalidTokenError:
+        return None
+
+
 @router.websocket("/ws/generate/{workspace_id}")
 async def generate(ws: WebSocket, workspace_id: str):
     """
@@ -220,7 +236,12 @@ async def generate(ws: WebSocket, workspace_id: str):
       {"type": "GENERATION_DONE"}
       {"type": "ERROR",          "message": str}
     """
+    # Accept first (ASGI-safe), then enforce session via cookie.
     await ws.accept()
+    if _ws_session_payload(ws) is None:
+        await ws.send_json({"type": "ERROR", "message": "Not authenticated"})
+        await ws.close(code=1008)
+        return
 
     try:
         # Validate workspace exists

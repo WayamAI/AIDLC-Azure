@@ -21,6 +21,7 @@ from app.services.ai_service import (
     AIQuotaError,
     generate_baseline_tests,
     generate_incremental_tests,
+    set_current_org_id,
 )
 
 log = logging.getLogger("baseline_runner")
@@ -50,6 +51,8 @@ def _chunk_codebase(codebase_text: str, max_chunk: int = 25_000) -> List[str]:
 # ── main orchestrator ────────────────────────────────────────────────────────
 
 async def run_baseline_scan(
+    db,
+    org_id: str,
     repo_id: str,
     github_url: str,
     session: ScanSession,
@@ -59,10 +62,13 @@ async def run_baseline_scan(
     Background task runs the complete baseline scan and writes all results to MongoDB.
     Updates session status at each step so the polling endpoint reflects real progress.
     """
+    # Runs detached from the request that queued it; attribute AI calls
+    # made in this task to org_id explicitly (see ai_service.set_current_org_id).
+    set_current_org_id(org_id)
 
     async def progress(msg: str) -> None:
         await baseline_store.update_session_status(
-            repo_id, session.session_id, "running", progress_message=msg
+            db, org_id, repo_id, session.session_id, "running", progress_message=msg
         )
         log.info("[%s] %s", session.session_id[:8], msg)
 
@@ -91,6 +97,8 @@ async def run_baseline_scan(
             await _run_blocking(repo_service.cleanup_repo, repo_path)
             repo_path = None
             await baseline_store.append_tests_and_finish_session(
+                db,
+                org_id,
                 repo_id,
                 session.session_id,
                 new_tests=[],
@@ -164,6 +172,8 @@ async def run_baseline_scan(
 
         # Persist results and mark session as done
         await baseline_store.append_tests_and_finish_session(
+            db,
+            org_id,
             repo_id,
             session.session_id,
             new_tests=new_baseline_tests,
@@ -180,10 +190,10 @@ async def run_baseline_scan(
 
     except AIQuotaError as exc:
         log.error("[%s] AI quota error: %s", session.session_id[:8], exc)
-        await baseline_store.mark_session_failed(repo_id, session.session_id, str(exc))
+        await baseline_store.mark_session_failed(db, org_id, repo_id, session.session_id, str(exc))
     except Exception as exc:
         log.exception("[%s] Scan failed: %s", session.session_id[:8], exc)
-        await baseline_store.mark_session_failed(repo_id, session.session_id, str(exc))
+        await baseline_store.mark_session_failed(db, org_id, repo_id, session.session_id, str(exc))
     finally:
         if repo_path:
             repo_service.cleanup_repo(repo_path)

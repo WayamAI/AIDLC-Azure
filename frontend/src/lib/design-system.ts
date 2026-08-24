@@ -1,138 +1,142 @@
 /**
- * Wayam Design System single source of truth for colors & semantics.
+ * AIDLC design system single source of truth for token usage in TS/TSX.
  *
- * Palette is warm-only: orange brand gradient + amber positive + red destructive.
- * Do NOT use green/emerald in UI use `positive` for pass/success/complete states.
+ * CSS layers (do not bypass):
+ *   1. `styles/imcc-tokens.css`  refs + semantic (surface/text/action/feedback/status)
+ *   2. `styles/imcc-bridge.css`  --color-* aliases, ink HSL, shadcn HSL, overlays
+ *   3. Tailwind / `index.css`    utilities consumed by components
+ *
+ * Quick map
+ * ┌────────────────────┬──────────────────────────────────────────────┐
+ * │ Need               │ Use                                          │
+ * ├────────────────────┼──────────────────────────────────────────────┤
+ * │ Page background    │ bg-page / var(--color-page)                  │
+ * │ Card / panel       │ bg-raised / Panel / page-card                │
+ * │ Body text          │ text-ink or text-foreground                  │
+ * │ Muted / helper     │ text-ink-secondary or text-muted-foreground  │
+ * │ Quiet caption      │ text-ink-tertiary / text-ink-quaternary      │
+ * │ Primary button     │ bg-primary text-primary-foreground           │
+ * │ Secondary control  │ bg-secondary text-secondary-foreground       │
+ * │ Status pill        │ StatusBadge tone=… (bg-status-*)             │
+ * │ Inline success     │ text-feedback-success / text-success         │
+ * └────────────────────┴──────────────────────────────────────────────┘
+ *
+ * Collision rule: shadcn `secondary` is a FILL. Prefer `text-ink-secondary`
+ * for muted copy. Legacy `text-secondary` is remapped to ink via Tailwind plugin.
  */
+
 import { BRAND_COLORS } from "./brand";
 
-export { BRAND_COLORS, BRAND_NAME, BRAND_TAGLINE, FAVICON_SRC, LOGO_SRC, LOGO_ICON_SRC } from "./brand";
+export {
+  BRAND_COLORS,
+  BRAND_NAME,
+  BRAND_TAGLINE,
+  FAVICON_SRC,
+  LOGO_SRC,
+  LOGO_LIGHT_SRC,
+  LOGO_ICON_SRC,
+  CHART_PALETTE,
+  CHART_PALETTE_HSL,
+} from "./brand";
 
-/** Core semantic hues (HSL components for CSS vars) */
+/** Semantic roles for charts / imperative styles (theme-agnostic hex). */
+export const DS_HEX = {
+  primary: BRAND_COLORS.from,
+  primaryLight: "#FFFFFF",
+  positive: "#15803D",
+  positiveLight: "#22C55E",
+  destructive: "#DC2626",
+  destructiveLight: "#F87171",
+  warning: "#B45309",
+  warningLight: "#F59E0B",
+  info: "#2563EB",
+  neutral: "#8A8A8A",
+  neutralLight: "#AFAFAF",
+  surface: "#101010",
+  surfaceLight: "#F5F5F5",
+  border: "#2A2A2A",
+  borderLight: "#E5E5E5",
+} as const;
+
+/** Dark-default HSL channels (match imcc-bridge :root). Prefer CSS vars in UI. */
 export const DS_HSL = {
-  primary: "25 88% 52%",
-  primaryForeground: "0 0% 100%",
-  positive: "32 82% 42%",
+  primary: "0 0% 98%",
+  primaryForeground: "0 0% 0%",
+  positive: "142 64% 30%",
   positiveForeground: "0 0% 100%",
-  destructive: "8 85% 44%",
+  destructive: "0 72% 51%",
   destructiveForeground: "0 0% 100%",
-  warning: "36 90% 40%",
-  warningForeground: "36 90% 12%",
-  neutral: "25 10% 42%",
+  warning: "32 90% 37%",
+  warningForeground: "0 0% 100%",
+  info: "217 91% 53%",
+  neutral: "0 0% 55%",
   neutralForeground: "0 0% 100%",
 } as const;
 
-/** Hex values for charts, SVGs, and inline styles */
-export const DS_HEX = {
-  primary: BRAND_COLORS.via2,
-  primaryLight: BRAND_COLORS.from,
-  positive: "#C27803",
-  positiveLight: "#FFA12B",
-  destructive: BRAND_COLORS.to,
-  destructiveLight: "#F87171",
-  warning: "#D97706",
-  warningLight: "#FBBF24",
-  neutral: "#78716C",
-  neutralLight: "#A8A29E",
-  surface: "#FFFBF7",
-  border: "#E8DDD4",
-} as const;
-
-/** Chart series warm palette only */
 export const DS_CHART = {
-  series: [
-    BRAND_COLORS.from,
-    BRAND_COLORS.via2,
-    BRAND_COLORS.to,
-    BRAND_COLORS.via,
-    BRAND_COLORS.deep,
-  ],
-  pass: BRAND_COLORS.from,
-  fail: BRAND_COLORS.to,
+  series: [BRAND_COLORS.from, BRAND_COLORS.via2, BRAND_COLORS.to, BRAND_COLORS.via, BRAND_COLORS.deep],
+  pass: DS_HEX.positive,
+  passFill: "rgba(21, 128, 61, 0.25)",
+  fail: DS_HEX.destructive,
+  failFill: "rgba(220, 38, 38, 0.25)",
   warn: DS_HEX.warning,
+  info: DS_HEX.info,
   neutral: DS_HEX.neutral,
-  passFill: "rgba(255, 161, 43, 0.15)",
-  failFill: "rgba(220, 68, 12, 0.12)",
+  grid: "rgba(255,255,255,0.08)",
+  axis: "rgba(255,255,255,0.45)",
+  cursor: "rgba(255,255,255,0.06)",
+  /** Light-theme chart chrome */
+  gridLight: "rgba(0,0,0,0.08)",
+  axisLight: "rgba(0,0,0,0.45)",
+  cursorLight: "rgba(0,0,0,0.04)",
 } as const;
 
-/** Tailwind class bundles for semantic UI states */
 export const DS = {
-  primary: {
-    text: "text-primary",
-    icon: "text-primary",
-    bg: "bg-primary/10",
-    border: "border-primary/25",
-    badge: "text-primary border-primary/25 bg-primary/10",
-    solid: "bg-primary text-primary-foreground",
-  },
-  positive: {
-    text: "text-positive",
-    icon: "text-positive",
-    bg: "bg-positive/10",
-    border: "border-positive/25",
-    badge: "text-positive border-positive/25 bg-positive/10",
-    solid: "bg-positive text-positive-foreground",
-  },
-  destructive: {
-    text: "text-destructive",
-    icon: "text-destructive",
-    bg: "bg-destructive/10",
-    border: "border-destructive/25",
-    badge: "text-destructive border-destructive/25 bg-destructive/10",
-    solid: "bg-destructive text-destructive-foreground",
-  },
-  warning: {
-    text: "text-warning",
-    icon: "text-warning",
-    bg: "bg-warning/10",
-    border: "border-warning/25",
-    badge: "text-warning border-warning/25 bg-warning/10",
-    solid: "bg-warning text-warning-foreground",
-  },
-  neutral: {
-    text: "text-muted-foreground",
-    icon: "text-muted-foreground",
-    bg: "bg-muted",
-    border: "border-border",
-    badge: "text-muted-foreground border-border bg-muted",
-  },
+  success: DS_HEX.positive,
+  warning: DS_HEX.warning,
+  danger: DS_HEX.destructive,
+  info: DS_HEX.info,
+  neutral: DS_HEX.neutral,
 } as const;
 
-/** Risk / priority warm scale only */
 export const DS_RISK = {
-  critical: DS.destructive,
-  high: {
-    text: "text-destructive",
-    icon: "text-destructive",
-    bg: "bg-destructive/10",
-    border: "border-destructive/25",
-    badge: "text-destructive border-destructive/25 bg-destructive/10",
-  },
-  medium: DS.warning,
-  low: DS.positive,
+  critical: "#DC2626",
+  high: "#EA580C",
+  medium: "#B45309",
+  low: "#15803D",
+  none: "#6B7280",
 } as const;
+
+/** Badge / text class helpers for risk levels (use with DS_RISK hex fills). */
+export const DS_RISK_BADGE: Record<keyof typeof DS_RISK, string> = {
+  critical: "bg-red-500/15 text-red-600 border-red-500/30",
+  high: "bg-orange-500/15 text-orange-600 border-orange-500/30",
+  medium: "bg-amber-500/15 text-amber-700 border-amber-500/30",
+  low: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30",
+  none: "bg-muted text-muted-foreground border-border",
+};
 
 export const DS_PRIORITY = {
-  Critical: DS.destructive.text,
-  High: "text-primary",
-  Medium: DS.warning.text,
-  Low: DS.neutral.text,
+  p0: "#DC2626",
+  p1: "#EA580C",
+  p2: "#B45309",
+  p3: "#2563EB",
+  p4: "#6B7280",
 } as const;
 
-/** @deprecated Use DS.positive kept for gradual migration */
-export const STATUS = {
-  success: DS.positive,
-  danger: DS.destructive,
-  warning: DS.warning,
-  info: DS.neutral,
-  primary: DS.primary,
+/** CSS custom properties to prefer in inline styles / charts */
+export const DS_CSS = {
+  page: "var(--color-page)",
+  container: "var(--color-container)",
+  raised: "var(--color-raised)",
+  raised2: "var(--color-raised-2)",
+  ink: "var(--color-primary)",
+  inkSecondary: "var(--color-secondary)",
+  inkTertiary: "var(--color-tertiary)",
+  stroke: "var(--color-stroke)",
+  strokeMuted: "var(--color-stroke-muted)",
+  success: "var(--color-success)",
+  warning: "var(--color-warning)",
+  error: "var(--color-error)",
+  info: "var(--color-info)",
 } as const;
-
-export const RISK = {
-  critical: DS_RISK.critical,
-  high: DS_RISK.high,
-  medium: DS_RISK.medium,
-  low: DS_RISK.low,
-} as const;
-
-export const PRIORITY = DS_PRIORITY;

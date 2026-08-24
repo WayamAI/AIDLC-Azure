@@ -9,6 +9,7 @@ from typing import Any
 import httpx
 
 from app.config import settings
+from app.services import connector_settings_service as connectors
 
 _GITHUB_API = "https://api.github.com"
 _HEADERS = {
@@ -19,7 +20,7 @@ _HEADERS = {
 
 def _auth_headers(token: str | None = None) -> dict[str, str]:
     h = dict(_HEADERS)
-    auth_token = token or settings.GITHUB_TOKEN
+    auth_token = token or connectors.active("github").get("token") or settings.GITHUB_TOKEN
     if auth_token:
         h["Authorization"] = f"Bearer {auth_token}"
     return h

@@ -50,10 +50,10 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 const SEVERITY_GRADIENT: Record<string, string> = {
-  Critical: "linear-gradient(90deg, #DC440C, #dc2626)",
-  High: "linear-gradient(90deg, #FA8D23, #DC440C)",
-  Medium: "linear-gradient(90deg, #FFA12B, #F0731A)",
-  Low: "linear-gradient(90deg, #FBBF24, #C27803)",
+  Critical: "linear-gradient(90deg, #DC2626, #DC2626)",
+  High: "linear-gradient(90deg, #B45309, #B45309)",
+  Medium: "linear-gradient(90deg, #AFAFAF, #AFAFAF)",
+  Low: "linear-gradient(90deg, #6B7280, #6B7280)",
 };
 
 function WeeklyTooltip({ active, payload, label }: TooltipProps<number, string>) {
@@ -254,61 +254,64 @@ const Dashboard = () => {
             icon={BarChart3}
             badge={<span className="rounded-full bg-black/[0.04] px-2.5 py-1 text-[10px] font-medium text-muted-foreground">7D</span>}
           >
-            <div className="h-[240px] w-full">
+            <div className="h-[280px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={weeklyTrend} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+                <AreaChart data={weeklyTrend} margin={{ top: 12, right: 12, left: -8, bottom: 4 }}>
                   <defs>
                     <linearGradient id="passedGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="hsl(32, 100%, 58%)" stopOpacity={0.35} />
-                      <stop offset="100%" stopColor="hsl(32, 100%, 58%)" stopOpacity={0} />
+                      <stop offset="0%" stopColor={DS_CHART.pass} stopOpacity={0.4} />
+                      <stop offset="100%" stopColor={DS_CHART.pass} stopOpacity={0} />
                     </linearGradient>
                     <linearGradient id="failedGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="hsl(0, 72%, 55%)" stopOpacity={0.25} />
-                      <stop offset="100%" stopColor="hsl(0, 72%, 55%)" stopOpacity={0} />
+                      <stop offset="0%" stopColor={DS_CHART.fail} stopOpacity={0.32} />
+                      <stop offset="100%" stopColor={DS_CHART.fail} stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid stroke="rgba(15,23,42,0.06)" vertical={false} strokeDasharray="" />
+                  <CartesianGrid stroke="var(--color-stroke-muted, rgba(128,128,128,0.2))" vertical={false} strokeDasharray="3 6" />
                   <XAxis
                     dataKey="day"
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fill: "hsl(25, 10%, 42%)", fontSize: 11, fontWeight: 500 }}
-                    dy={8}
+                    tick={{ fill: "var(--color-tertiary)", fontSize: 12, fontWeight: 500 }}
+                    dy={10}
                   />
                   <YAxis
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fill: "hsl(25, 10%, 42%)", fontSize: 11 }}
-                    width={32}
+                    tick={{ fill: "var(--color-tertiary)", fontSize: 11 }}
+                    width={36}
+                    allowDecimals={false}
                   />
-                  <Tooltip content={<WeeklyTooltip />} cursor={{ stroke: "rgba(240,115,26,0.25)", strokeWidth: 1 }} />
+                  <Tooltip content={<WeeklyTooltip />} cursor={{ stroke: DS_CHART.info, strokeWidth: 1, strokeDasharray: "4 4" }} />
                   <Area
                     type="monotone"
                     dataKey="passed"
-                    stroke="hsl(32, 82%, 42%)"
-                    strokeWidth={2.5}
+                    name="passed"
+                    stroke={DS_CHART.pass}
+                    strokeWidth={2.75}
                     fill="url(#passedGrad)"
-                    dot={false}
-                    activeDot={{ r: 5, fill: "hsl(32, 82%, 42%)", stroke: "#fff", strokeWidth: 2 }}
+                    dot={{ r: 3, fill: DS_CHART.pass, strokeWidth: 0 }}
+                    activeDot={{ r: 6, fill: DS_CHART.pass, stroke: "var(--color-raised)", strokeWidth: 2 }}
                   />
                   <Area
                     type="monotone"
                     dataKey="failed"
-                    stroke="hsl(0, 72%, 52%)"
-                    strokeWidth={2.5}
+                    name="failed"
+                    stroke={DS_CHART.fail}
+                    strokeWidth={2.75}
                     fill="url(#failedGrad)"
-                    dot={false}
-                    activeDot={{ r: 5, fill: "hsl(0, 72%, 52%)", stroke: "#fff", strokeWidth: 2 }}
+                    dot={{ r: 3, fill: DS_CHART.fail, strokeWidth: 0 }}
+                    activeDot={{ r: 6, fill: DS_CHART.fail, stroke: "var(--color-raised)", strokeWidth: 2 }}
                   />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
-            <div className="mt-4 flex gap-6 border-t border-black/[0.04] pt-4 text-xs">
+            <div className="mt-4 flex gap-6 border-t border-border pt-4 text-xs">
               <span className="flex items-center gap-2 font-medium text-foreground">
-                <span className="dash-legend-dot bg-positive/100" /> Passed
+                <span className="dash-legend-dot" style={{ background: DS_CHART.pass }} /> Passed
               </span>
               <span className="flex items-center gap-2 font-medium text-foreground">
-                <span className="dash-legend-dot bg-red-500" /> Failed
+                <span className="dash-legend-dot" style={{ background: DS_CHART.fail }} /> Failed
               </span>
             </div>
           </DashboardPanel>
@@ -422,40 +425,40 @@ const Dashboard = () => {
           </DashboardPanel>
 
           <DashboardPanel title="Live Activity" subtitle="Latest test executions" icon={Zap}>
-            <div className="relative space-y-1 pl-1">
-              <div className="absolute bottom-2 left-[18px] top-2 w-px bg-gradient-to-b from-primary/30 via-primary/10 to-transparent" aria-hidden />
+            <ol className="activity-timeline">
               {recentActivity.map((t, i) => (
-                <motion.div
+                <motion.li
                   key={t.id}
                   initial={{ opacity: 0, x: -8 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.25 + i * 0.06 }}
-                  className="dash-activity-item"
+                  className="activity-timeline-item"
                 >
-                  <div
+                  <span
                     className={cn(
-                      "relative z-[1] flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-4 ring-white",
-                      t.status === "PASS" ? "bg-positive/100/10 text-positive" : "bg-red-50 text-red-500",
+                      "activity-timeline-node",
+                      t.status === "PASS" ? "activity-timeline-node--pass" : "activity-timeline-node--fail",
                     )}
+                    aria-hidden
                   >
                     {t.status === "PASS" ? (
-                      <CheckCircle2 className="h-4 w-4" />
+                      <CheckCircle2 className="h-3.5 w-3.5" />
                     ) : (
-                      <XCircle className="h-4 w-4" />
+                      <XCircle className="h-3.5 w-3.5" />
                     )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-semibold">{t.name}</p>
-                    <p className="text-[10px] text-muted-foreground">
+                  </span>
+                  <div className="min-w-0 flex-1 py-0.5">
+                    <p className="truncate text-xs font-semibold text-[var(--color-primary)]">{t.name}</p>
+                    <p className="text-[10px] text-[var(--color-tertiary)]">
                       {t.id} · {t.duration}s
                     </p>
                   </div>
-                  <span className="shrink-0 rounded-full bg-black/[0.04] px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                  <span className="shrink-0 rounded-full bg-[var(--color-action)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-tertiary)]">
                     {t.timeAgo}
                   </span>
-                </motion.div>
+                </motion.li>
               ))}
-            </div>
+            </ol>
           </DashboardPanel>
         </div>
 

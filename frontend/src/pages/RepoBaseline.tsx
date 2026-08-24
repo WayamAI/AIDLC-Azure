@@ -100,9 +100,9 @@ const CATEGORY_CONFIG: Record<
   integration: {
     label: "Integration",
     icon: Layers,
-    colour: "text-orange-600 dark:text-orange-700",
-    bg: "bg-orange-50 dark:bg-orange-500/15",
-    border: "border-orange-500/20 dark:border-orange-200",
+    colour: "text-[var(--color-warning)]",
+    bg: "bg-[var(--color-warning-bg)]",
+    border: "border-[var(--color-status-warning)]/30",
   },
   edge_case: {
     label: "Edge Case",
@@ -129,7 +129,7 @@ const CATEGORY_CONFIG: Record<
 
 const SEVERITY_CONFIG: Record<string, { colour: string; bg: string; border: string }> = {
   critical: { colour: "text-red-600 dark:text-red-700", bg: "bg-red-50 dark:bg-red-500/15", border: "border-red-500/20 dark:border-red-200" },
-  high: { colour: "text-orange-600 dark:text-orange-700", bg: "bg-orange-50 dark:bg-orange-500/15", border: "border-orange-500/20 dark:border-orange-200" },
+  high: { colour: "text-[var(--color-warning)]", bg: "bg-[var(--color-warning-bg)]", border: "border-[var(--color-status-warning)]/30" },
   medium: { colour: "text-amber-600 dark:text-amber-700", bg: "bg-amber-50 dark:bg-amber-500/15", border: "border-amber-500/20 dark:border-amber-200" },
   low: { colour: "text-blue-600 dark:text-sky-700", bg: "bg-sky-50 dark:bg-blue-500/15", border: "border-blue-500/20 dark:border-sky-200" },
 };
@@ -335,7 +335,7 @@ function TestCard({
       animate={{ opacity: 1, y: 0 }}
       className={`rounded-xl border overflow-hidden transition-all duration-200 ${
         isNew
-          ? "border-primary/30/40 bg-positive/10 dark:border-primary/30/50 dark:bg-orange-50/20 shadow-sm shadow-primary/10"
+          ? "border-primary/30/40 bg-positive/10 dark:border-primary/30/50 dark:bg-[var(--color-warning-bg)]/20 shadow-sm shadow-primary/10"
           : "border-border/40 bg-card/50"
       }`}
     >
@@ -465,7 +465,7 @@ function NewTestsBanner({
     <motion.div
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-xl border border-primary/30/20 bg-positive/10 dark:border-primary/30/30 dark:bg-orange-50/30 p-4 mb-6"
+      className="rounded-xl border border-primary/30/20 bg-positive/10 dark:border-primary/30/30 dark:bg-[var(--color-warning-bg)]/30 p-4 mb-6"
     >
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-full bg-positive/100 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">

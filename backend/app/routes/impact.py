@@ -10,13 +10,13 @@ import asyncio
 import random
 import uuid
 from pathlib import PurePosixPath
-from typing import List
+from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException, UploadFile, File
-
-from typing import Optional
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel
 
+from app.auth.dependencies import get_current_org
+from app.models.organization import OrganizationOut
 from app.models.impact_models import (
     DependencyGraphResponse,
     FileContentRequest,
@@ -45,6 +45,7 @@ class WorkspaceGraphRequest(BaseModel):
 class WorkspaceGraphResponse(BaseModel):
     nodes: List[GraphNode]
     edges: List[GraphEdge]
+
 from app.services import impact_service
 
 router = APIRouter(prefix="/impact", tags=["Code Impact"])
@@ -53,7 +54,7 @@ router = APIRouter(prefix="/impact", tags=["Code Impact"])
 
 
 @router.post("/graph", response_model=DependencyGraphResponse)
-async def build_graph(req: GraphRequest):
+async def build_graph(req: GraphRequest, org: OrganizationOut = Depends(get_current_org)):
     """Build a root→leaf dependency graph from PR or commit changes."""
     if not req.pr_number and not req.commit_sha:
         raise HTTPException(status_code=400, detail="Provide pr_number or commit_sha")
@@ -96,14 +97,14 @@ async def build_graph(req: GraphRequest):
 
 
 @router.post("/impact-path", response_model=ImpactPathResponse)
-async def get_impact_path(req: ImpactPathRequest):
+async def get_impact_path(req: ImpactPathRequest, org: OrganizationOut = Depends(get_current_org)):
     """Compute the root→leaf impact chain through a focus file."""
     result = impact_service.compute_impact_path(req.nodes, req.edges, req.focus_file)
     return ImpactPathResponse(**result)
 
 
 @router.post("/file-content", response_model=FileContentResponse)
-async def get_file_content(req: FileContentRequest):
+async def get_file_content(req: FileContentRequest, org: OrganizationOut = Depends(get_current_org)):
     """Fetch raw file content from GitHub for display in the code viewer."""
     content = await impact_service.fetch_file_content(
         req.owner, req.repo, req.path, req.ref
@@ -128,7 +129,7 @@ async def get_file_content(req: FileContentRequest):
 
 
 @router.post("/generate-from-code", response_model=GenerateTestsResponse)
-async def generate_from_code(req: GenerateFromCodeRequest):
+async def generate_from_code(req: GenerateFromCodeRequest, org: OrganizationOut = Depends(get_current_org)):
     """AI-generate test cases from a file's content and its impact context."""
     ext_map = {
         ".ts": "TypeScript/Jest",
@@ -158,7 +159,7 @@ async def generate_from_code(req: GenerateFromCodeRequest):
 
 
 @router.post("/upload-doc", response_model=ParseDocsResponse)
-async def upload_doc(file: UploadFile = File(...)):
+async def upload_doc(file: UploadFile = File(...), org: OrganizationOut = Depends(get_current_org)):
     """Upload a document (text/PDF/DOCX) and extract testable scenarios with AI."""
     raw = await file.read()
     try:
@@ -177,7 +178,7 @@ async def upload_doc(file: UploadFile = File(...)):
 
 
 @router.post("/generate-from-docs", response_model=GenerateFromDocsResponse)
-async def generate_from_docs(req: GenerateFromDocsRequest):
+async def generate_from_docs(req: GenerateFromDocsRequest, org: OrganizationOut = Depends(get_current_org)):
     """Generate test cases from document-extracted scenarios."""
     try:
         tests = await impact_service.generate_tests_from_scenarios(
@@ -193,7 +194,7 @@ async def generate_from_docs(req: GenerateFromDocsRequest):
 
 
 @router.post("/run-tests", response_model=RunTestResponse)
-async def run_tests(req: RunTestRequest):
+async def run_tests(req: RunTestRequest, org: OrganizationOut = Depends(get_current_org)):
     """
     Simulate test execution.
     In production this would delegate to a real test runner sandbox.
@@ -233,7 +234,7 @@ async def run_tests(req: RunTestRequest):
 
 
 @router.post("/run-all-tests")
-async def run_all_tests(test_ids: List[str]):
+async def run_all_tests(test_ids: List[str], org: OrganizationOut = Depends(get_current_org)):
     """Run multiple tests concurrently and aggregate results."""
     async def _run_one(test_id: str) -> TestResult:
         await asyncio.sleep(random.uniform(0.1, 0.8))
@@ -266,7 +267,7 @@ async def run_all_tests(test_ids: List[str]):
 
 
 @router.post("/workspace-graph", response_model=WorkspaceGraphResponse)
-async def build_workspace_graph(req: WorkspaceGraphRequest):
+async def build_workspace_graph(req: WorkspaceGraphRequest, org: OrganizationOut = Depends(get_current_org)):
     """
     Build a root→leaf dependency graph from a cloned workspace.
     Pass file_paths to focus on specific changed files (from git status);

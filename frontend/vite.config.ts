@@ -4,9 +4,11 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
+// Prefer 8001 when Setu (or another app) already owns 8000 on this machine.
+const backendPort = process.env.BACKEND_PORT || "8001";
 const proxyConfig = {
   "/api": {
-    target: "http://localhost:8000",
+    target: `http://localhost:${backendPort}`,
     changeOrigin: true,
     ws: true,
   },
@@ -15,7 +17,8 @@ const proxyConfig = {
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
-    port: 8080,
+    port: Number(process.env.PORT) || 8081,
+    strictPort: true,
     allowedHosts: ["blowing-domain-boss-hose.trycloudflare.com"],
     watch: {
       usePolling: true,

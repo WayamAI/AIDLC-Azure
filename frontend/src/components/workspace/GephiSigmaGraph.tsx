@@ -759,7 +759,14 @@ export function GephiSigmaGraph({
   changedPaths = new Set<string>(),
   className,
 }: GephiSigmaGraphProps) {
-  const theme = "light";
+  // Typed as mutable union so dark-branch styles stay typecheck-valid when theme wiring is added.
+  let theme: "light" | "dark" = "light";
+  try {
+    const stored = typeof document !== "undefined" && document.documentElement.classList.contains("dark");
+    if (stored) theme = "dark";
+  } catch {
+    /* keep light */
+  }
   const [isInitializing, setIsInitializing] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedNode, setSelectedNode] = useState<string | null>(null);

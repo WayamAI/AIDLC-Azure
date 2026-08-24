@@ -24,15 +24,27 @@ import PRDGenerator from "./pages/PRDGenerator";
 import NotFound from "./pages/NotFound";
 import DashboardLayout from "@/components/DashboardLayout";
 import UserProfile from "./pages/UserProfile";
-import Deployments from "./pages/Deployments.tsx";
+import Deployments from "./pages/Deployments";
 import ApiCosts from "./pages/ApiCosts";
 import AiIde from "./pages/AiIde";
 import RepoBaseline from "./pages/RepoBaseline";
+import RootCauseAnalysis from "@/pages/RootCauseAnalysis";
+import RootCauseDetail from "@/pages/RootCauseDetail";
+import TestSelection from "@/pages/TestSelection";
+import SelfHealingTests from "@/pages/SelfHealingTests";
+import ConnectorsSettings from "@/pages/ConnectorsSettings";
 import { ProtectedRoute, PublicOnlyRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/context/AuthContext";
 
 function RootRedirect() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-page text-sm text-[var(--color-tertiary)]">
+        Checking session…
+      </div>
+    );
+  }
   return <Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />;
 }
 
@@ -76,9 +88,14 @@ function App() {
             <Route path="/doc-tests" element={<DocTests />} />
             <Route path="/prd" element={<PRDGenerator />} />
             <Route path="/profile" element={<UserProfile />} />
+            <Route path="/settings/connectors" element={<ConnectorsSettings />} />
             <Route path="/cost-tracker" element={<ApiCosts />} />
             <Route path="/ai-ide" element={<AiIde />} />
             <Route path="/repo-baseline" element={<RepoBaseline />} />
+            <Route path="/root-cause" element={<RootCauseAnalysis />} />
+            <Route path="/root-cause/:id" element={<RootCauseDetail />} />
+            <Route path="/test-selection" element={<TestSelection />} />
+            <Route path="/self-healing" element={<SelfHealingTests />} />
           </Route>
         </Route>
         <Route path="*" element={<NotFound />} />

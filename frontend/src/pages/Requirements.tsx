@@ -116,7 +116,7 @@ const Requirements = () => {
               )}
               <div className="mx-auto mt-6 h-1 max-w-xs overflow-hidden rounded-full bg-muted">
                 <motion.div
-                  className="h-full rounded-full bg-gradient-brand"
+                  className="h-full rounded-full bg-primary"
                   initial={{ width: "0%" }}
                   animate={{ width: "90%" }}
                   transition={{ duration: 2.2, ease: "easeInOut" }}

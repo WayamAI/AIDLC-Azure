@@ -8,12 +8,51 @@ import json
 import re
 import time
 import uuid
+from contextvars import ContextVar, Token
 from datetime import datetime, timezone
 from typing import Any
 
 from openai import OpenAI, RateLimitError, APIStatusError
 
 from app.config import settings
+from app.services import connector_settings_service as connectors
+
+# ── Org attribution for cost logging ────────────────────────────────────────
+# Set by app.auth.dependencies.get_current_org for the duration of a request,
+# and explicitly by background-task entrypoints (analysis_runner, playwright_
+# service, baseline_runner) that carry org_id but run detached from request
+# scope. Read by _log_cost() so api_cost_logs documents can be attributed to
+# an org without threading org_id through every one of the ~20 ai_service
+# call sites individually.
+_current_org_id: ContextVar[str | None] = ContextVar("_current_org_id", default=None)
+
+
+def set_current_org_id(org_id: str | None) -> Token:
+    """Set the org_id attributed to AI calls made in the current context. Returns a reset token."""
+    return _current_org_id.set(org_id)
+
+
+def reset_current_org_id(token: Token) -> None:
+    _current_org_id.reset(token)
+
+
+def _ollama_cfg() -> tuple[str, str, str]:
+    cfg = connectors.active("ollama")
+    base = (cfg.get("base_url") or settings.OLLAMA_BASE_URL or "http://localhost:11434").rstrip("/")
+    key = cfg.get("api_key") or settings.OLLAMA_API_KEY or "ollama"
+    model = cfg.get("model") or settings.OLLAMA_MODEL or "llama3.1"
+    return base, key, model
+
+
+def _get_client() -> OpenAI:
+    base, key, _ = _ollama_cfg()
+    return OpenAI(
+        base_url=f"{base}/v1",
+        api_key=key,
+        timeout=600.0,
+        max_retries=3,
+    )
+
 
 _client = OpenAI(
     base_url=f"{settings.OLLAMA_BASE_URL.rstrip('/')}/v1",
@@ -63,15 +102,17 @@ def _is_quota_error(exc: Exception) -> bool:
 def _call_openai_sync(prompt: str, json_mode: bool = True) -> tuple[str, int, int]:
     """Synchronous Ollama chat completion. Returns (content, prompt_tokens, completion_tokens)."""
     delays = [5, 15, 30]
+    _, _, model = _ollama_cfg()
+    client = _get_client()
     kwargs: dict = {
-        "model": _MODEL,
+        "model": model,
         "messages": [{"role": "user", "content": prompt}],
     }
     if json_mode:
         kwargs["response_format"] = {"type": "json_object"}
     for attempt, delay in enumerate(delays, 1):
         try:
-            response = _client.chat.completions.create(**kwargs)
+            response = client.chat.completions.create(**kwargs)
             content = response.choices[0].message.content or ""
             usage = response.usage
             prompt_tokens = usage.prompt_tokens if usage else 0
@@ -97,10 +138,12 @@ async def _log_cost(task_name: str, prompt_tokens: int, completion_tokens: int) 
         output_cost = round(completion_tokens * _COST_OUTPUT_PER_TOKEN, 6)
         total_cost = round(input_cost + output_cost, 6)
         from app.database import get_db
+        _, _, model = _ollama_cfg()
         db = get_db()
         await db["api_cost_logs"].insert_one({
+            "org_id": _current_org_id.get(),
             "task_name": task_name,
-            "model": _MODEL,
+            "model": model,
             "prompt_tokens": prompt_tokens,
             "completion_tokens": completion_tokens,
             "total_tokens": prompt_tokens + completion_tokens,
@@ -1655,3 +1698,138 @@ async def generate_incremental_tests(
     return validated
 
 
+async def analyze_test_failure_root_cause(evidence: dict[str, Any], test_name: str) -> dict[str, Any]:
+    """
+    Correlate a real test-failure's evidence with real Git history and produce
+    a root cause explanation. Returns a dict with confidence=0 and an "error"
+    key on any AI failure callers must never treat that as a valid result.
+    """
+    commits_block = "\n".join(
+        f"- {c.get('sha', '')[:12]} {c.get('message', '')} (by {c.get('author', 'unknown')})"
+        for c in evidence.get("recent_commits", [])
+    ) or "No recent commit history available."
+
+    prompt = f"""You are a senior software engineer investigating a failed automated test.
+
+Test name: {test_name}
+Error message: {evidence.get('error_message') or 'Not available'}
+Failed step: {(evidence.get('failed_step') or {}).get('step_description', 'Not available')}
+Recent commits to this repository:
+{commits_block}
+
+Git diff of the most recent commit (may be truncated):
+{(evidence.get('git_diff') or 'Not available')[:4000]}
+
+Based ONLY on the information above, determine the most likely root cause. Do not invent
+information that isn't present above if the evidence is insufficient, say so explicitly
+in root_cause_explanation and lower the confidence score accordingly.
+
+Return ONLY valid JSON (no markdown, no commentary) with this exact shape:
+{{
+  "root_cause_summary": "one sentence, plain language",
+  "root_cause_explanation": "2-4 sentences explaining why, citing the specific commit/file/change if evident",
+  "confidence": 0-100 integer,
+  "likely_commit_sha": "short sha string or null if not evident",
+  "affected_files": ["list", "of", "file", "paths", "or", "empty", "list"],
+  "affected_tests": ["test names likely impacted, or just this test if unclear"],
+  "affected_services": ["service/module names, or empty list"],
+  "recommendation": "one concrete, actionable remediation suggestion"
+}}"""
+
+    try:
+        raw = await _call_openai(prompt, json_mode=True, task_name="analyze_test_failure_root_cause")
+        text = _clean_json(raw)
+        try:
+            data: dict[str, Any] = json.loads(text)
+        except Exception as parse_err:
+            return {
+                "root_cause_summary": None, "root_cause_explanation": None, "confidence": 0,
+                "likely_commit_sha": None, "affected_files": [], "affected_tests": [], "affected_services": [],
+                "recommendation": None, "error": f"Invalid JSON from AI: {str(parse_err)[:300]}",
+            }
+        return {
+            "root_cause_summary": data.get("root_cause_summary"),
+            "root_cause_explanation": data.get("root_cause_explanation"),
+            "confidence": max(0, min(100, int(data.get("confidence", 0) or 0))),
+            "likely_commit_sha": data.get("likely_commit_sha") or None,
+            "affected_files": data.get("affected_files") or [],
+            "affected_tests": data.get("affected_tests") or [test_name],
+            "affected_services": data.get("affected_services") or [],
+            "recommendation": data.get("recommendation"),
+        }
+    except AIQuotaError:
+        return {
+            "root_cause_summary": None, "root_cause_explanation": None, "confidence": 0,
+            "likely_commit_sha": None, "affected_files": [], "affected_tests": [], "affected_services": [],
+            "recommendation": None, "error": "AI quota exceeded",
+        }
+    except Exception as exc:
+        return {
+            "root_cause_summary": None, "root_cause_explanation": None, "confidence": 0,
+            "likely_commit_sha": None, "affected_files": [], "affected_tests": [], "affected_services": [],
+            "recommendation": None, "error": str(exc)[:300],
+        }
+
+
+async def suggest_selector_repair(
+    original_selector: str,
+    step_description: str,
+    candidates: list[dict],
+) -> dict[str, Any]:
+    """
+    Picks the best-matching REAL candidate (by index) for a broken selector.
+    The AI never invents a selector it can only choose an index into the
+    candidates list that was actually observed on the live page, or return
+    null to signal no safe match. Any index outside the real list's range
+    is a hallucination and is rejected here, not trusted.
+    """
+    if not candidates:
+        return {
+            "selected_index": None,
+            "confidence": 0,
+            "reasoning": "No candidate elements were found on the live page.",
+        }
+
+    candidates_block = "\n".join(
+        f"{i}: <{c.get('tag')}> text={c.get('text')!r} role={c.get('role')!r} selector={c.get('selector')!r}"
+        for i, c in enumerate(candidates)
+    )
+    prompt = f"""A Playwright test step is failing because its selector no longer matches anything on the page.
+
+Original (broken) selector: {original_selector}
+Step description: {step_description}
+
+Here are the real interactive elements actually found on the live page right now, indexed from 0:
+{candidates_block}
+
+Pick the index of the element most likely to be the intended replacement for the broken selector same
+apparent purpose (e.g. same button in a login flow), even if the id/class/text changed. If nothing here
+plausibly matches, say so.
+
+Return ONLY valid JSON (no markdown) with this exact shape:
+{{
+  "selected_index": <integer index from the list above, or null if nothing plausibly matches>,
+  "confidence": <0-100 integer>,
+  "reasoning": "one or two sentences"
+}}"""
+
+    try:
+        raw = await _call_openai(prompt, json_mode=True, task_name="suggest_selector_repair")
+        text = _clean_json(raw)
+        data: dict[str, Any] = json.loads(text)
+        idx = data.get("selected_index")
+        if idx is not None and (not isinstance(idx, int) or idx < 0 or idx >= len(candidates)):
+            return {
+                "selected_index": None,
+                "confidence": 0,
+                "reasoning": "AI returned an index outside the real candidate list; rejected.",
+            }
+        return {
+            "selected_index": idx,
+            "confidence": max(0, min(100, int(data.get("confidence", 0) or 0))) if idx is not None else 0,
+            "reasoning": data.get("reasoning"),
+        }
+    except AIQuotaError:
+        return {"selected_index": None, "confidence": 0, "reasoning": None, "error": "AI quota exceeded"}
+    except Exception as exc:
+        return {"selected_index": None, "confidence": 0, "reasoning": None, "error": str(exc)[:300]}

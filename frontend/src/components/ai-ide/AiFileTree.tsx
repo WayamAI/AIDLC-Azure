@@ -102,7 +102,7 @@ export function AiFileTree() {
   const visibleTree = useMemo(() => filterTree(tree, searchQuery) ?? { ...tree, children: {} }, [tree, searchQuery]);
 
   const STATUS_STYLE: Record<string, string> = {
-    M: "text-orange-700",
+    M: "text-[var(--color-warning)]",
     U: "text-sky-700",
     A: "text-positive",
   };

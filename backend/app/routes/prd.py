@@ -2,9 +2,11 @@
 PRD Generator routes.
 POST /prd/generate  AI-powered PRD generation from product name + description.
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
+from app.auth.dependencies import get_current_org
+from app.models.organization import OrganizationOut
 from app.services import prd_service
 from app.services.ai_service import AIQuotaError
 
@@ -17,7 +19,7 @@ class PRDGenerateRequest(BaseModel):
 
 
 @router.post("/generate", status_code=200)
-async def generate_prd(body: PRDGenerateRequest):
+async def generate_prd(body: PRDGenerateRequest, org: OrganizationOut = Depends(get_current_org)):
     """
     Generate a structured Product Requirements Document using AI.
     Returns a full PRD with use cases, user stories, functional requirements,

@@ -1,73 +1,67 @@
 import { useEffect, useMemo, useState } from "react";
-import { ChevronRight, LogOut, User } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { ArrowRight01Icon, Logout01Icon, Settings01Icon, UserIcon } from "@hugeicons/core-free-icons";
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
+  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
-  SidebarHeader,
-  SidebarFooter,
   SidebarRail,
   SidebarSeparator,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { AppIcon } from "@/components/AppIcon";
 import { cn } from "@/lib/utils";
-import { BRAND_NAME, BRAND_TAGLINE, LOGO_ICON_SRC, LOGO_SRC } from "@/lib/brand";
+import { BRAND_NAME, BRAND_TAGLINE, LOGO_ICON_SRC } from "@/lib/brand";
+import { BrandLogo } from "@/components/BrandLogo";
 import {
   dashboardItem,
   pipelineItem,
   platformSections,
-  betaSection,
   findSectionForPath,
   type NavItem,
   type NavSection,
 } from "@/lib/nav-config";
 import { useAuth } from "@/context/AuthContext";
 
-const OPEN_SECTION_KEY = "wayam-sidebar-open-section";
-
-const allSections = [...platformSections, betaSection];
+const OPEN_SECTION_KEY = "aidlc-sidebar-open-section";
 
 function loadOpenSection(): string | null {
   try {
     const raw = localStorage.getItem(OPEN_SECTION_KEY);
-    if (raw && allSections.some((s) => s.id === raw)) return raw;
+    if (raw && platformSections.some((s) => s.id === raw)) return raw;
   } catch {
     /* ignore */
   }
   return "build";
 }
 
-function NavMenuLink({
-  item,
-  collapsed,
-  sub = false,
-}: {
-  item: NavItem;
-  collapsed: boolean;
-  sub?: boolean;
-}) {
+function NavMenuLink({ item, collapsed, sub = false }: { item: NavItem; collapsed: boolean; sub?: boolean }) {
   const location = useLocation();
-  const active = location.pathname === item.url;
-  const Icon = item.icon;
+  const active = location.pathname === item.url || location.pathname.startsWith(`${item.url}/`);
+
+  const link = (
+    <NavLink to={item.url} end title={item.hint ?? item.title}>
+      <AppIcon icon={item.icon} size={sub ? 15 : 17} strokeWidth={1.6} className="text-current" />
+      {(sub || !collapsed) && <span>{item.title}</span>}
+    </NavLink>
+  );
 
   if (sub) {
     return (
       <SidebarMenuSubItem>
         <SidebarMenuSubButton asChild isActive={active}>
-          <NavLink to={item.url} end title={item.hint ?? item.title}>
-            <Icon className="h-4 w-4 shrink-0" strokeWidth={2} />
-            <span>{item.title}</span>
-          </NavLink>
+          {link}
         </SidebarMenuSubButton>
       </SidebarMenuSubItem>
     );
@@ -76,10 +70,7 @@ function NavMenuLink({
   return (
     <SidebarMenuItem>
       <SidebarMenuButton asChild isActive={active} tooltip={item.title}>
-        <NavLink to={item.url} end title={item.hint ?? item.title}>
-          <Icon className="h-4 w-4 shrink-0" strokeWidth={2} />
-          {!collapsed && <span>{item.title}</span>}
-        </NavLink>
+        {link}
       </SidebarMenuButton>
     </SidebarMenuItem>
   );
@@ -97,15 +88,15 @@ function CollapsibleNavSection({
   onOpenChange: (open: boolean) => void;
 }) {
   const location = useLocation();
-  const isActive = (path: string) => location.pathname === path;
-  const SectionIcon = section.icon;
-  const hasActiveChild = section.items.some((item) => isActive(item.url));
+  const hasActiveChild = section.items.some(
+    (item) => location.pathname === item.url || location.pathname.startsWith(`${item.url}/`),
+  );
 
   if (collapsed) {
     return (
       <>
         {section.items.map((item) => (
-          <NavMenuLink key={item.url} item={item} collapsed={collapsed} />
+          <NavMenuLink key={item.url} item={item} collapsed />
         ))}
       </>
     );
@@ -118,13 +109,18 @@ function CollapsibleNavSection({
           <SidebarMenuButton
             tooltip={section.label}
             className={cn(
-              "h-9 font-semibold uppercase tracking-wide text-[11px] text-muted-foreground hover:text-foreground",
-              hasActiveChild && "text-primary",
+              "h-9 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground",
+              hasActiveChild && "text-foreground",
             )}
           >
-            <SectionIcon className="h-4 w-4 shrink-0" strokeWidth={2} />
+            <AppIcon icon={section.icon} size={17} strokeWidth={1.6} className="text-current" />
             <span className="flex-1 truncate text-left">{section.label}</span>
-            <ChevronRight className="ml-auto h-4 w-4 shrink-0 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+            <AppIcon
+              icon={ArrowRight01Icon}
+              size={14}
+              strokeWidth={1.75}
+              className="ml-auto text-current transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90"
+            />
           </SidebarMenuButton>
         </CollapsibleTrigger>
         <CollapsibleContent>
@@ -144,14 +140,10 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const navigate = useNavigate();
-  const { logout } = useAuth();
-
+  const { logout, user } = useAuth();
   const [openSectionId, setOpenSectionId] = useState<string | null>(loadOpenSection);
 
-  const activeSectionId = useMemo(
-    () => findSectionForPath(location.pathname),
-    [location.pathname],
-  );
+  const activeSectionId = useMemo(() => findSectionForPath(location.pathname), [location.pathname]);
 
   useEffect(() => {
     if (activeSectionId) {
@@ -163,38 +155,30 @@ export function AppSidebar() {
   const handleSectionOpenChange = (sectionId: string, open: boolean) => {
     const next = open ? sectionId : openSectionId === sectionId ? null : openSectionId;
     setOpenSectionId(next);
-    if (next) {
-      localStorage.setItem(OPEN_SECTION_KEY, next);
-    } else {
-      localStorage.removeItem(OPEN_SECTION_KEY);
-    }
+    if (next) localStorage.setItem(OPEN_SECTION_KEY, next);
+    else localStorage.removeItem(OPEN_SECTION_KEY);
   };
 
   const handleLogout = () => {
-    logout();
-    navigate("/login");
+    void logout().then(() => navigate("/login"));
   };
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-sidebar-border bg-sidebar">
-      <SidebarHeader className={cn("shrink-0 border-b border-sidebar-border/60", collapsed ? "p-2" : "px-3 py-3")}>
+    <Sidebar collapsible="icon" className="border-r border-sidebar-border bg-[var(--color-container)]">
+      <SidebarHeader className={cn("shrink-0 border-b border-border", collapsed ? "p-2" : "px-3 py-3")}>
         <div className={cn("flex items-center", collapsed ? "justify-center" : "min-w-0")}>
-          {!collapsed ? (
-            <div className="min-w-0">
-              <img
-                src={LOGO_SRC}
-                alt={BRAND_NAME}
-                className="h-7 w-auto max-w-[140px] object-contain object-left"
-              />
-              <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{BRAND_TAGLINE}</p>
-            </div>
-          ) : (
+          {collapsed ? (
             <img src={LOGO_ICON_SRC} alt={BRAND_NAME} className="h-8 w-8 object-contain" />
+          ) : (
+            <div className="min-w-0">
+              <BrandLogo className="h-16 w-auto max-w-[260px] scale-110 origin-left" />
+              <p className="mt-1 truncate text-[11px] text-[var(--color-quaternary)]">{BRAND_TAGLINE}</p>
+            </div>
           )}
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="gap-0 overflow-y-auto overflow-x-hidden p-0">
+      <SidebarContent className="gap-0 overflow-x-hidden overflow-y-auto p-0">
         <SidebarGroup className="py-2">
           {!collapsed && (
             <SidebarGroupLabel className="px-3 text-[10px] uppercase tracking-widest text-muted-foreground/60">
@@ -228,7 +212,7 @@ export function AppSidebar() {
         <SidebarGroup className="py-2">
           {!collapsed && (
             <SidebarGroupLabel className="px-3 text-[10px] uppercase tracking-widest text-muted-foreground/60">
-              Platform Tools
+              Platform
             </SidebarGroupLabel>
           )}
           <SidebarGroupContent>
@@ -245,21 +229,6 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
-        <SidebarSeparator />
-
-        <SidebarGroup className="py-2">
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <CollapsibleNavSection
-                section={betaSection}
-                collapsed={collapsed}
-                open={openSectionId === betaSection.id}
-                onOpenChange={(open) => handleSectionOpenChange(betaSection.id, open)}
-              />
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
       </SidebarContent>
 
       <SidebarFooter className="shrink-0 border-t border-sidebar-border/60 p-2">
@@ -270,7 +239,7 @@ export function AppSidebar() {
             title="Sign out"
             className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground"
           >
-            <LogOut className="h-4 w-4" />
+            <AppIcon icon={Logout01Icon} size={16} />
           </button>
         ) : (
           <div className="flex w-full items-center gap-2 rounded-lg px-1 py-1">
@@ -279,13 +248,23 @@ export function AppSidebar() {
               onClick={() => navigate("/profile")}
               className="flex min-w-0 flex-1 items-center gap-2 rounded-lg px-1 py-1 text-left transition-colors hover:bg-sidebar-accent"
             >
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-brand text-primary-foreground">
-                <User className="h-4 w-4" />
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-raised)] text-[var(--color-secondary)] ring-1 ring-border">
+                <AppIcon icon={UserIcon} size={16} />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[13px] font-semibold text-foreground">My Workspace</p>
-                <p className="truncate text-[10px] text-muted-foreground">Project engineer</p>
+                <p className="truncate text-[13px] font-semibold text-foreground">
+                  {user?.name || user?.email || "My Workspace"}
+                </p>
+                <p className="truncate text-[10px] text-muted-foreground">{user?.org_name || "Signed in"}</p>
               </div>
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate("/settings/connectors")}
+              title="Connectors"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground"
+            >
+              <AppIcon icon={Settings01Icon} size={14} />
             </button>
             <button
               type="button"
@@ -293,7 +272,7 @@ export function AppSidebar() {
               title="Sign out"
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
             >
-              <LogOut className="h-3.5 w-3.5" />
+              <AppIcon icon={Logout01Icon} size={14} />
             </button>
           </div>
         )}

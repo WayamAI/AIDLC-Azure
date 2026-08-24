@@ -21,25 +21,23 @@ export function PageHeader({
   return (
     <div
       className={cn(
-        "flex flex-col gap-4 border-b border-border/40 pb-6 sm:flex-row sm:items-start sm:justify-between",
+        "flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-start sm:justify-between",
         className,
       )}
     >
       <div className="flex min-w-0 items-start gap-3.5">
         {Icon && (
-          <div className="dash-panel-icon h-11 w-11">
-            <Icon className="h-5 w-5" strokeWidth={2} />
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-raised text-secondary">
+            <Icon className="h-5 w-5" strokeWidth={1.75} />
           </div>
         )}
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground">{title}</h1>
+            <h1 className="font-display text-xl tracking-tight text-ink sm:text-2xl">{title}</h1>
             {badge}
           </div>
           {description && (
-            <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-              {description}
-            </p>
+            <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-ink-tertiary">{description}</p>
           )}
         </div>
       </div>
@@ -56,32 +54,19 @@ interface PageStatProps {
   color?: string;
 }
 
-export function PageStat({
-  icon: Icon,
-  label,
-  value,
-  accent = "primary",
-  color,
-}: PageStatProps) {
-  const accentMap = {
-    primary: "dash-kpi-accent-primary",
-    positive: "dash-kpi-accent-positive",
-    success: "dash-kpi-accent-positive",
-    destructive: "dash-kpi-accent-destructive",
-    warning: "dash-kpi-accent-warning",
-  };
-
+export function PageStat({ icon: Icon, label, value, accent = "primary", color }: PageStatProps) {
   return (
-    <div className={cn("dash-kpi", accentMap[accent])}>
-      <div className="dash-kpi-mesh" aria-hidden />
+    <div className="dash-kpi">
       <div className="relative z-[1]">
         <div className="mb-3 flex items-center gap-2.5">
           <div className="dash-kpi-icon">
-            <Icon className={cn("h-4 w-4", color)} strokeWidth={2} />
+            <Icon className={cn("h-4 w-4", color)} strokeWidth={1.75} />
           </div>
-          <span className="text-[11px] font-medium text-muted-foreground">{label}</span>
+          <span className="text-[11px] font-medium uppercase tracking-wide text-ink-quaternary">{label}</span>
         </div>
-        <p className={cn("dash-kpi-value", color)}>{value}</p>
+        <p className={cn("dash-kpi-value", color)} data-accent={accent}>
+          {value}
+        </p>
       </div>
     </div>
   );

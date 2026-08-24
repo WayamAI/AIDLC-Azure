@@ -4,16 +4,13 @@ Synthetic data service: generates requirement-driven test data via Gemini and pe
 from datetime import datetime
 from bson import ObjectId
 
-from app.database import get_db
 from app.models.synthetic_data import SchemaField, SyntheticDatasetOut
 from app.services import ai_service
 
 
-async def generate_and_store(requirement_id: str, count: int) -> SyntheticDatasetOut:
-    db = get_db()
-
+async def generate_and_store(db, org_id: str, requirement_id: str, count: int) -> SyntheticDatasetOut:
     # ── 1. Fetch the requirement text ──────────────────────────────────────
-    req_doc = await db.requirements.find_one({"_id": ObjectId(requirement_id)})
+    req_doc = await db.requirements.find_one({"_id": ObjectId(requirement_id), "org_id": org_id})
     if not req_doc:
         raise ValueError(f"Requirement '{requirement_id}' not found")
     requirement_text: str = req_doc["text"]
@@ -28,6 +25,7 @@ async def generate_and_store(requirement_id: str, count: int) -> SyntheticDatase
 
     # ── 3. Persist as a dataset document ──────────────────────────────────
     doc = {
+        "org_id": org_id,
         "requirement_id": requirement_id,
         "requirement_text": requirement_text,
         "count": len(rows),
@@ -48,9 +46,8 @@ async def generate_and_store(requirement_id: str, count: int) -> SyntheticDatase
     )
 
 
-async def get_datasets(limit: int = 10) -> list[SyntheticDatasetOut]:
-    db = get_db()
-    cursor = db.synthetic_datasets.find().sort("generated_at", -1).limit(limit)
+async def get_datasets(db, org_id: str, limit: int = 10) -> list[SyntheticDatasetOut]:
+    cursor = db.synthetic_datasets.find({"org_id": org_id}).sort("generated_at", -1).limit(limit)
     docs = await cursor.to_list(length=limit)
     return [
         SyntheticDatasetOut(
@@ -64,4 +61,3 @@ async def get_datasets(limit: int = 10) -> list[SyntheticDatasetOut]:
         )
         for d in docs
     ]
-

@@ -6,8 +6,10 @@ import math
 from collections import defaultdict
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
+from app.auth.dependencies import get_current_org
+from app.models.organization import OrganizationOut
 from app.services import github_service
 from app.services.ai_service import generate_defect_risk_narrative, AIQuotaError
 
@@ -29,7 +31,12 @@ def _normalise(values: list[float]) -> list[float]:
 
 
 @router.get("/risk-scores")
-async def compute_risk_scores(owner: str, repo: str, since_days: int = 90):
+async def compute_risk_scores(
+    owner: str,
+    repo: str,
+    since_days: int = 90,
+    org: OrganizationOut = Depends(get_current_org),
+):
     """
     Analyse commit history and score each changed file for defect risk.
     Returns top 20 highest-risk files + AI narrative.

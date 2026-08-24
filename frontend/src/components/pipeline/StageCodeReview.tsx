@@ -14,7 +14,7 @@ import type { CommitInfo, PipelineReview } from "@/lib/api";
 
 const SEVERITY_CONFIG: Record<string, { textColor: string; bg: string; border: string; icon: React.ElementType; label: string }> = {
   critical: { textColor: "text-red-700",    bg: "bg-red-50",    border: "border-red-200",    icon: XCircle,       label: "Critical" },
-  high:     { textColor: "text-orange-700", bg: "bg-orange-50", border: "border-orange-200", icon: AlertTriangle, label: "High" },
+  high:     { textColor: "text-[var(--color-warning)]", bg: "bg-[var(--color-warning-bg)]", border: "border-[var(--color-status-warning)]/30", icon: AlertTriangle, label: "High" },
   medium:   { textColor: "text-amber-700", bg: "bg-amber-50", border: "border-amber-200", icon: Info,          label: "Medium" },
   low:      { textColor: "text-sky-700",   bg: "bg-sky-50",   border: "border-sky-200",   icon: Info,          label: "Low" },
 };
@@ -28,7 +28,7 @@ const RECOMMENDATION_CONFIG: Record<string, { label: string; description: string
 
 const CATEGORY_COLORS: Record<string, string> = {
   security: "text-red-700",
-  bug: "text-orange-700",
+  bug: "text-[var(--color-warning)]",
   performance: "text-amber-700",
   style: "text-sky-700",
   "test-coverage": "text-purple-400",

@@ -80,7 +80,7 @@ import { PageHeader } from "@/components/PageHeader";
 
 const severityClass: Record<string, string> = {
   Critical: "bg-red-500/20 text-red-700 border-red-200",
-  High: "bg-orange-500/20 text-orange-700 border-orange-200",
+  High: "bg-[var(--color-warning-bg)] text-[var(--color-warning)] border-[var(--color-status-warning)]/30",
   Medium: "bg-yellow-500/20 text-amber-700 border-amber-200",
   Low: "bg-blue-500/20 text-sky-700 border-sky-200",
 };
@@ -96,7 +96,7 @@ function stepActionLabel(action: string) {
     screenshot: { label: "Screenshot", color: "text-cyan-400" },
     wait: { label: "Wait", color: "text-gray-400" },
     hover: { label: "Hover", color: "text-pink-400" },
-    hover_and_click: { label: "Hover+Click", color: "text-orange-700" },
+    hover_and_click: { label: "Hover+Click", color: "text-[var(--color-warning)]" },
     press: { label: "Press", color: "text-indigo-400" },
     check: { label: "Check", color: "text-teal-400" },
     uncheck: { label: "Uncheck", color: "text-teal-400" },
@@ -2406,7 +2406,7 @@ export default function LiveTestRunner({
                                   <Badge variant="outline" className={cn(
                                     "text-[8px] h-4 px-1.5 uppercase font-black shrink-0 tracking-widest rounded-md",
                                     bt.severity.toLowerCase() === "critical" ? "border-red-500/50 text-red-700 bg-red-400/5" :
-                                      bt.severity.toLowerCase() === "high" ? "border-orange-500/50 text-orange-700 bg-orange-400/5" :
+                                      bt.severity.toLowerCase() === "high" ? "border-[var(--color-status-warning)]/30 text-[var(--color-warning)] bg-[var(--color-warning-bg)]" :
                                         "border-muted-foreground/30 text-muted-foreground"
                                   )}>
                                     {bt.severity.slice(0, 3)}

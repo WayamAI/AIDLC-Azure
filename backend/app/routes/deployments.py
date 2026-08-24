@@ -1,6 +1,8 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
+from app.auth.dependencies import get_current_org
+from app.models.organization import OrganizationOut
 from app.services import vercel_service
 
 router = APIRouter(prefix="/deployments", tags=["Deployments"])
@@ -14,7 +16,7 @@ class TriggerDeploymentRequest(BaseModel):
 
 
 @router.post("/trigger")
-async def trigger_deployment(body: TriggerDeploymentRequest):
+async def trigger_deployment(body: TriggerDeploymentRequest, org: OrganizationOut = Depends(get_current_org)):
     try:
         return await vercel_service.trigger_deployment(
             branch=body.branch.strip(),
@@ -30,6 +32,7 @@ async def trigger_deployment(body: TriggerDeploymentRequest):
 async def deployment_repo_options(
     repo_url: str = Query(..., min_length=5, max_length=400),
     branch: str | None = Query(default=None, min_length=1, max_length=120),
+    org: OrganizationOut = Depends(get_current_org),
 ):
     try:
         return await vercel_service.get_repo_options(repo_url=repo_url, branch=branch)
@@ -38,7 +41,7 @@ async def deployment_repo_options(
 
 
 @router.get("/{deployment_id}/status")
-async def deployment_status(deployment_id: str):
+async def deployment_status(deployment_id: str, org: OrganizationOut = Depends(get_current_org)):
     if not deployment_id.strip():
         raise HTTPException(status_code=400, detail="deployment_id is required")
 
@@ -52,6 +55,7 @@ async def deployment_status(deployment_id: str):
 async def deployment_events(
     deployment_id: str,
     limit: int = Query(default=120, ge=10, le=300),
+    org: OrganizationOut = Depends(get_current_org),
 ):
     if not deployment_id.strip():
         raise HTTPException(status_code=400, detail="deployment_id is required")
@@ -63,5 +67,5 @@ async def deployment_events(
 
 
 @router.get("/health")
-async def deployment_health():
+async def deployment_health(org: OrganizationOut = Depends(get_current_org)):
     return vercel_service.deployment_config_health()

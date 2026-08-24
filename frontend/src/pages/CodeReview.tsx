@@ -14,7 +14,7 @@ import { PageShell } from "@/components/PageShell";
 
 const SEVERITY_CONFIG: Record<string, { textColor: string; bg: string; border: string; icon: React.ElementType; label: string }> = {
   critical: { textColor: "text-red-700", bg: "bg-red-50", border: "border-red-200", icon: XCircle, label: "Critical" },
-  high: { textColor: "text-orange-700", bg: "bg-orange-50", border: "border-orange-200", icon: AlertTriangle, label: "High" },
+  high: { textColor: "text-[var(--color-warning)]", bg: "bg-[var(--color-warning-bg)]", border: "border-[var(--color-status-warning)]/30", icon: AlertTriangle, label: "High" },
   medium: { textColor: "text-amber-700", bg: "bg-amber-50", border: "border-amber-200", icon: Info, label: "Medium" },
   low: { textColor: "text-sky-700", bg: "bg-sky-50", border: "border-sky-200", icon: Info, label: "Low" },
 };
@@ -22,14 +22,14 @@ const SEVERITY_CONFIG: Record<string, { textColor: string; bg: string; border: s
 const RECOMMENDATION_CONFIG: Record<string, { label: string; description: string; color: string }> = {
   APPROVE: { label: "Approved", description: "No blocking issues. Code is ready to merge.", color: "text-positive border-positive/25" },
   REQUEST_CHANGES: { label: "Changes Requested", description: "Issues found that must be resolved before merging.", color: "text-red-700 border-red-200" },
-  NEEDS_DISCUSSION: { label: "Needs Discussion", description: "Review found concerns requiring engineering discussion.", color: "text-orange-700 border-orange-200" },
+  NEEDS_DISCUSSION: { label: "Needs Discussion", description: "Review found concerns requiring engineering discussion.", color: "text-[var(--color-warning)] border-[var(--color-status-warning)]/30" },
   COMMENT: { label: "Commented", description: "Suggestions provided not blocking, but worth reviewing.", color: "text-amber-700 border-amber-200" },
   CONDITIONAL: { label: "Conditional", description: "Can merge after addressing the listed conditions.", color: "text-amber-700 border-amber-200" },
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
   security: "text-red-700",
-  bug: "text-orange-700",
+  bug: "text-[var(--color-warning)]",
   performance: "text-amber-700",
   style: "text-sky-700",
   "test-coverage": "text-purple-400",

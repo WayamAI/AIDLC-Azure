@@ -1,0 +1,131 @@
+{
+  "started_at": "2026-08-23T07:04:17.844454+00:00",
+  "base": "http://127.0.0.1:8001",
+  "probes": [
+    {
+      "owner": "fastapi",
+      "repo": "fastapi",
+      "ok": true,
+      "summary": {
+        "repo_info_status": 200,
+        "full_name": "fastapi/fastapi",
+        "stars": 101765,
+        "default_branch": "master",
+        "language": "Python",
+        "commits_status": 200,
+        "commits_count": 100,
+        "prs_status": 200,
+        "open_prs": 5,
+        "elapsed_s": 6.23,
+        "error": null
+      },
+      "history_status": 200
+    },
+    {
+      "owner": "encode",
+      "repo": "httpx",
+      "ok": true,
+      "summary": {
+        "repo_info_status": 200,
+        "full_name": "encode/httpx",
+        "stars": 15429,
+        "default_branch": "master",
+        "language": "Python",
+        "commits_status": 200,
+        "commits_count": 0,
+        "prs_status": 200,
+        "open_prs": 5,
+        "elapsed_s": 4.92,
+        "error": null
+      },
+      "history_status": 200
+    },
+    {
+      "owner": "pallets",
+      "repo": "flask",
+      "ok": true,
+      "summary": {
+        "repo_info_status": 200,
+        "full_name": "pallets/flask",
+        "stars": 72141,
+        "default_branch": "main",
+        "language": "Python",
+        "commits_status": 200,
+        "commits_count": 16,
+        "prs_status": 200,
+        "open_prs": 3,
+        "elapsed_s": 4.66,
+        "error": null
+      },
+      "history_status": 200
+    }
+  ],
+  "history_after": [
+    {
+      "id": "6a8a9b83bdb52e0617e7ffec",
+      "kind": "repo_probe",
+      "title": "Repo probe pallets/flask",
+      "url": "https://github.com/pallets/flask",
+      "section": "GitHub",
+      "payload": {
+        "repo_info_status": 200,
+        "full_name": "pallets/flask",
+        "stars": 72141,
+        "default_branch": "main",
+        "language": "Python",
+        "commits_status": 200,
+        "commits_count": 16,
+        "prs_status": 200,
+        "open_prs": 3,
+        "elapsed_s": 4.66,
+        "error": null
+      },
+      "visited_at": "2026-08-23T07:04:35.906000",
+      "user_id": "6a8a8a8e35b49f08fa15c0ad"
+    },
+    {
+      "id": "6a8a9b7fbdb52e0617e7ffeb",
+      "kind": "repo_probe",
+      "title": "Repo probe encode/httpx",
+      "url": "https://github.com/encode/httpx",
+      "section": "GitHub",
+      "payload": {
+        "repo_info_status": 200,
+        "full_name": "encode/httpx",
+        "stars": 15429,
+        "default_branch": "master",
+        "language": "Python",
+        "commits_status": 200,
+        "commits_count": 0,
+        "prs_status": 200,
+        "open_prs": 5,
+        "elapsed_s": 4.92,
+        "error": null
+      },
+      "visited_at": "2026-08-23T07:04:31.219000",
+      "user_id": "6a8a8a8e35b49f08fa15c0ad"
+    },
+    {
+      "id": "6a8a9b7abdb52e0617e7ffea",
+      "kind": "repo_probe",
+      "title": "Repo probe fastapi/fastapi",
+      "url": "https://github.com/fastapi/fastapi",
+      "section": "GitHub",
+      "payload": {
+        "repo_info_status": 200,
+        "full_name": "fastapi/fastapi",
+        "stars": 101765,
+        "default_branch": "master",
+        "language": "Python",
+        "commits_status": 200,
+        "commits_count": 100,
+        "prs_status": 200,
+        "open_prs": 5,
+        "elapsed_s": 6.23,
+        "error": null
+      },
+      "visited_at": "2026-08-23T07:04:26.280000",
+      "user_id": "6a8a8a8e35b49f08fa15c0ad"
+    }
+  ]
+}

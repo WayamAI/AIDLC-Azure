@@ -102,7 +102,7 @@ function mapWorkspaceTree(nodes: FileNode[]): TreeNode[] {
 }
 
 function fileIcon(path: string, isRoot: boolean) {
-  if (isRoot) return <Flame className="h-4 w-4 text-orange-700 flex-shrink-0" />;
+  if (isRoot) return <Flame className="h-4 w-4 text-[var(--color-warning)] flex-shrink-0" />;
   const ext = path.split(".").pop()?.toLowerCase() ?? "";
   if (["ts", "tsx", "js", "jsx", "py"].includes(ext)) {
     return <FileCode className="h-4 w-4 text-sky-700 flex-shrink-0" />;
@@ -270,14 +270,14 @@ function layoutBranchTree(
       type: "step",
       animated: highlighted,
       style: {
-        stroke: highlighted ? "#f97316" : "hsl(var(--border))",
+        stroke: highlighted ? "#B45309" : "hsl(var(--border))",
         strokeWidth: highlighted ? 2.2 : 1.4,
       },
       markerEnd: {
         type: MarkerType.ArrowClosed,
         width: 12,
         height: 12,
-        color: highlighted ? "#f97316" : "hsl(var(--border))",
+        color: highlighted ? "#B45309" : "hsl(var(--border))",
       },
     });
   }
@@ -290,7 +290,7 @@ const ImpactNode = memo(({ data, selected }: NodeProps) => {
 
   const classes =
     d.tone === "root"
-      ? "border-orange-400/70 bg-orange-400/8"
+      ? "border-[var(--color-status-warning)]/30 bg-[var(--color-warning-bg)]"
       : d.tone === "chain"
       ? "border-blue-400/60 bg-blue-400/8"
       : "border-border/60 bg-card";
@@ -321,7 +321,7 @@ const ImpactNode = memo(({ data, selected }: NodeProps) => {
 
       <div className="flex items-center gap-1.5 flex-wrap">
         {d.isRoot && (
-          <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-orange-400/15 text-orange-700">
+          <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-[var(--color-warning-bg)] text-[var(--color-warning)]">
             root
           </span>
         )}
@@ -428,7 +428,7 @@ function FileTreeNode({
         onClick={() => onSelect(node.path)}
       >
         {isHighlighted ? (
-          <Flame className="h-3 w-3 shrink-0 text-orange-700" />
+          <Flame className="h-3 w-3 shrink-0 text-[var(--color-warning)]" />
         ) : (
           <File className="h-3 w-3 shrink-0 opacity-60" />
         )}

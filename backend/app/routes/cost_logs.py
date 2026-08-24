@@ -1,5 +1,7 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Depends
+from app.auth.dependencies import get_current_org
 from app.database import get_db
+from app.models.organization import OrganizationOut
 
 router = APIRouter(prefix="/cost-logs", tags=["Cost Logs"])
 
@@ -8,13 +10,15 @@ router = APIRouter(prefix="/cost-logs", tags=["Cost Logs"])
 async def get_cost_logs(
     page: int = Query(1, ge=1),
     limit: int = Query(10, ge=1, le=100),
+    org: OrganizationOut = Depends(get_current_org),
+    db=Depends(get_db),
 ):
-    db = get_db()
     col = db["api_cost_logs"]
+    query = {"org_id": org.id}
 
-    total = await col.count_documents({})
+    total = await col.count_documents(query)
     skip = (page - 1) * limit
-    cursor = col.find({}, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit)
+    cursor = col.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit)
     logs = await cursor.to_list(length=limit)
 
     # Serialize datetime fields
@@ -24,7 +28,10 @@ async def get_cost_logs(
 
     total_pages = max(1, (total + limit - 1) // limit)
 
-    pipeline = [{"$group": {"_id": None, "grand_total": {"$sum": "$total_cost_usd"}}}]
+    pipeline = [
+        {"$match": query},
+        {"$group": {"_id": None, "grand_total": {"$sum": "$total_cost_usd"}}},
+    ]
     agg = await col.aggregate(pipeline).to_list(length=1)
     grand_total = round(agg[0]["grand_total"], 4) if agg else 0.0
 

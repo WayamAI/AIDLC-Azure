@@ -1,7 +1,10 @@
-from fastapi import APIRouter, HTTPException, Query, Form, UploadFile, File
+from fastapi import APIRouter, HTTPException, Query, Form, UploadFile, File, Depends
 from typing import Optional, Any
 import csv
 import io
+from app.auth.dependencies import get_current_org
+from app.database import get_db
+from app.models.organization import OrganizationOut
 from app.services import execution_service
 from app.services import ai_service
 
@@ -39,6 +42,8 @@ async def run_tests(
     columns: Optional[str] = Form(default=None),
     preview_rows: Optional[str] = Form(default=None),
     file: Optional[UploadFile] = File(default=None),
+    org: OrganizationOut = Depends(get_current_org),
+    db=Depends(get_db),
 ):
     """
     Run all (or requirement-scoped) test cases.
@@ -92,6 +97,8 @@ async def run_tests(
             }
 
         summary = await execution_service.start_run(
+            db,
+            org.id,
             requirement_id=requirement_id,
             data_context=data_context,
         )
@@ -112,13 +119,19 @@ async def run_tests(
 async def get_results(
     run_id: Optional[str] = Query(default=None),
     limit: int = Query(default=100, le=500),
+    org: OrganizationOut = Depends(get_current_org),
+    db=Depends(get_db),
 ):
-    return await execution_service.get_results(run_id=run_id, limit=limit)
+    return await execution_service.get_results(db, org.id, run_id=run_id, limit=limit)
 
 
 @router.get("/runs/{run_id}")
-async def get_run_summary(run_id: str):
-    summary = await execution_service.get_run_summary(run_id)
+async def get_run_summary(
+    run_id: str,
+    org: OrganizationOut = Depends(get_current_org),
+    db=Depends(get_db),
+):
+    summary = await execution_service.get_run_summary(db, org.id, run_id)
     if not summary:
         raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
     return summary

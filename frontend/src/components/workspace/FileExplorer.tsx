@@ -17,7 +17,7 @@ type FileStatus = "staged" | "modified" | "untracked" | "deleted";
 function StatusBadge({ status }: { status: FileStatus }) {
   const styles: Record<FileStatus, string> = {
     staged:    "text-positive",
-    modified:  "text-orange-700",
+    modified:  "text-[var(--color-warning)]",
     untracked: "text-sky-700",
     deleted:   "text-red-700",
   };
@@ -44,7 +44,7 @@ function getFileIcon(node: FileNode) {
   if (lang === "python")
     return <FileCode className="h-3.5 w-3.5 text-amber-700 flex-shrink-0" />;
   if (lang === "json")
-    return <FileJson className="h-3.5 w-3.5 text-orange-700 flex-shrink-0" />;
+    return <FileJson className="h-3.5 w-3.5 text-[var(--color-warning)] flex-shrink-0" />;
   return <FileText className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />;
 }
 
@@ -104,7 +104,7 @@ function FileTreeNode({ node, depth = 0, activeFile, statusMap, revealDirs }: Fi
             : <Folder className="h-3.5 w-3.5 text-sky-700 flex-shrink-0" />}
           <span className="truncate text-foreground/80 flex-1 min-w-0">{node.name}</span>
           {!expanded && dirHasChanges && (
-            <span className="h-1.5 w-1.5 rounded-full bg-orange-400 flex-shrink-0 mr-1" />
+            <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-warning)] flex-shrink-0 mr-1" />
           )}
         </button>
         {expanded && node.children?.map((child) => (
@@ -138,7 +138,7 @@ function FileTreeNode({ node, depth = 0, activeFile, statusMap, revealDirs }: Fi
       {getFileIcon(node)}
       <span className={cn(
         "truncate flex-1 min-w-0",
-        fileStatus === "modified" && "text-orange-700",
+        fileStatus === "modified" && "text-[var(--color-warning)]",
         fileStatus === "staged" && "text-positive",
         fileStatus === "untracked" && "text-sky-700",
         fileStatus === "deleted" && "text-red-700 line-through",
@@ -225,7 +225,7 @@ export function FileExplorer({ revealPath }: { revealPath?: string | null } = {}
           </div>
           <div className="flex items-center gap-1.5 flex-shrink-0">
             {changedCount > 0 && (
-              <span className="text-[9px] text-orange-700 font-medium">{changedCount}M</span>
+              <span className="text-[9px] text-[var(--color-warning)] font-medium">{changedCount}M</span>
             )}
             <button
               onClick={handleRefresh}
@@ -274,7 +274,7 @@ export function FileExplorer({ revealPath }: { revealPath?: string | null } = {}
           {changedCount > 0 ? (
             <>
               {(gitStatusQuery.data?.unstaged?.length ?? 0) > 0 && (
-                <span className="text-[9px] text-orange-700">
+                <span className="text-[9px] text-[var(--color-warning)]">
                   {gitStatusQuery.data!.unstaged.length}M
                 </span>
               )}

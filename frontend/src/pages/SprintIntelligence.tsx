@@ -35,7 +35,7 @@ import { CHART_AXIS, CHART_CURSOR, CHART_GRID } from "@/lib/analytics-charts";
 
 const PRIORITY_COLORS: Record<string, string> = {
   Critical: "text-red-700",
-  High: "text-orange-700",
+  High: "text-[var(--color-warning)]",
   Medium: "text-amber-700",
   Low: "text-sky-700",
 };
@@ -43,7 +43,7 @@ const PRIORITY_COLORS: Record<string, string> = {
 function DoraLevel({ rate }: { rate: number }) {
   if (rate <= 5) return <span className="text-positive text-xs">Elite</span>;
   if (rate <= 15) return <span className="text-amber-700 text-xs">High</span>;
-  if (rate <= 30) return <span className="text-orange-700 text-xs">Medium</span>;
+  if (rate <= 30) return <span className="text-[var(--color-warning)] text-xs">Medium</span>;
   return <span className="text-red-700 text-xs">Low</span>;
 }
 
@@ -279,7 +279,7 @@ export default function SprintIntelligence() {
                           const p = payload[0];
                           return (
                             <ChartTooltipBox
-                              rows={[{ name: String(p.payload?.priority ?? "Count"), value: p.value ?? 0, color: "hsl(var(--primary))" }]}
+                              rows={[{ name: String(p.payload?.priority ?? "Count"), value: typeof p.value === "number" || typeof p.value === "string" ? p.value : Number(p.value) || 0, color: "hsl(var(--primary))" }]}
                             />
                           );
                         }}
@@ -333,7 +333,7 @@ export default function SprintIntelligence() {
                 </div>
                 <div className="p-3 rounded-lg border border-border/30">
                   <p className="text-xs text-muted-foreground mb-1">Test Pass Rate</p>
-                  <p className={`text-xl font-display font-bold ${(data.test_pass_rate || 0) >= 80 ? "text-positive" : "text-orange-700"}`}>
+                  <p className={`text-xl font-display font-bold ${(data.test_pass_rate || 0) >= 80 ? "text-positive" : "text-[var(--color-warning)]"}`}>
                     {data.test_pass_rate || 0}%
                   </p>
                   <p className="text-xs text-muted-foreground">{(data.test_pass_rate || 0) >= 80 ? "Above 80% target" : "Below 80% target"}</p>

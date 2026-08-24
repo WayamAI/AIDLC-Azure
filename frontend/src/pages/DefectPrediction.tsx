@@ -15,7 +15,7 @@ import { ChartTooltipBox } from "@/components/dashboard/DashboardUi";
 
 const RISK_CONFIG: Record<string, { color: string; bg: string; border: string }> = {
   critical: { color: "text-red-700", bg: "bg-red-50", border: "border-red-200" },
-  high: { color: "text-orange-700", bg: "bg-orange-50", border: "border-orange-200" },
+  high: { color: "text-[var(--color-warning)]", bg: "bg-[var(--color-warning-bg)]", border: "border-[var(--color-status-warning)]/30" },
   medium: { color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-200" },
   low: { color: "text-positive", bg: "bg-positive/10", border: "border-positive/25" },
 };
@@ -30,7 +30,7 @@ function RiskBadge({ level }: { level: string }) {
 }
 
 function CustomTreemapContent({ x, y, width, height, name, risk_score }: any) {
-  const color = risk_score >= 75 ? "#DC440C" : risk_score >= 50 ? "#F0731A" : risk_score >= 25 ? "#EAB308" : "#C27803";
+  const color = risk_score >= 75 ? "#DC2626" : risk_score >= 50 ? "#B45309" : risk_score >= 25 ? "#AFAFAF" : "#6B7280";
   const textFill = risk_score >= 50 ? "#ffffff" : "#1c1917";
   return (
     <g>
@@ -152,7 +152,7 @@ export default function DefectPrediction() {
                       content={({ active, payload }) => {
                         if (!active || !payload?.[0]) return null;
                         const d = payload[0].payload;
-                        const color = d.risk_score >= 75 ? "#DC440C" : d.risk_score >= 50 ? "#f97316" : d.risk_score >= 25 ? "#eab308" : "#FFA12B";
+                        const color = d.risk_score >= 75 ? "#DC2626" : d.risk_score >= 50 ? "#B45309" : d.risk_score >= 25 ? "#AFAFAF" : "#6B7280";
                         return (
                           <ChartTooltipBox
                             label={d.name}

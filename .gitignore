@@ -4,6 +4,9 @@
 !.env.example
 !.env.*.example
 *.local
+infra/azure/*pass*
+infra/azure/deploy-secrets.json
+infra/azure/*.log
 
 # Python
 .venv/
@@ -19,3 +22,8 @@ dist/
 .idea/
 .vscode/
 *.log
+.worktrees/
+
+cookies.txt
+login.json
+

@@ -3,7 +3,9 @@ Pipeline report route.
 Aggregates CI + live test results + code review verdict into a single GO/NO-GO.
 """
 import uuid
-from fastapi import APIRouter, HTTPException, Body
+from fastapi import APIRouter, HTTPException, Body, Depends
+from app.auth.dependencies import get_current_org
+from app.models.organization import OrganizationOut
 from app.services import github_service, jira_service
 from app.services.ai_service import analyze_release_readiness, AIQuotaError
 from app.database import get_db
@@ -44,7 +46,11 @@ def _pipeline_score(
 
 
 @router.post("/report")
-async def generate_pipeline_report(body: dict = Body(...)):
+async def generate_pipeline_report(
+    body: dict = Body(...),
+    org: OrganizationOut = Depends(get_current_org),
+    db=Depends(get_db),
+):
     """
     Aggregate all pipeline stage signals into a single GO/NO-GO report.
 
@@ -152,9 +158,9 @@ async def generate_pipeline_report(body: dict = Body(...)):
     # 5. Persist to MongoDB
     pipeline_run_id = str(uuid.uuid4())
     try:
-        db = get_db()
         await db["pipeline_runs"].insert_one({
             "_id": pipeline_run_id,
+            "org_id": org.id,
             "owner": owner,
             "repo": repo,
             "version": version,
@@ -179,11 +185,16 @@ async def generate_pipeline_report(body: dict = Body(...)):
 
 
 @router.get("/runs")
-async def list_pipeline_runs():
+async def list_pipeline_runs(
+    org: OrganizationOut = Depends(get_current_org),
+    db=Depends(get_db),
+):
     """Recent pipeline run history."""
     try:
-        db = get_db()
-        cursor = db["pipeline_runs"].find({}, {"_id": 1, "owner": 1, "repo": 1, "version": 1, "score": 1, "verdict": 1}).sort("_id", -1).limit(20)
+        cursor = db["pipeline_runs"].find(
+            {"org_id": org.id},
+            {"_id": 1, "owner": 1, "repo": 1, "version": 1, "score": 1, "verdict": 1},
+        ).sort("_id", -1).limit(20)
         runs = []
         async for doc in cursor:
             doc["id"] = doc.pop("_id")

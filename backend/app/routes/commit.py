@@ -1,13 +1,19 @@
 """Commit routes impact tree for root-to-leaf dependency view."""
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
+from app.auth.dependencies import get_current_org
+from app.models.organization import OrganizationOut
 from app.services import impact_service
 
 router = APIRouter(prefix="/commit", tags=["Commit"])
 
 
 @router.get("/impact-tree")
-async def get_commit_impact_tree(workspace_id: str, max_depth: int = 4):
+async def get_commit_impact_tree(
+    workspace_id: str,
+    max_depth: int = 4,
+    org: OrganizationOut = Depends(get_current_org),
+):
     """
     Return commit-stage impact tree where roots are changed files (M/U/A)
     and children follow import/dependency direction.

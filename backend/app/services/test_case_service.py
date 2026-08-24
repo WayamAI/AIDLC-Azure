@@ -4,16 +4,15 @@ Test-case service: CRUD + bulk insert from AI output.
 from datetime import datetime
 from typing import Any
 
-from app.database import get_db
 from app.models.test_case import TestCaseOut
 
 
-async def create_test_cases_from_ai(requirement_id: str, ai_data: dict[str, list[dict[str, Any]]]) -> int:
-    db = get_db()
+async def create_test_cases_from_ai(db, org_id: str, requirement_id: str, ai_data: dict[str, list[dict[str, Any]]]) -> int:
     docs = []
     for category, tests in ai_data.items():
         for t in tests:
             docs.append({
+                "org_id": org_id,
                 "requirement_id": requirement_id,
                 "tc_id": t.get("tc_id", ""),
                 "name": t.get("name", ""),
@@ -29,13 +28,14 @@ async def create_test_cases_from_ai(requirement_id: str, ai_data: dict[str, list
 
 
 async def get_test_cases(
+    db,
+    org_id: str,
     requirement_id: str | None = None,
     category: str | None = None,
     skip: int = 0,
     limit: int = 100,
 ) -> list[TestCaseOut]:
-    db = get_db()
-    query: dict[str, Any] = {}
+    query: dict[str, Any] = {"org_id": org_id}
     if requirement_id:
         query["requirement_id"] = requirement_id
     if category:
@@ -46,15 +46,14 @@ async def get_test_cases(
     return [_to_out(d) for d in docs]
 
 
-async def get_test_case_by_id(tc_id: str) -> TestCaseOut | None:
-    db = get_db()
-    doc = await db.test_cases.find_one({"tc_id": tc_id})
+async def get_test_case_by_id(db, org_id: str, tc_id: str) -> TestCaseOut | None:
+    doc = await db.test_cases.find_one({"tc_id": tc_id, "org_id": org_id})
     return _to_out(doc) if doc else None
 
 
-async def get_grouped_test_cases(requirement_id: str | None = None) -> dict[str, list[dict]]:
+async def get_grouped_test_cases(db, org_id: str, requirement_id: str | None = None) -> dict[str, list[dict]]:
     """Returns test cases grouped by category – mirrors mockTestCases shape."""
-    tests = await get_test_cases(requirement_id=requirement_id)
+    tests = await get_test_cases(db, org_id, requirement_id=requirement_id)
     grouped: dict[str, list[dict]] = {
         "functional": [], "edge": [], "api": [], "failure": [], "regression": []
     }
@@ -77,13 +76,12 @@ def _to_out(doc: dict) -> TestCaseOut:
         created_at=doc["created_at"],
     )
 
-async def update_test_case(tc_id: str, update_data: dict[str, Any]) -> TestCaseOut | None:
-    db = get_db()
+async def update_test_case(db, org_id: str, tc_id: str, update_data: dict[str, Any]) -> TestCaseOut | None:
     if not update_data:
-        return await get_test_case_by_id(tc_id)
-        
+        return await get_test_case_by_id(db, org_id, tc_id)
+
     result = await db.test_cases.find_one_and_update(
-        {"tc_id": tc_id},
+        {"tc_id": tc_id, "org_id": org_id},
         {"$set": update_data},
         return_document=True
     )

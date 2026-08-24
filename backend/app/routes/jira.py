@@ -1,6 +1,8 @@
 """Jira proxy routes."""
-from fastapi import APIRouter, HTTPException, Body
+from fastapi import APIRouter, Body, Depends, HTTPException
 
+from app.auth.dependencies import get_current_org
+from app.models.organization import OrganizationOut
 from app.services import jira_service
 from app.services.ai_service import generate_acceptance_criteria, AIQuotaError
 
@@ -8,7 +10,7 @@ router = APIRouter(prefix="/jira", tags=["Jira"])
 
 
 @router.get("/projects")
-async def list_projects():
+async def list_projects(org: OrganizationOut = Depends(get_current_org)):
     try:
         return await jira_service.list_projects()
     except Exception as exc:
@@ -16,7 +18,12 @@ async def list_projects():
 
 
 @router.get("/stories")
-async def get_stories(project: str, sprint_id: str | None = None, max_results: int = 20):
+async def get_stories(
+    project: str,
+    sprint_id: str | None = None,
+    max_results: int = 20,
+    org: OrganizationOut = Depends(get_current_org),
+):
     try:
         return await jira_service.get_sprint_stories(project, sprint_id, max_results)
     except Exception as exc:
@@ -24,7 +31,11 @@ async def get_stories(project: str, sprint_id: str | None = None, max_results: i
 
 
 @router.post("/stories/{issue_key}/generate-ac")
-async def generate_ac_for_story(issue_key: str, body: dict = Body(default={})):
+async def generate_ac_for_story(
+    issue_key: str,
+    body: dict = Body(default={}),
+    org: OrganizationOut = Depends(get_current_org),
+):
     """Fetch a Jira story and generate AI acceptance criteria for it."""
     project = body.get("project", issue_key.split("-")[0])
     try:
@@ -45,7 +56,11 @@ async def generate_ac_for_story(issue_key: str, body: dict = Body(default={})):
 
 
 @router.post("/stories/{issue_key}/update-ac")
-async def push_ac_to_jira(issue_key: str, body: dict = Body(...)):
+async def push_ac_to_jira(
+    issue_key: str,
+    body: dict = Body(...),
+    org: OrganizationOut = Depends(get_current_org),
+):
     """Push AI-generated acceptance criteria back to Jira as description update."""
     ac_text: str = body.get("acceptance_criteria_text", "")
     if not ac_text:
@@ -58,7 +73,11 @@ async def push_ac_to_jira(issue_key: str, body: dict = Body(...)):
 
 
 @router.get("/bugs")
-async def list_bugs(project: str, version: str | None = None):
+async def list_bugs(
+    project: str,
+    version: str | None = None,
+    org: OrganizationOut = Depends(get_current_org),
+):
     try:
         return await jira_service.get_open_bugs(project, version)
     except Exception as exc:
@@ -66,7 +85,7 @@ async def list_bugs(project: str, version: str | None = None):
 
 
 @router.post("/analyze-manual")
-async def analyze_manual_story(body: dict = Body(...)):
+async def analyze_manual_story(body: dict = Body(...), org: OrganizationOut = Depends(get_current_org)):
     """
     Analyze a manually typed user story no Jira connection needed.
     Accepts: summary (required), description (optional), priority (optional).
@@ -92,7 +111,7 @@ async def analyze_manual_story(body: dict = Body(...)):
 
 
 @router.post("/analyze-sprint")
-async def analyze_sprint(body: dict = Body(...)):
+async def analyze_sprint(body: dict = Body(...), org: OrganizationOut = Depends(get_current_org)):
     """Fetch all stories in the active sprint and generate AC for each."""
     project = body.get("project")
     if not project:

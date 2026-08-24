@@ -16,9 +16,11 @@ import uuid
 import httpx
 import logging
 
-from fastapi import APIRouter, BackgroundTasks, Body, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, File, Form, HTTPException, UploadFile
 
+from app.auth.dependencies import get_current_org
 from app.database import get_db
+from app.models.organization import OrganizationOut
 from app.models.repo_analysis import RepoAnalysisRequest
 from app.services import playwright_service, repo_service
 from app.services.analysis_runner import create_job, get_job, run_analysis, run_commit_analysis
@@ -51,7 +53,10 @@ router = APIRouter(prefix="/repo", tags=["Repo Analysis"])
 # ── Fetch recent commits (for commit-picker UI) ───────────────────────────────
 
 @router.post("/commits")
-async def fetch_commits(body: dict = Body(...)):
+async def fetch_commits(
+    body: dict = Body(...),
+    org: OrganizationOut = Depends(get_current_org),
+):
     """
     Clone the repo (depth=12) and return the last 10 commits.
     Used by the frontend commit-picker before starting an analysis.
@@ -70,7 +75,12 @@ async def fetch_commits(body: dict = Body(...)):
 # ── Start analysis job (returns immediately) ──────────────────────────────────
 
 @router.post("/analyze", status_code=202)
-async def start_analyze(body: RepoAnalysisRequest, background_tasks: BackgroundTasks):
+async def start_analyze(
+    body: RepoAnalysisRequest,
+    background_tasks: BackgroundTasks,
+    org: OrganizationOut = Depends(get_current_org),
+    db=Depends(get_db),
+):
     """
     Returns a job_id immediately.
     mode="full"   → full codebase analysis (default).
@@ -85,6 +95,7 @@ async def start_analyze(body: RepoAnalysisRequest, background_tasks: BackgroundT
         )
 
     job_id = create_job(
+        org.id,
         body.github_url,
         body.target_url,
         body.test_email,
@@ -99,9 +110,9 @@ async def start_analyze(body: RepoAnalysisRequest, background_tasks: BackgroundT
     if body.mode == "commit":
         if not body.commit_sha:
             raise HTTPException(status_code=400, detail="commit_sha is required for mode='commit'")
-        background_tasks.add_task(run_commit_analysis, job_id)
+        background_tasks.add_task(run_commit_analysis, db, job_id)
     else:
-        background_tasks.add_task(run_analysis, job_id)
+        background_tasks.add_task(run_analysis, db, job_id)
 
     return {"job_id": job_id, "status": "pending", "mode": body.mode}
 
@@ -109,7 +120,10 @@ async def start_analyze(body: RepoAnalysisRequest, background_tasks: BackgroundT
 # ── Poll job status + logs ────────────────────────────────────────────────────
 
 @router.get("/jobs/{job_id}")
-async def get_job_status(job_id: str):
+async def get_job_status(
+    job_id: str,
+    org: OrganizationOut = Depends(get_current_org),
+):
     """
     Returns the current job status, step, log lines, and (when completed) the full result.
 
@@ -118,7 +132,7 @@ async def get_job_status(job_id: str):
     logs:   list of human-readable progress lines
     result: populated only when status == 'completed'
     """
-    job = get_job(job_id)
+    job = get_job(job_id, org.id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     return job
@@ -127,9 +141,12 @@ async def get_job_status(job_id: str):
 # ── Fetch a saved analysis ────────────────────────────────────────────────────
 
 @router.get("/analyses/{analysis_id}")
-async def get_analysis(analysis_id: str):
-    db = get_db()
-    doc = await db.repo_analyses.find_one({"_id": analysis_id})
+async def get_analysis(
+    analysis_id: str,
+    org: OrganizationOut = Depends(get_current_org),
+    db=Depends(get_db),
+):
+    doc = await db.repo_analyses.find_one({"_id": analysis_id, "org_id": org.id})
     if not doc:
         raise HTTPException(status_code=404, detail="Analysis not found")
     doc["id"] = doc.pop("_id")
@@ -139,9 +156,12 @@ async def get_analysis(analysis_id: str):
 # ── List tests for an analysis ────────────────────────────────────────────────
 
 @router.get("/analyses/{analysis_id}/tests")
-async def get_tests(analysis_id: str):
-    db = get_db()
-    cursor = db.playwright_tests.find({"analysis_id": analysis_id})
+async def get_tests(
+    analysis_id: str,
+    org: OrganizationOut = Depends(get_current_org),
+    db=Depends(get_db),
+):
+    cursor = db.playwright_tests.find({"analysis_id": analysis_id, "org_id": org.id})
     docs = await cursor.to_list(length=100)
     for d in docs:
         d["id"] = d.pop("_id")
@@ -151,14 +171,17 @@ async def get_tests(analysis_id: str):
 # ── Execute tests live ────────────────────────────────────────────────────────
 
 @router.post("/analyses/{analysis_id}/execute", status_code=202)
-async def execute_tests(analysis_id: str, background_tasks: BackgroundTasks):
+async def execute_tests(
+    analysis_id: str,
+    background_tasks: BackgroundTasks,
+    org: OrganizationOut = Depends(get_current_org),
+    db=Depends(get_db),
+):
     """
     Starts a Playwright execution run in the background.
     Returns run_id poll GET /repo/execution/{run_id} for live results.
     """
-    db = get_db()
-
-    analysis = await db.repo_analyses.find_one({"_id": analysis_id})
+    analysis = await db.repo_analyses.find_one({"_id": analysis_id, "org_id": org.id})
     if not analysis:
         raise HTTPException(status_code=404, detail="Analysis not found")
 
@@ -176,7 +199,7 @@ async def execute_tests(analysis_id: str, background_tasks: BackgroundTasks):
             ),
         )
 
-    cursor = db.playwright_tests.find({"analysis_id": analysis_id})
+    cursor = db.playwright_tests.find({"analysis_id": analysis_id, "org_id": org.id})
     tests = await cursor.to_list(length=100)
 
     if not tests:
@@ -189,6 +212,8 @@ async def execute_tests(analysis_id: str, background_tasks: BackgroundTasks):
     run_id = str(uuid.uuid4())
     background_tasks.add_task(
         playwright_service.execute_playwright_tests,
+        db,
+        org.id,
         tests,
         analysis["target_url"],
         run_id,
@@ -201,13 +226,17 @@ async def execute_tests(analysis_id: str, background_tasks: BackgroundTasks):
 # ── Update a playwright test case ─────────────────────────────────────────────
 
 @router.put("/tests/{test_id}")
-async def update_test(test_id: str, body: dict = Body(...)):
-    db = get_db()
-    doc = await db.playwright_tests.find_one({"_id": test_id})
+async def update_test(
+    test_id: str,
+    body: dict = Body(...),
+    org: OrganizationOut = Depends(get_current_org),
+    db=Depends(get_db),
+):
+    doc = await db.playwright_tests.find_one({"_id": test_id, "org_id": org.id})
     if not doc:
         raise HTTPException(status_code=404, detail="Test not found")
-    await db.playwright_tests.update_one({"_id": test_id}, {"$set": body})
-    updated = await db.playwright_tests.find_one({"_id": test_id})
+    await db.playwright_tests.update_one({"_id": test_id, "org_id": org.id}, {"$set": body})
+    updated = await db.playwright_tests.find_one({"_id": test_id, "org_id": org.id})
     updated["id"] = updated.pop("_id")
     return updated
 
@@ -215,17 +244,20 @@ async def update_test(test_id: str, body: dict = Body(...)):
 # ── Poll execution results ────────────────────────────────────────────────────
 
 @router.get("/execution/{run_id}")
-async def get_execution_status(run_id: str):
+async def get_execution_status(
+    run_id: str,
+    org: OrganizationOut = Depends(get_current_org),
+    db=Depends(get_db),
+):
     """
     Returns live execution status and per-step screenshots.
     Poll at ~1 s intervals while status == 'running'.
     Falls back to MongoDB for runs from previous sessions.
     """
-    run = playwright_service.get_run(run_id)
+    run = playwright_service.get_run(run_id, org.id)
     if not run:
         # Try to load from persisted history
-        db = get_db()
-        run = await db.playwright_runs.find_one({"_id": run_id})
+        run = await db.playwright_runs.find_one({"_id": run_id, "org_id": org.id})
         if not run:
             raise HTTPException(status_code=404, detail="Run not found")
         run.pop("_id", None)
@@ -235,20 +267,26 @@ async def get_execution_status(run_id: str):
 # ── Run history ───────────────────────────────────────────────────────────────
 
 @router.get("/runs")
-async def list_runs():
+async def list_runs(
+    org: OrganizationOut = Depends(get_current_org),
+    db=Depends(get_db),
+):
     """Return the 20 most recent test runs (summary rows, no screenshots)."""
-    runs = await playwright_service.list_runs_from_db(limit=20)
+    runs = await playwright_service.list_runs_from_db(db, org.id, limit=20)
     return {"runs": runs}
 
 
 @router.get("/runs/{run_id}")
-async def get_run_detail(run_id: str):
+async def get_run_detail(
+    run_id: str,
+    org: OrganizationOut = Depends(get_current_org),
+    db=Depends(get_db),
+):
     """Full run detail including step results (no screenshots in persisted copy)."""
-    db = get_db()
-    run = await db.playwright_runs.find_one({"_id": run_id})
+    run = await db.playwright_runs.find_one({"_id": run_id, "org_id": org.id})
     if not run:
         # Fall back to in-memory (current session)
-        run = playwright_service.get_run(run_id)
+        run = playwright_service.get_run(run_id, org.id)
     if not run:
         raise HTTPException(status_code=404, detail="Run not found")
     run.pop("_id", None)
@@ -258,7 +296,12 @@ async def get_run_detail(run_id: str):
 # ── Direct execution (skip analysis use provided tests) ─────────────────────
 
 @router.post("/execute-direct", status_code=202)
-async def execute_tests_direct(body: dict = Body(...), background_tasks: BackgroundTasks = None):
+async def execute_tests_direct(
+    body: dict = Body(...),
+    background_tasks: BackgroundTasks = None,
+    org: OrganizationOut = Depends(get_current_org),
+    db=Depends(get_db),
+):
     """
     Run a list of test cases directly against a target URL without going through
     the analysis pipeline. Useful when tests are already committed or uploaded.
@@ -293,6 +336,8 @@ async def execute_tests_direct(body: dict = Body(...), background_tasks: Backgro
 
     background_tasks.add_task(
         playwright_service.execute_playwright_tests,
+        db,
+        org.id,
         prepared,
         target_url,
         run_id,

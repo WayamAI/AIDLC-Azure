@@ -2,8 +2,10 @@
 Release Gate routes.
 Aggregates signals from GitHub + Jira and produces a go/no-go verdict.
 """
-from fastapi import APIRouter, HTTPException, Body
+from fastapi import APIRouter, Body, Depends, HTTPException
 
+from app.auth.dependencies import get_current_org
+from app.models.organization import OrganizationOut
 from app.services import github_service, jira_service
 from app.services.ai_service import analyze_release_readiness, AIQuotaError
 from app.services import slack_service
@@ -27,7 +29,7 @@ def _compute_score(
 
 
 @router.post("/evaluate")
-async def evaluate_release(body: dict = Body(...)):
+async def evaluate_release(body: dict = Body(...), org: OrganizationOut = Depends(get_current_org)):
     """
     Evaluate release readiness.
 

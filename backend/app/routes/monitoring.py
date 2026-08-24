@@ -8,8 +8,10 @@ import statistics
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Body
+from fastapi import APIRouter, Body, Depends, HTTPException
 
+from app.auth.dependencies import get_current_org
+from app.models.organization import OrganizationOut
 from app.services.ai_service import generate_predictive_alert, AIQuotaError
 from app.services import datadog_service, slack_service
 
@@ -64,7 +66,7 @@ def _detect_anomalies(series: list[dict], threshold: float = 2.5) -> list[dict]:
 
 
 @router.post("/simulate-time-series")
-async def simulate_time_series(body: dict = Body(...)):
+async def simulate_time_series(body: dict = Body(...), org: OrganizationOut = Depends(get_current_org)):
     """
     Generate a synthetic 30-day quality score time series from a baseline dataset snapshot.
     Injects realistic anomalies at days 22-26 for demo purposes.
@@ -120,7 +122,7 @@ async def simulate_time_series(body: dict = Body(...)):
 
 
 @router.post("/analyze")
-async def analyze_time_series(body: dict = Body(...)):
+async def analyze_time_series(body: dict = Body(...), org: OrganizationOut = Depends(get_current_org)):
     """
     Receive a pre-computed quality time series and return anomalies + AI alert.
     """

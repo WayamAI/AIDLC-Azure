@@ -6,7 +6,7 @@
 <p align="center"><strong>AI-Powered SDLC Platform</strong></p>
 
 <p align="center">
-  Ship faster with intelligent quality — from requirements to release, in one workspace.
+  Ship faster with intelligent quality from requirements to release, in one workspace.
 </p>
 
 <p align="center">
@@ -21,7 +21,7 @@
 
 ## Overview
 
-**AIDLC** is a full-stack platform that brings AI into every stage of the software delivery lifecycle. It helps teams analyze requirements, generate tests, review code, predict defects, gate releases, and monitor production — with a polished React dashboard and a FastAPI backend powered by Ollama.
+**AIDLC** is a full-stack platform that brings AI into every stage of the software delivery lifecycle. It helps teams analyze requirements, generate tests, review code, predict defects, gate releases, and monitor production with a polished React dashboard and a FastAPI backend powered by Ollama.
 
 Built by [WayamAI](https://github.com/WayamAI).
 
@@ -103,7 +103,7 @@ docker run -d --name aidlc-mongo -p 27017:27017 -v aidlc-mongo-data:/data/db mon
 ```bash
 cd backend
 cp .env.example .env
-# Edit .env — set MONGODB_URI, OLLAMA_BASE_URL, OLLAMA_API_KEY, OLLAMA_MODEL
+# Edit .env set MONGODB_URI, OLLAMA_BASE_URL, OLLAMA_API_KEY, OLLAMA_MODEL
 
 python -m venv .venv
 # Windows
@@ -126,7 +126,7 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:8080](http://localhost:8080) — the Vite dev server proxies `/api` to the backend.
+Open [http://localhost:8080](http://localhost:8080) the Vite dev server proxies `/api` to the backend.
 
 ---
 
@@ -210,7 +210,7 @@ cd backend && uvicorn main:app --reload --port 8000
 
 ### Vercel (recommended)
 
-**One-click full stack** — import the repo on [Vercel](https://vercel.com/new). The root `vercel.json` builds the frontend and runs the FastAPI API at `/api` on the same domain.
+**One-click full stack** import the repo on [Vercel](https://vercel.com/new). The root `vercel.json` builds the frontend and runs the FastAPI API at `/api` on the same domain.
 
 ```bash
 # Or deploy via CLI
@@ -227,7 +227,7 @@ Full guide: **[VERCEL_DEPLOY.md](./VERCEL_DEPLOY.md)**
 | Frontend only | `frontend` | `frontend/vercel.json` + `VITE_API_URL` |
 | Backend only | `backend` | `backend/vercel.json` |
 
-> **Note:** Live Playwright execution and AI IDE WebSockets require a VM — see `frontend/DEPLOY_AZURE_VM.md`.
+> **Note:** Live Playwright execution and AI IDE WebSockets require a VM see `frontend/DEPLOY_AZURE_VM.md`.
 
 ### Other platforms
 
@@ -246,10 +246,11 @@ Both `frontend/` and `backend/` can also deploy independently. Point `VITE_API_U
 
 ## License
 
-Proprietary — © [WayamAI](https://github.com/WayamAI). All rights reserved.
+Proprietary © [WayamAI](https://github.com/WayamAI). All rights reserved.
 
 ---
 
 <p align="center">
   <sub>Built with care by the WayamAI team</sub>
 </p>
+# AIDLC_final

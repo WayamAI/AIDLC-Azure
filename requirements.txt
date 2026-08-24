@@ -1,4 +1,4 @@
-# Vercel serverless dependencies (Playwright excluded — not supported in Lambda).
+# Vercel serverless dependencies (Playwright excluded not supported in Lambda).
 # For local/full backend, use backend/requirements.txt instead.
 annotated-doc==0.0.4
 annotated-types==0.7.0

@@ -758,7 +758,7 @@ function PRDViewer({ prd }: { prd: PRDData }) {
         <p className="text-sm text-foreground/90 leading-relaxed">{prd.executive_summary}</p>
       </SectionBlock>
 
-      <SectionBlock icon={Target} number="2" title="Problem Statement" color="text-orange-500">
+      <SectionBlock icon={Target} number="2" title="Problem Statement" color="text-[var(--color-warning)]">
         <p className="text-sm text-foreground/90 leading-relaxed">{prd.problem_statement}</p>
       </SectionBlock>
 
@@ -1096,7 +1096,7 @@ export default function PRDGenerator() {
                     Building use cases, user stories, functional requirements, and success metrics
                   </p>
                   <div className="mt-4 h-1 bg-muted rounded-full overflow-hidden max-w-xs mx-auto">
-                    <div className="h-full bg-gradient-brand rounded-full w-4/5 animate-pulse" />
+                    <div className="h-full w-4/5 animate-pulse rounded-full bg-primary" />
                   </div>
                 </div>
               )}

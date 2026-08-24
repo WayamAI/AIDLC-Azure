@@ -105,7 +105,7 @@ function DependencyNode({ data, selected }: NodeProps) {
   };
   const statusColor: Partial<Record<FileStatus, string>> = {
     staged: "text-positive",
-    modified: "text-orange-700",
+    modified: "text-[var(--color-warning)]",
     untracked: "text-sky-700",
     deleted: "text-red-700",
   };
@@ -158,7 +158,7 @@ function statusLabel(status: FileStatus): string {
 function statusColor(status: FileStatus): string {
   return {
     staged: "text-positive",
-    modified: "text-orange-700",
+    modified: "text-[var(--color-warning)]",
     untracked: "text-sky-700",
     deleted: "text-red-700",
   }[status];
@@ -584,7 +584,7 @@ export function ImpactPanel() {
                         className={cn(
                           "text-[11px] flex-1 truncate min-w-0",
                           st === "staged" && "text-positive",
-                          st === "modified" && "text-orange-700",
+                          st === "modified" && "text-[var(--color-warning)]",
                           st === "untracked" && "text-sky-700",
                           st === "deleted" && "text-red-700 line-through",
                         )}
@@ -622,7 +622,7 @@ export function ImpactPanel() {
             <span className="text-[9px] text-positive">{gitStatus.staged.length}A</span>
           )}
           {gitStatus?.unstaged && gitStatus.unstaged.length > 0 && (
-            <span className="text-[9px] text-orange-700">{gitStatus.unstaged.length}M</span>
+            <span className="text-[9px] text-[var(--color-warning)]">{gitStatus.unstaged.length}M</span>
           )}
           {gitStatus?.untracked && gitStatus.untracked.length > 0 && (
             <span className="text-[9px] text-sky-700">{gitStatus.untracked.length}U</span>

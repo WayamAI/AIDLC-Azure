@@ -1,9 +1,12 @@
 """GitHub proxy routes shields the GITHUB_TOKEN from the browser."""
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 
+from app.auth.dependencies import get_current_org
 from app.config import settings
+from app.models.organization import OrganizationOut
 from app.services import github_service
 from app.services.ai_service import review_pull_request, explain_ci_failure, AIQuotaError
 
@@ -16,7 +19,7 @@ def _require_repo(owner: str, repo: str) -> None:
 
 
 @router.get("/repo-info")
-async def repo_info(owner: str, repo: str):
+async def repo_info(owner: str, repo: str, org: OrganizationOut = Depends(get_current_org)):
     _require_repo(owner, repo)
     try:
         return await github_service.get_repo_info(owner, repo)
@@ -25,7 +28,7 @@ async def repo_info(owner: str, repo: str):
 
 
 @router.get("/prs")
-async def list_prs(owner: str, repo: str, per_page: int = 10):
+async def list_prs(owner: str, repo: str, per_page: int = 10, org: OrganizationOut = Depends(get_current_org)):
     _require_repo(owner, repo)
     try:
         return await github_service.get_open_prs(owner, repo, per_page)
@@ -34,7 +37,7 @@ async def list_prs(owner: str, repo: str, per_page: int = 10):
 
 
 @router.get("/pr/{pr_number}/files")
-async def pr_files(owner: str, repo: str, pr_number: int):
+async def pr_files(owner: str, repo: str, pr_number: int, org: OrganizationOut = Depends(get_current_org)):
     try:
         return await github_service.get_pr_files(owner, repo, pr_number)
     except Exception as exc:
@@ -42,7 +45,7 @@ async def pr_files(owner: str, repo: str, pr_number: int):
 
 
 @router.post("/pr/{pr_number}/review")
-async def ai_review_pr(owner: str, repo: str, pr_number: int):
+async def ai_review_pr(owner: str, repo: str, pr_number: int, org: OrganizationOut = Depends(get_current_org)):
     """Fetch PR files and run AI code review."""
     try:
         detail = await github_service.get_pr_detail(owner, repo, pr_number)
@@ -68,20 +71,30 @@ async def ai_review_pr(owner: str, repo: str, pr_number: int):
 
 
 @router.get("/commits")
-async def list_commits(owner: str, repo: str, since_days: int = 90):
+async def list_commits(
+    owner: str,
+    repo: str,
+    since_days: int = 90,
+    org: OrganizationOut = Depends(get_current_org),
+):
     try:
         return await github_service.get_commits(owner, repo, since_days)
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
 
-from pydantic import BaseModel
-
 class ReviewCommitRequest(BaseModel):
     custom_rules: Optional[str] = None
 
 @router.post("/commits/{sha}/review")
-async def review_commit(sha: str, owner: str, repo: str, pat: Optional[str] = None, req: Optional[ReviewCommitRequest] = None):
+async def review_commit(
+    sha: str,
+    owner: str,
+    repo: str,
+    pat: Optional[str] = None,
+    req: Optional[ReviewCommitRequest] = None,
+    org: OrganizationOut = Depends(get_current_org),
+):
     """Fetch a commit's diff and run AI code review (no PR required)."""
     try:
         files = await github_service.get_commit_diff(owner, repo, sha, pat)
@@ -115,7 +128,12 @@ async def review_commit(sha: str, owner: str, repo: str, pat: Optional[str] = No
 
 
 @router.get("/workflow-runs")
-async def workflow_runs(owner: str, repo: str, per_page: int = 30):
+async def workflow_runs(
+    owner: str,
+    repo: str,
+    per_page: int = 30,
+    org: OrganizationOut = Depends(get_current_org),
+):
     try:
         return await github_service.get_workflow_runs(owner, repo, per_page)
     except Exception as exc:
@@ -123,7 +141,12 @@ async def workflow_runs(owner: str, repo: str, per_page: int = 30):
 
 
 @router.post("/workflow-runs/{run_id}/explain")
-async def explain_run_failure(owner: str, repo: str, run_id: int):
+async def explain_run_failure(
+    owner: str,
+    repo: str,
+    run_id: int,
+    org: OrganizationOut = Depends(get_current_org),
+):
     """Download CI logs and use AI to explain the failure."""
     try:
         logs = await github_service.get_run_logs_text(owner, repo, run_id)

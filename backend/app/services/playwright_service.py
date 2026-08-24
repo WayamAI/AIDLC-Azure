@@ -31,16 +31,19 @@ logging.basicConfig(
 _runs: dict[str, dict[str, Any]] = {}
 
 
-def get_run(run_id: str) -> dict[str, Any] | None:
-    return _runs.get(run_id)
+def get_run(run_id: str, org_id: str) -> dict[str, Any] | None:
+    run = _runs.get(run_id)
+    if run is None:
+        return None
+    if run.get("org_id") != org_id:
+        return None
+    return run
 
 
-async def save_run_to_db(run: dict[str, Any]) -> None:
+async def save_run_to_db(db, org_id: str, run: dict[str, Any]) -> None:
     """Persist a completed run to MongoDB (playwright_runs collection)."""
     try:
-        from app.database import get_db
-        db = get_db()
-        doc = {**run, "_id": run["run_id"]}
+        doc = {**run, "_id": run["run_id"], "org_id": org_id}
         # Strip large base64 screenshots from step_results to keep the list document small;
         # the full data remains in the in-memory _runs dict for the current session.
         slim_results = []
@@ -51,18 +54,18 @@ async def save_run_to_db(run: dict[str, Any]) -> None:
             ]
             slim_results.append({**r, "step_results": slim_steps})
         doc["results"] = slim_results
-        await db.playwright_runs.replace_one({"_id": run["run_id"]}, doc, upsert=True)
+        await db.playwright_runs.replace_one(
+            {"_id": run["run_id"], "org_id": org_id}, doc, upsert=True
+        )
     except Exception as exc:
         log.warning("Could not persist run to MongoDB: %s", exc)
 
 
-async def list_runs_from_db(limit: int = 20) -> list[dict[str, Any]]:
+async def list_runs_from_db(db, org_id: str, limit: int = 20) -> list[dict[str, Any]]:
     """Return summary rows for recent runs, newest first."""
     try:
-        from app.database import get_db
-        db = get_db()
         cursor = db.playwright_runs.find(
-            {},
+            {"org_id": org_id},
             {
                 "run_id": 1, "analysis_id": 1, "status": 1,
                 "total": 1, "passed": 1, "failed": 1,
@@ -921,6 +924,8 @@ async def _run_step(
 # ── Main execution entry-point ────────────────────────────────────────────────
 
 async def execute_playwright_tests(
+    db,
+    org_id: str,
     tests: list[dict[str, Any]],
     target_url: str,
     run_id: str,
@@ -936,6 +941,7 @@ async def execute_playwright_tests(
 
     _runs[run_id] = {
         "run_id": run_id,
+        "org_id": org_id,
         "analysis_id": analysis_id,
         "status": "running",
         "results": [],
@@ -1045,7 +1051,7 @@ async def execute_playwright_tests(
 
         _runs[run_id]["status"] = "completed"
         _runs[run_id]["completed_at"] = _utcnow()
-        await save_run_to_db(_runs[run_id])
+        await save_run_to_db(db, org_id, _runs[run_id])
         log.info("")
         log.info("=" * 60)
         log.info(

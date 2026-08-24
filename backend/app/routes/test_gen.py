@@ -1,6 +1,8 @@
 """Test generation routes generate + run tests."""
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
+from app.auth.dependencies import get_current_org
+from app.models.organization import OrganizationOut
 from app.models.workspace_models import (
     TestGenerateRequest, TestGenerateResponse,
     RunTestsRequest, RunTestsResponse,
@@ -19,7 +21,7 @@ router = APIRouter(prefix="/tests", tags=["Test Generation"])
 
 
 @router.post("/generate", response_model=TestGenerateResponse)
-async def generate_tests(req: TestGenerateRequest):
+async def generate_tests(req: TestGenerateRequest, org: OrganizationOut = Depends(get_current_org)):
     """Generate pytest/jest test cases for coverage gaps using AI."""
     try:
         result = await test_gen_service.generate_tests(
@@ -38,7 +40,7 @@ async def generate_tests(req: TestGenerateRequest):
 
 
 @router.post("/run", response_model=RunTestsResponse)
-async def run_tests(req: RunTestsRequest):
+async def run_tests(req: RunTestsRequest, org: OrganizationOut = Depends(get_current_org)):
     """Execute a test file and return pass/fail results."""
     try:
         result = await test_gen_service.run_tests(
@@ -52,7 +54,7 @@ async def run_tests(req: RunTestsRequest):
 
 
 @router.post("/generate-playwright", response_model=PlaywrightGenerateResponse)
-async def generate_playwright_tests(req: PlaywrightGenerateRequest):
+async def generate_playwright_tests(req: PlaywrightGenerateRequest, org: OrganizationOut = Depends(get_current_org)):
     """Generate structured Playwright test cases from a source file using AI."""
     try:
         result = await test_gen_service.generate_playwright_tests(
@@ -90,7 +92,7 @@ class _ExportResp(BaseModel):
 
 
 @router.post("/export-playwright", response_model=_ExportResp)
-async def export_playwright_tests(req: _ExportReq):
+async def export_playwright_tests(req: _ExportReq, org: OrganizationOut = Depends(get_current_org)):
     """Convert PlaywrightTestCase objects to a .spec.ts file and return the content."""
     try:
         content = test_gen_service.export_playwright_tests_as_spec(
@@ -105,7 +107,7 @@ async def export_playwright_tests(req: _ExportReq):
 # ── Batch / App / Commit generation ────────────────────────────────────────
 
 @router.post("/generate-playwright-batch", response_model=PlaywrightGenerateResponse)
-async def generate_playwright_batch(req: PlaywrightBatchGenerateRequest):
+async def generate_playwright_batch(req: PlaywrightBatchGenerateRequest, org: OrganizationOut = Depends(get_current_org)):
     """Generate Playwright tests for multiple files at once (virtual/dirty files)."""
     try:
         result = await test_gen_service.generate_playwright_tests_batch(
@@ -120,7 +122,7 @@ async def generate_playwright_batch(req: PlaywrightBatchGenerateRequest):
 
 
 @router.post("/generate-playwright-app", response_model=PlaywrightGenerateResponse)
-async def generate_playwright_app(req: PlaywrightAppGenerateRequest):
+async def generate_playwright_app(req: PlaywrightAppGenerateRequest, org: OrganizationOut = Depends(get_current_org)):
     """Scan entire workspace and generate Playwright tests for the most important files."""
     try:
         result = await test_gen_service.generate_playwright_tests_for_app(
@@ -135,7 +137,7 @@ async def generate_playwright_app(req: PlaywrightAppGenerateRequest):
 
 
 @router.post("/generate-playwright-commit", response_model=PlaywrightGenerateResponse)
-async def generate_playwright_commit(req: PlaywrightCommitGenerateRequest):
+async def generate_playwright_commit(req: PlaywrightCommitGenerateRequest, org: OrganizationOut = Depends(get_current_org)):
     """Generate Playwright tests for files changed in a specific git commit."""
     try:
         result = await test_gen_service.generate_playwright_tests_for_commit(
@@ -153,7 +155,7 @@ async def generate_playwright_commit(req: PlaywrightCommitGenerateRequest):
 # ── Chain Analysis ─────────────────────────────────────────────────────────
 
 @router.post("/analyze-chain", response_model=ChainAnalyzeResponse)
-async def analyze_chain(req: ChainAnalyzeRequest):
+async def analyze_chain(req: ChainAnalyzeRequest, org: OrganizationOut = Depends(get_current_org)):
     """Use AI to analyse each file in a root→leaf chain and suggest test counts."""
     try:
         analyses = await test_gen_service.analyze_chain_for_tests(
@@ -171,10 +173,11 @@ async def analyze_chain(req: ChainAnalyzeRequest):
 # ── Suite persistence ───────────────────────────────────────────────────────
 
 @router.post("/workspace-suites", response_model=TestSuiteInfo)
-async def save_test_suite(req: SaveTestSuiteRequest):
+async def save_test_suite(req: SaveTestSuiteRequest, org: OrganizationOut = Depends(get_current_org)):
     """Save a generated test suite to the database."""
     try:
         return test_gen_service.save_test_suite(
+            org.id,
             workspace_id=req.workspace_id,
             name=req.name,
             scope=req.scope,
@@ -187,23 +190,23 @@ async def save_test_suite(req: SaveTestSuiteRequest):
 
 
 @router.get("/workspace-suites", response_model=list[TestSuiteInfo])
-async def list_test_suites(workspace_id: str):
+async def list_test_suites(workspace_id: str, org: OrganizationOut = Depends(get_current_org)):
     """List saved test suites for a workspace."""
-    return test_gen_service.list_test_suites(workspace_id)
+    return test_gen_service.list_test_suites(org.id, workspace_id)
 
 
 @router.get("/workspace-suites/{suite_id}")
-async def get_test_suite(suite_id: str):
+async def get_test_suite(suite_id: str, org: OrganizationOut = Depends(get_current_org)):
     """Get full test suite including test cases."""
-    suite = test_gen_service.get_test_suite(suite_id)
+    suite = test_gen_service.get_test_suite(org.id, suite_id)
     if not suite:
         raise HTTPException(status_code=404, detail="Suite not found")
     return suite
 
 
 @router.delete("/workspace-suites/{suite_id}")
-async def delete_test_suite(suite_id: str):
+async def delete_test_suite(suite_id: str, org: OrganizationOut = Depends(get_current_org)):
     """Delete a saved test suite."""
-    if not test_gen_service.delete_test_suite(suite_id):
+    if not test_gen_service.delete_test_suite(org.id, suite_id):
         raise HTTPException(status_code=404, detail="Suite not found")
     return {"deleted": True}

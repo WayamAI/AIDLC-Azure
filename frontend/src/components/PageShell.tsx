@@ -3,12 +3,15 @@ import { cn } from "@/lib/utils";
 
 type PageShellSize = "md" | "lg" | "xl" | "full";
 
-/** md = narrow forms; lg/xl/full = use available content width (minimal side gutters) */
+/**
+ * Constrained shells are centered in the main pane.
+ * `full` still caps width on ultra-wide so content doesn’t hug the left edge.
+ */
 const sizeClasses: Record<PageShellSize, string> = {
-  md: "max-w-3xl",
-  lg: "max-w-none",
-  xl: "max-w-none",
-  full: "max-w-none",
+  md: "mx-auto w-full max-w-3xl",
+  lg: "mx-auto w-full max-w-5xl",
+  xl: "mx-auto w-full max-w-6xl",
+  full: "mx-auto w-full max-w-7xl",
 };
 
 interface PageShellProps {
@@ -18,9 +21,5 @@ interface PageShellProps {
 }
 
 export function PageShell({ children, size = "full", className }: PageShellProps) {
-  return (
-    <div className={cn("w-full space-y-6", sizeClasses[size], className)}>
-      {children}
-    </div>
-  );
+  return <div className={cn("space-y-6", sizeClasses[size], className)}>{children}</div>;
 }

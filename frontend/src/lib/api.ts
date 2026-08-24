@@ -7,9 +7,30 @@ const BASE_URL = import.meta.env.VITE_API_URL || "/api";
 export const apiClient = axios.create({
   baseURL: BASE_URL,
   headers: { "Content-Type": "application/json" },
+  withCredentials: true,
 });
 
 // ─── Types ────────────────────────────────────────────────────────────────
+
+export interface ActivityHistoryItem {
+  id: string;
+  kind: "search" | "nav" | "repo_probe";
+  title: string;
+  url: string;
+  section?: string;
+  payload?: Record<string, unknown>;
+  visited_at: string;
+}
+
+export type ConnectorsPublic = {
+  github?: Record<string, unknown>;
+  jira?: Record<string, unknown>;
+  vercel?: Record<string, unknown>;
+  ollama?: Record<string, unknown>;
+  slack?: Record<string, unknown>;
+  datadog?: Record<string, unknown>;
+  updated_at?: string;
+};
 
 export interface Requirement {
   id: string;
@@ -827,6 +848,143 @@ export interface BaselineRepoData {
   new_test_ids: string[];
 }
 
+// ── AI Root Cause Analysis types ──
+export interface RootCauseSummary {
+  total_failures: number;
+  root_causes_identified: number;
+  high_confidence: number;
+  requires_human_review: number;
+  unresolved_failures: number;
+}
+
+export interface RootCauseListItem {
+  id: string;
+  test_name: string;
+  repository: string | null;
+  failure_type: string;
+  severity: "low" | "medium" | "high" | "critical";
+  status: "analyzing" | "completed" | "failed";
+  confidence: number;
+  confidence_label: "high" | "medium" | "low";
+  created_at: string;
+}
+
+export interface StepEvidence {
+  step_number: number;
+  step_description: string;
+  status: "pass" | "fail";
+  error: string | null;
+}
+
+export interface RootCauseEvidence {
+  error_message: string | null;
+  failed_step: StepEvidence | null;
+  step_trace: StepEvidence[];
+  expected: string | null;
+  actual: string | null;
+  console_logs: string[];
+  recent_commits: CommitInfo[];
+  git_diff: string | null;
+  has_git_data: boolean;
+  has_stack_trace: boolean;
+  test_type: string | null;
+}
+
+export interface RootCauseDetail extends RootCauseListItem {
+  run_id: string;
+  test_id: string;
+  commit_sha: string | null;
+  evidence: RootCauseEvidence;
+  root_cause_summary: string | null;
+  root_cause_explanation: string | null;
+  likely_commit: CommitInfo | null;
+  affected_files: string[];
+  affected_tests: string[];
+  affected_services: string[];
+  recommendation: string | null;
+  ai_error: string | null;
+  updated_at: string;
+}
+
+export interface UnanalyzedFailure {
+  run_id: string;
+  test_id: string;
+  test_name: string;
+  analysis_id: string;
+  error: string | null;
+  completed_at: string | null;
+}
+
+// ── Intelligent Test Selection types ──
+export interface SelectionReason {
+  label: string;
+  matched: boolean;
+}
+
+export interface SelectedTestOut {
+  test_id: string;
+  name: string;
+  source_file: string | null;
+  category: string;
+  severity: string;
+  score: number;
+  priority: "critical" | "high" | "medium" | "low";
+  reasons: SelectionReason[];
+  selected: boolean;
+}
+
+export interface TestSelectionSummary {
+  total_tests: number;
+  relevant_tests: number;
+  selected_tests: number;
+  skipped_tests: number;
+  estimated_savings_pct: number | null;
+}
+
+export interface TestSelectionRun {
+  id: string;
+  repo_id: string;
+  github_url: string;
+  old_sha: string | null;
+  new_sha: string | null;
+  changed_files: string[];
+  diff_available: boolean;
+  summary: TestSelectionSummary;
+  tests: SelectedTestOut[];
+  status: "completed" | "failed";
+  error: string | null;
+  created_at: string;
+}
+
+export interface ActivityHistoryItem {
+  id: string;
+  kind: string;
+  title: string;
+  url: string;
+  section?: string | null;
+  payload?: Record<string, unknown>;
+  visited_at?: string | null;
+  user_id?: string | null;
+}
+
+export interface OptimizationFinding {
+  kind: "duplicate" | "coverage_gap" | "flaky" | "long_running";
+  description: string;
+  test_ids: string[];
+  available: boolean;
+}
+
+export interface TestOptimizationReport {
+  repo_id: string;
+  total_tests: number;
+  potential_duplicates: number;
+  coverage_gaps: number;
+  flaky_tests: number | null;
+  long_running_tests: number | null;
+  findings: OptimizationFinding[];
+  optimization_opportunity: "high" | "medium" | "low";
+}
+
 // ─── API Functions ─────────────────────────────────────────────────────────
 
 export const api = {
@@ -1041,6 +1199,56 @@ export const api = {
   getDefectRiskScores: (owner: string, repo: string, sinceDays: number = 90) =>
     apiClient.get("/defect-prediction/risk-scores", { params: { owner, repo, since_days: sinceDays } }).then((r) => r.data),
 
+  // ── AI Root Cause Analysis ──
+  listRootCauses: () =>
+    apiClient.get<{ summary: RootCauseSummary; items: RootCauseListItem[] }>("/testing/root-cause").then(r => r.data),
+  getRootCause: (id: string) =>
+    apiClient.get<RootCauseDetail>(`/testing/root-cause/${id}`).then(r => r.data),
+  analyzeFailure: (runId: string, testId: string) =>
+    apiClient.post<RootCauseDetail>("/testing/root-cause/analyze", { run_id: runId, test_id: testId }).then(r => r.data),
+  rerunRootCauseTest: (id: string) =>
+    apiClient.post<{ run_id: string; status: string }>(`/testing/root-cause/${id}/rerun`).then(r => r.data),
+  listUnanalyzedFailures: () =>
+    apiClient.get<{ failures: UnanalyzedFailure[] }>("/testing/root-cause/failures").then(r => r.data),
+
+  // ── Intelligent Test Selection ──
+  analyzeTestSelection: (repoId: string, githubUrl: string, oldSha?: string, newSha?: string) =>
+    apiClient.post<TestSelectionRun>("/testing/test-selection/analyze", {
+      repo_id: repoId, github_url: githubUrl, old_sha: oldSha, new_sha: newSha,
+    }).then(r => r.data),
+  getTestSelectionRun: (id: string) =>
+    apiClient.get<TestSelectionRun>(`/testing/test-selection/${id}`).then(r => r.data),
+  listTestSelectionHistory: () =>
+    apiClient.get<{ runs: TestSelectionRun[] }>("/testing/test-selection/history").then(r => r.data),
+
+  // ── Activity / search / repo-probe history (server-side) ──
+  listActivityHistory: (params?: { kind?: "search" | "nav" | "repo_probe"; limit?: number }) =>
+    apiClient
+      .get<{ items: ActivityHistoryItem[] }>("/activity/history", { params })
+      .then((r) => r.data),
+  pushActivityHistory: (body: {
+    kind?: "search" | "nav" | "repo_probe";
+    title: string;
+    url: string;
+    section?: string;
+    payload?: Record<string, unknown>;
+  }) => apiClient.post<ActivityHistoryItem>("/activity/history", body).then((r) => r.data),
+  clearActivityHistory: (kind?: "search" | "nav" | "repo_probe") =>
+    apiClient.delete<{ deleted: number }>("/activity/history", { params: kind ? { kind } : {} }).then((r) => r.data),
+
+  // ── Org connectors (reconfigurable secrets) ──
+  getConnectors: () =>
+    apiClient.get<ConnectorsPublic>("/orgs/current/connectors").then((r) => r.data),
+  putConnectors: (body: Record<string, Record<string, string>>) =>
+    apiClient.put<ConnectorsPublic>("/orgs/current/connectors", body).then((r) => r.data),
+
+  executeTestSelection: (id: string, targetUrl: string) =>
+    apiClient.post<{ run_id: string; status: string; test_count: number }>(
+      `/testing/test-selection/${id}/execute`, { target_url: targetUrl }
+    ).then(r => r.data),
+  getTestOptimizationReport: (repoId: string) =>
+    apiClient.get<TestOptimizationReport>("/testing/test-selection/optimization", { params: { repo_id: repoId } }).then(r => r.data),
+
   // ── Release Gate ──────────────────────────────────────────────────────────
   evaluateRelease: (params: { version: string; owner: string; repo: string; jira_project?: string }) =>
     apiClient.post("/release-gate/evaluate", params).then((r) => r.data),
@@ -1217,6 +1425,9 @@ export const api = {
     apiClient
       .get<DeploymentEventsResponse>(`/deployments/${deploymentId}/events`, { params: { limit } })
       .then((r) => r.data),
+
+  generatePRD: (payload: PRDGenerateRequest) =>
+    apiClient.post<PRDGenerateResponse>("/prd/generate", payload).then((r) => r.data),
 
   /** Normalise a GitHub URL into a 16-char repo_id matching backend logic. */
   getRepoId: async (url: string) => {

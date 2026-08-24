@@ -67,11 +67,11 @@ import { motion, AnimatePresence } from "framer-motion";
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 const STATUS_STYLE: Record<string, string> = {
-  M: "text-orange-700",
+  M: "text-[var(--color-warning)]",
   U: "text-sky-700",
   A: "text-positive",
   D: "text-red-700",
-  modified: "text-orange-700",
+  modified: "text-[var(--color-warning)]",
   untracked: "text-sky-700",
   staged: "text-positive",
   deleted: "text-red-700",
@@ -79,7 +79,7 @@ const STATUS_STYLE: Record<string, string> = {
 
 const SEVERITY_STYLE: Record<string, string> = {
   Critical: "bg-red-500/15 text-red-700 border-red-200",
-  High: "bg-orange-500/15 text-orange-700 border-orange-200",
+  High: "bg-[var(--color-warning-bg)] text-[var(--color-warning)] border-[var(--color-status-warning)]/30",
   Medium: "bg-yellow-500/15 text-amber-700 border-amber-200",
   Low: "bg-slate-500/15 text-slate-400 border-slate-500/30",
 };
@@ -104,7 +104,7 @@ interface FileTestGroup {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function fileIcon(path: string, isEntry?: boolean) {
-  if (isEntry) return <Flame className="h-4 w-4 text-orange-700 flex-shrink-0" />;
+  if (isEntry) return <Flame className="h-4 w-4 text-[var(--color-warning)] flex-shrink-0" />;
   const ext = path.split(".").pop()?.toLowerCase() ?? "";
   if (["ts", "tsx", "js", "jsx", "py"].includes(ext))
     return <FileCode className="h-4 w-4 text-sky-700 flex-shrink-0" />;
@@ -454,14 +454,14 @@ function buildBranchFlow(
       type: "step",
       animated: highlighted,
       style: {
-        stroke: highlighted ? "#f97316" : "hsl(var(--border))",
+        stroke: highlighted ? "#B45309" : "hsl(var(--border))",
         strokeWidth: highlighted ? 2.2 : 1.4,
       },
       markerEnd: {
         type: MarkerType.ArrowClosed,
         width: 12,
         height: 12,
-        color: highlighted ? "#f97316" : "hsl(var(--border))",
+        color: highlighted ? "#B45309" : "hsl(var(--border))",
       },
     });
   }
@@ -597,14 +597,14 @@ function buildNeighborhoodFlow(
       type: "step",
       animated: highlighted,
       style: {
-        stroke: highlighted ? "#f97316" : "hsl(var(--border))",
+        stroke: highlighted ? "#B45309" : "hsl(var(--border))",
         strokeWidth: highlighted ? 2.2 : 1.4,
       },
       markerEnd: {
         type: MarkerType.ArrowClosed,
         width: 12,
         height: 12,
-        color: highlighted ? "#f97316" : "hsl(var(--border))",
+        color: highlighted ? "#B45309" : "hsl(var(--border))",
       },
     });
   }
@@ -629,7 +629,7 @@ const TreeFlowNode = memo(({ data, selected }: NodeProps) => {
           : d.isLeaf
           ? "border-primary/60 bg-primary/5"
           : d.isRoot || d.isEntry
-          ? "border-orange-400/60 bg-orange-400/5"
+          ? "border-[var(--color-status-warning)]/30 bg-[var(--color-warning-bg)]"
           : "border-border/60 hover:border-border",
       )}
     >
@@ -654,7 +654,7 @@ const TreeFlowNode = memo(({ data, selected }: NodeProps) => {
 
       <div className="flex items-center gap-1.5 flex-wrap">
         {d.isRoot && (
-          <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-orange-400/15 text-orange-700">
+          <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-[var(--color-warning-bg)] text-[var(--color-warning)]">
             changed root
           </span>
         )}
@@ -664,7 +664,7 @@ const TreeFlowNode = memo(({ data, selected }: NodeProps) => {
           </span>
         )}
         {d.isEntry && (
-          <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-orange-400/10 text-orange-700">
+          <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-[var(--color-warning-bg)] text-[var(--color-warning)]">
             entry
           </span>
         )}
@@ -1573,7 +1573,7 @@ export function TreeFlowView({
                               </span>
                             )}
                             {f.isLeaf && (
-                              <span className="text-[9px] px-1 py-0.5 rounded bg-orange-500/15 text-orange-700 border border-orange-500/20">
+                              <span className="text-[9px] px-1 py-0.5 rounded bg-[var(--color-warning-bg)] text-[var(--color-warning)] border border-[var(--color-status-warning)]/30">
                                 Leaf
                               </span>
                             )}

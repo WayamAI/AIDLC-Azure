@@ -4,17 +4,14 @@ Requirements service: persists requirements and triggers test-case generation.
 from datetime import datetime
 from bson import ObjectId
 
-from app.database import get_db
 from app.models.requirement import RequirementOut
 from app.services import ai_service
 from app.services.test_case_service import create_test_cases_from_ai
 
 
-async def create_requirement(text: str, instructions: str = None) -> dict:
-    db = get_db()
-
-    # Insert requirement
+async def create_requirement(db, org_id: str, text: str, instructions: str = None) -> dict:
     req_doc = {
+        "org_id": org_id,
         "text": text,
         "created_at": datetime.utcnow(),
         "status": "pending",
@@ -22,13 +19,10 @@ async def create_requirement(text: str, instructions: str = None) -> dict:
     result = await db.requirements.insert_one(req_doc)
     req_id = str(result.inserted_id)
 
-    # Generate tests via Gemini
     ai_data = await ai_service.generate_test_cases(text, instructions)
 
-    # Persist test cases
-    await create_test_cases_from_ai(req_id, ai_data)
+    await create_test_cases_from_ai(db, org_id, req_id, ai_data)
 
-    # Mark requirement as processed
     await db.requirements.update_one(
         {"_id": ObjectId(req_id)},
         {"$set": {"status": "processed"}},
@@ -43,9 +37,8 @@ async def create_requirement(text: str, instructions: str = None) -> dict:
     }
 
 
-async def list_requirements(skip: int = 0, limit: int = 20) -> list[RequirementOut]:
-    db = get_db()
-    cursor = db.requirements.find().skip(skip).limit(limit).sort("created_at", -1)
+async def list_requirements(db, org_id: str, skip: int = 0, limit: int = 20) -> list[RequirementOut]:
+    cursor = db.requirements.find({"org_id": org_id}).skip(skip).limit(limit).sort("created_at", -1)
     docs = await cursor.to_list(length=limit)
     return [
         RequirementOut(

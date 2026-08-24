@@ -139,7 +139,7 @@ export default function CIIntelligence() {
                             label={label}
                             rows={payload.map((p) => ({
                               name: String(p.name),
-                              value: p.value ?? 0,
+                              value: typeof p.value === "number" || typeof p.value === "string" ? p.value : Number(p.value) || 0,
                               color: p.name === "Success" ? DS_CHART.pass : DS_CHART.fail,
                             }))}
                           />
@@ -193,7 +193,7 @@ export default function CIIntelligence() {
                           const idx = pieData.findIndex((d) => d.name === p.name);
                           return (
                             <ChartTooltipBox
-                              rows={[{ name: String(p.name), value: p.value ?? 0, color: PIE_COLORS[idx >= 0 ? idx : 0] }]}
+                              rows={[{ name: String(p.name), value: typeof p.value === "number" || typeof p.value === "string" ? p.value : Number(p.value) || 0, color: PIE_COLORS[idx >= 0 ? idx : 0] }]}
                             />
                           );
                         }}

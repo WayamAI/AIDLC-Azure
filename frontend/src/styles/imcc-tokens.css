@@ -1,0 +1,433 @@
+/* ==========================================================================
+   REFERENCE TOKENS
+   Raw palette values. Never consumed directly by components —
+   only semantic tokens below may reference these.
+   ========================================================================== */
+
+:root {
+  --ref-white: #ffffff;
+  --ref-black: #000000;
+
+  /* Gray */
+  --ref-gray-50: #fafafa;
+  --ref-gray-100: #f2f2f2;
+  --ref-gray-200: #e5e5e5;
+  --ref-gray-300: #d4d4d4;
+  --ref-gray-400: #afafaf;
+  --ref-gray-500: #8a8a8a;
+  --ref-gray-550: #737373;
+  --ref-gray-600: #626262;
+  --ref-gray-650: #525252;
+  --ref-gray-700: #464646;
+  --ref-gray-750: #3b3b3b;
+  --ref-gray-800: #323232;
+  --ref-gray-825: #2a2a2a;
+  --ref-gray-850: #232323;
+  --ref-gray-900: #191919;
+  --ref-gray-950: #101010;
+
+  /* Red the ramp the status pills sit on. --status-critical is step 600
+     (#dc2626); the lighter steps are the readable-on-dark tints of that same
+     hue, so a red figure on a KPI card and a red pill in the table below it
+     are recognisably the same red rather than crimson next to salmon. */
+  --ref-red-50: #fef2f2;
+  --ref-red-100: #fee2e2;
+  --ref-red-200: #fecaca;
+  --ref-red-300: #fca5a5;
+  --ref-red-400: #f87171;
+  --ref-red-500: #ef4444;
+  --ref-red-600: #dc2626;
+  --ref-red-700: #b91c1c;
+  --ref-red-800: #991b1b;
+  --ref-red-900: #7f1d1d;
+  --ref-red-950: #450a0a;
+
+  /* Purple */
+  --ref-purple-50: #f8f0ff;
+  --ref-purple-100: #eedbff;
+  --ref-purple-200: #dcb8f5;
+  --ref-purple-300: #ca8deb;
+  --ref-purple-400: #b65bd8;
+  --ref-purple-500: #9f35be;
+  --ref-purple-600: #862aa3;
+  --ref-purple-700: #6f2589;
+  --ref-purple-800: #5b2170;
+  --ref-purple-900: #481b59;
+  --ref-purple-950: #2b0e36;
+
+  /* Blue */
+  --ref-blue-50: #eef8ff;
+  --ref-blue-100: #d8efff;
+  --ref-blue-200: #b7e1fa;
+  --ref-blue-300: #88cef4;
+  --ref-blue-400: #55b4eb;
+  --ref-blue-500: #2c96db;
+  --ref-blue-600: #2179be;
+  --ref-blue-700: #1e61a0;
+  --ref-blue-800: #1c5083;
+  --ref-blue-900: #19436d;
+  --ref-blue-950: #0e2948;
+
+  /* Cyan */
+  --ref-cyan-50: #ecfcff;
+  --ref-cyan-100: #d0f7fc;
+  --ref-cyan-200: #a7eef6;
+  --ref-cyan-300: #70e0ec;
+  --ref-cyan-400: #39cadc;
+  --ref-cyan-500: #17aec4;
+  --ref-cyan-600: #138da3;
+  --ref-cyan-700: #157287;
+  --ref-cyan-800: #175c6d;
+  --ref-cyan-900: #164c5b;
+  --ref-cyan-950: #082f3a;
+
+  /* Teal */
+  --ref-teal-50: #ecfdfb;
+  --ref-teal-100: #d0f8f3;
+  --ref-teal-200: #a5ede5;
+  --ref-teal-300: #71ddd2;
+  --ref-teal-400: #43c7bc;
+  --ref-teal-500: #25aaa0;
+  --ref-teal-600: #208a84;
+  --ref-teal-700: #1f706c;
+  --ref-teal-800: #205a58;
+  --ref-teal-900: #1e4a49;
+  --ref-teal-950: #0d2d2d;
+
+  /* Green same ramp as the success pill, whose fill is step 700 (#15803d). */
+  --ref-green-50: #f0fdf4;
+  --ref-green-100: #dcfce7;
+  --ref-green-200: #bbf7d0;
+  --ref-green-300: #86efac;
+  --ref-green-400: #4ade80;
+  --ref-green-500: #22c55e;
+  --ref-green-600: #16a34a;
+  --ref-green-700: #15803d;
+  --ref-green-800: #166534;
+  --ref-green-900: #14532d;
+  --ref-green-950: #052e16;
+
+  /* Yellow */
+  --ref-yellow-50: #fffceb;
+  --ref-yellow-100: #fff7c6;
+  --ref-yellow-200: #ffed88;
+  --ref-yellow-300: #ffdf4d;
+  --ref-yellow-400: #ffd22d;
+  --ref-yellow-500: #f7bc0b;
+  --ref-yellow-600: #d99506;
+  --ref-yellow-700: #ad6b08;
+  --ref-yellow-800: #8e530d;
+  --ref-yellow-900: #764411;
+  --ref-yellow-950: #442304;
+
+  /* Amber the warning pill's ramp; its fill is step 700 (#b45309). */
+  --ref-amber-50: #fffbeb;
+  --ref-amber-100: #fef3c7;
+  --ref-amber-200: #fde68a;
+  --ref-amber-300: #fcd34d;
+  --ref-amber-400: #fbbf24;
+  --ref-amber-500: #f59e0b;
+  --ref-amber-600: #d97706;
+  --ref-amber-700: #b45309;
+  --ref-amber-800: #8a430f;
+  --ref-amber-900: #713810;
+  --ref-amber-950: #421c05;
+
+  /* Orange */
+  --ref-orange-50: #fff6ed;
+  --ref-orange-100: #ffe8ce;
+  --ref-orange-200: #ffd09e;
+  --ref-orange-300: #ffb365;
+  --ref-orange-400: #ff963d;
+  --ref-orange-500: #ff7b1c;
+  --ref-orange-600: #e95d0f;
+  --ref-orange-700: #c1460f;
+  --ref-orange-800: #9a3814;
+  --ref-orange-900: #7c3014;
+  --ref-orange-950: #431507;
+
+  /* Deep Orange */
+  --ref-deep-orange-50: #fff2ef;
+  --ref-deep-orange-100: #ffddd5;
+  --ref-deep-orange-200: #ffb8a7;
+  --ref-deep-orange-300: #ff8f74;
+  --ref-deep-orange-400: #ff6948;
+  --ref-deep-orange-500: #ff4c28;
+  --ref-deep-orange-600: #ed3516;
+  --ref-deep-orange-700: #c72911;
+  --ref-deep-orange-800: #a12413;
+  --ref-deep-orange-900: #841f14;
+  --ref-deep-orange-950: #480d07;
+}
+
+/* ==========================================================================
+   SEMANTIC TOKENS
+   Intent-based tokens. Components consume these never raw --ref-* values.
+   Dark is the default; :root.light overrides when next-themes sets class="light".
+   ========================================================================== */
+
+:root {
+  /* --- Text ---------------------------------------------------------- */
+  --text-primary: var(--ref-gray-50);
+  --text-secondary: var(--ref-gray-300);
+  /* Tertiary and quaternary are one step lighter than the obvious choice.
+     Measured against the four surfaces they actually land on (page, container,
+     raised, raised-x2), gray-600 quaternary bottomed out at 2.58:1 below AA,
+     and it carries KPI labels and timestamps rather than decoration. These
+     values clear 4.5:1 on every surface, worst case 4.55:1 on raised-x2. */
+  --text-tertiary: var(--ref-gray-400);
+  --text-quaternary: var(--ref-gray-500);
+  --text-on-color: var(--ref-black);
+
+  /* --- Icon ------------------------------------------------------------ */
+  --icon-primary: var(--ref-gray-50);
+  --icon-secondary: var(--ref-gray-300);
+  /* Kept in lockstep with the text ramp above an icon and its label sitting
+     side by side must not be two different greys. */
+  --icon-tertiary: var(--ref-gray-400);
+  --icon-quaternary: var(--ref-gray-500);
+  --icon-on-color: var(--ref-black);
+
+  /* --- Stroke ------------------------------------------------------------ */
+  --stroke-default: rgba(255, 255, 255, 0.14);
+  --stroke-active: rgba(255, 255, 255, 0.24);
+  --stroke-muted: rgba(255, 255, 255, 0.08);
+  --stroke-disabled: rgba(255, 255, 255, 0.04);
+  --stroke-on-color: rgba(0, 0, 0, 0.18);
+
+  /* --- Surface ------------------------------------------------------------ */
+  --surface-page-background: var(--ref-black);
+  --surface-container: var(--ref-gray-950);
+  --surface-raised: var(--ref-gray-900);
+  --surface-raised-x2: var(--ref-gray-850);
+  --surface-action: var(--ref-gray-900);
+  /* A scrollbar thumb is a control, so it wants 3:1 against the surface it
+     sits on, not the 1.70:1 gray-750 was giving. Hover is a separate token
+     because it has to move *away* from the surface see the note in
+     globals.css about the old hover being darker than the resting thumb. */
+  --surface-scroll-bar: var(--ref-gray-600);
+  --surface-scroll-bar-hover: var(--ref-gray-400);
+
+  /* --- Action surface ------------------------------------------------------------ */
+  --action-primary-default: var(--ref-gray-50);
+  --action-primary-hover: var(--ref-gray-200);
+  --action-primary-focused: var(--ref-white);
+  --action-primary-disabled: var(--ref-gray-700);
+  --action-primary-content: var(--ref-black);
+
+  --action-secondary-default: var(--ref-gray-850);
+  --action-secondary-hover: var(--ref-gray-800);
+  --action-secondary-focused: var(--ref-gray-750);
+  --action-secondary-disabled: var(--ref-gray-950);
+  --action-secondary-content: var(--ref-gray-50);
+
+  --action-tertiary-default: transparent;
+  --action-tertiary-hover: rgba(255, 255, 255, 0.06);
+  --action-tertiary-focused: rgba(255, 255, 255, 0.1);
+  --action-tertiary-disabled: transparent;
+  --action-tertiary-content: var(--ref-gray-300);
+
+  /* --- Feedback: Success ------------------------------------------------------------
+     Coloured text and icons use the status-badge value itself, not a tint of
+     it, so "87%" on a card is the same green as the Success pill beside it.
+     #16a34a measures 5.84:1 on the container background clears AA. */
+  --feedback-success-content: var(--ref-green-600);
+  --feedback-success-icon: var(--ref-green-600);
+  --feedback-success-stroke: var(--ref-green-700);
+  --feedback-success-background: rgba(34, 197, 94, 0.12);
+
+  /* --- Feedback: Info ------------------------------------------------------------ */
+  --feedback-info-content: var(--ref-blue-300);
+  --feedback-info-icon: var(--ref-blue-400);
+  --feedback-info-stroke: var(--ref-blue-700);
+  --feedback-info-background: rgba(44, 150, 219, 0.12);
+
+  /* --- Feedback: Neutral ------------------------------------------------------------ */
+  --feedback-neutral-content: var(--ref-gray-300);
+  --feedback-neutral-icon: var(--ref-gray-400);
+  --feedback-neutral-stroke: var(--ref-gray-650);
+  --feedback-neutral-background: rgba(255, 255, 255, 0.06);
+
+  /* --- Feedback: Warning ------------------------------------------------------------
+     Amber rather than orange: the warning pill's fill is amber-700, and a
+     peach caption above an amber chip read as two different states. */
+  --feedback-warning-content: var(--ref-amber-500);
+  --feedback-warning-icon: var(--ref-amber-500);
+  --feedback-warning-stroke: var(--ref-amber-700);
+  --feedback-warning-background: rgba(245, 158, 11, 0.12);
+
+  /* --- Feedback: Error ------------------------------------------------------------
+     Step 500 rather than the pill's 600: #dc2626 as text on the container
+     measures 3.98:1, under AA. #ef4444 is the same red one step up and
+     clears 4.88:1. */
+  --feedback-error-content: var(--ref-red-500);
+  --feedback-error-icon: var(--ref-red-500);
+  --feedback-error-stroke: var(--ref-red-700);
+  --feedback-error-background: rgba(239, 68, 68, 0.12);
+
+  /* --- Status pills ----------------------------------------------------------------
+     Solid fills carrying white text, used by <StatusBadge/> and nothing else.
+     Deliberately separate from the --feedback-* set above: those are the quiet
+     tinted surfaces used for inline emphasis, these are the loud, instantly
+     recognisable state chips. One place to change a status colour globally.
+
+     Contrast is against white text, WCAG AA needs 4.5:1 for text this size.
+     Amber and green are one step darker than the brief's #F59E0B / #16A34A,
+     which measure 2.15:1 and 3.30:1 against white both unreadable. The
+     values below keep the same hue and clear 4.5:1.
+     -------------------------------------------------------------------------------- */
+  --status-critical: #dc2626; /* 4.83:1 */
+  --status-warning: #b45309; /* 5.02:1  (brief: #f59e0b, 2.15:1) */
+  --status-success: #15803d; /* 5.02:1  (brief: #16a34a, 3.30:1) */
+  --status-info: #2563eb; /* 5.17:1 */
+  --status-pending: #7c3aed; /* 6.01:1 */
+  --status-neutral: #6b7280; /* 4.83:1 */
+  --status-content: #ffffff;
+}
+
+/* ==========================================================================
+   LIGHT MODE OVERRIDES
+   Applied when next-themes puts `.light` on <html>. Dark values above
+   remain the defaults (this product is dark-mode-first).
+   ========================================================================== */
+
+:root.light {
+  --text-primary: var(--ref-gray-950);
+  --text-secondary: var(--ref-gray-700);
+  /* The light theme was the worse of the two: tertiary bottomed out at 2.74:1
+     and quaternary at 1.74:1, which is not dim, it is unreadable. Darkening
+     both puts every level over 4.5:1 on all four surfaces (worst case 4.84:1).
+     The cost is a tighter ladder 700/650/600 sit closer together than their
+     dark-mode counterparts because near-white surfaces simply do not leave
+     room for four well-separated greys that all clear AA. Legibility wins;
+     if more separation is needed, drop a level rather than lighten one. */
+  --text-tertiary: var(--ref-gray-650);
+  --text-quaternary: var(--ref-gray-600);
+  --text-on-color: var(--ref-white);
+
+  --icon-primary: var(--ref-gray-950);
+  --icon-secondary: var(--ref-gray-700);
+  --icon-tertiary: var(--ref-gray-650);
+  --icon-quaternary: var(--ref-gray-600);
+  --icon-on-color: var(--ref-white);
+
+  --stroke-default: rgba(0, 0, 0, 0.12);
+  --stroke-active: rgba(0, 0, 0, 0.2);
+  --stroke-muted: rgba(0, 0, 0, 0.07);
+  --stroke-disabled: rgba(0, 0, 0, 0.04);
+  --stroke-on-color: rgba(255, 255, 255, 0.24);
+
+  --surface-page-background: var(--ref-white);
+  --surface-container: var(--ref-gray-50);
+  --surface-raised: var(--ref-gray-100);
+  --surface-raised-x2: var(--ref-gray-200);
+  --surface-action: var(--ref-gray-100);
+  --surface-scroll-bar: var(--ref-gray-500);
+  --surface-scroll-bar-hover: var(--ref-gray-650);
+
+  --action-primary-default: var(--ref-gray-950);
+  --action-primary-hover: var(--ref-gray-800);
+  --action-primary-focused: var(--ref-black);
+  --action-primary-disabled: var(--ref-gray-300);
+  --action-primary-content: var(--ref-white);
+
+  --action-secondary-default: var(--ref-gray-200);
+  --action-secondary-hover: var(--ref-gray-300);
+  --action-secondary-focused: var(--ref-gray-400);
+  --action-secondary-disabled: var(--ref-gray-100);
+  --action-secondary-content: var(--ref-gray-950);
+
+  --action-tertiary-default: transparent;
+  --action-tertiary-hover: rgba(0, 0, 0, 0.06);
+  --action-tertiary-focused: rgba(0, 0, 0, 0.1);
+  --action-tertiary-disabled: transparent;
+  --action-tertiary-content: var(--ref-gray-700);
+
+  /* --- Feedback -----------------------------------------------------------
+     On white, dark-mode content steps fail AA; use status-pill fills (already
+     tuned against white) for content/icon. Soft backgrounds stay tinted. */
+  --feedback-success-content: var(--status-success);
+  --feedback-success-icon: var(--status-success);
+  --feedback-success-stroke: var(--status-success);
+  --feedback-success-background: rgba(21, 128, 61, 0.1);
+
+  --feedback-info-content: var(--status-info);
+  --feedback-info-icon: var(--status-info);
+  --feedback-info-stroke: var(--status-info);
+  --feedback-info-background: rgba(37, 99, 235, 0.1);
+
+  --feedback-neutral-content: var(--ref-gray-700);
+  --feedback-neutral-icon: var(--ref-gray-650);
+  --feedback-neutral-stroke: var(--ref-gray-400);
+  --feedback-neutral-background: rgba(0, 0, 0, 0.05);
+
+  --feedback-warning-content: var(--status-warning);
+  --feedback-warning-icon: var(--status-warning);
+  --feedback-warning-stroke: var(--status-warning);
+  --feedback-warning-background: rgba(180, 83, 9, 0.1);
+
+  --feedback-error-content: var(--status-critical);
+  --feedback-error-icon: var(--status-critical);
+  --feedback-error-stroke: var(--status-critical);
+  --feedback-error-background: rgba(220, 38, 38, 0.1);
+}
+
+/* ==========================================================================
+   TYPOGRAPHY TOKENS
+   ========================================================================== */
+
+:root {
+  /* --- Michroma display scale ------------------------------------------ */
+  --display-6xl-size: 64px;
+  --display-6xl-line: 1.05;
+  --display-5xl-size: 52px;
+  --display-5xl-line: 1.08;
+  --display-4xl-size: 42px;
+  --display-4xl-line: 1.1;
+  --display-3xl-size: 34px;
+  --display-3xl-line: 1.12;
+  --display-2xl-size: 28px;
+  --display-2xl-line: 1.15;
+  --display-xl-size: 22px;
+  --display-xl-line: 1.2;
+  --display-lg-size: 18px;
+  --display-lg-line: 1.25;
+  --display-base-size: 14px;
+  --display-base-line: 1.4;
+
+  /* --- Geist functional scale ------------------------------------------ */
+  --text-5xl-size: 48px;
+  --text-5xl-line: 52px;
+  --text-4xl-size: 40px;
+  --text-4xl-line: 44px;
+  --text-3xl-size: 32px;
+  --text-3xl-line: 38px;
+  --text-2xl-size: 24px;
+  --text-2xl-line: 30px;
+  --text-xl-size: 20px;
+  --text-xl-line: 26px;
+  --text-lg-size: 18px;
+  --text-lg-line: 24px;
+  --text-base-size: 16px;
+  --text-base-line: 24px;
+  --text-sm-size: 14px;
+  --text-sm-line: 20px;
+  --text-xs-size: 12px;
+  --text-xs-line: 16px;
+}
+
+/* ==========================================================================
+   ICONOGRAPHY TOKENS
+   Family: Font Awesome (solid). Icon color reuses the --icon-* semantic
+   values defined above; this block adds the icon size scale.
+   ========================================================================== */
+
+:root {
+  --icon-size-xs: 12px;
+  --icon-size-sm: 14px;
+  --icon-size-md: 16px;
+  --icon-size-lg: 18px;
+  --icon-size-xl: 20px;
+  --icon-size-2xl: 24px;
+  --icon-size-3xl: 28px;
+}

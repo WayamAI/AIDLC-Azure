@@ -107,7 +107,7 @@ def _clone_with_pat(repo_url: str, clone_dir: str, branch: str, pat: Optional[st
     )
 
 
-async def connect_repo(repo_url: str, branch: str = "main", pat: Optional[str] = None) -> dict:
+async def connect_repo(org_id: str, repo_url: str, branch: str = "main", pat: Optional[str] = None) -> dict:
     """Clone repo and return workspace_id + file tree."""
     workspace_id = str(uuid.uuid4())
     clone_dir = os.path.join(WORKSPACE_TEMP_DIR, workspace_id)
@@ -123,6 +123,7 @@ async def connect_repo(repo_url: str, branch: str = "main", pat: Optional[str] =
 
     _WORKSPACES[workspace_id] = {
         "workspace_id": workspace_id,
+        "org_id": org_id,
         "repo_url": repo_url,
         "branch": branch,
         "clone_dir": clone_dir,
@@ -137,15 +138,18 @@ async def connect_repo(repo_url: str, branch: str = "main", pat: Optional[str] =
     }
 
 
-def get_workspace(workspace_id: str) -> dict:
-    ws = _WORKSPACES.get(workspace_id)
-    if not ws:
+def get_workspace(org_id: str, workspace_id: str) -> dict | None:
+    """Returns the workspace's metadata only if it's owned by org_id, else None."""
+    entry = _WORKSPACES.get(workspace_id)
+    if entry is None or entry.get("org_id") != org_id:
+        return None
+    return entry
+
+
+def get_file_content(org_id: str, workspace_id: str, file_path: str) -> dict:
+    ws = get_workspace(org_id, workspace_id)
+    if ws is None:
         raise KeyError(f"Workspace {workspace_id} not found")
-    return ws
-
-
-def get_file_content(workspace_id: str, file_path: str) -> dict:
-    ws = get_workspace(workspace_id)
     abs_path = Path(ws["clone_dir"]) / file_path
 
     # Security: ensure path stays inside the workspace
@@ -166,8 +170,10 @@ def get_file_content(workspace_id: str, file_path: str) -> dict:
     }
 
 
-def save_file_content(workspace_id: str, file_path: str, content: str) -> None:
-    ws = get_workspace(workspace_id)
+def save_file_content(org_id: str, workspace_id: str, file_path: str, content: str) -> None:
+    ws = get_workspace(org_id, workspace_id)
+    if ws is None:
+        raise KeyError(f"Workspace {workspace_id} not found")
     abs_path = Path(ws["clone_dir"]) / file_path
 
     try:
@@ -179,13 +185,17 @@ def save_file_content(workspace_id: str, file_path: str, content: str) -> None:
     abs_path.write_text(content, encoding="utf-8")
 
 
-def get_file_tree(workspace_id: str) -> list[dict]:
-    ws = get_workspace(workspace_id)
+def get_file_tree(org_id: str, workspace_id: str) -> list[dict]:
+    ws = get_workspace(org_id, workspace_id)
+    if ws is None:
+        raise KeyError(f"Workspace {workspace_id} not found")
     base = Path(ws["clone_dir"])
     return _walk_tree(base)
 
 
-def delete_workspace(workspace_id: str) -> None:
-    ws = _WORKSPACES.pop(workspace_id, None)
-    if ws:
-        shutil.rmtree(ws["clone_dir"], ignore_errors=True)
+def delete_workspace(org_id: str, workspace_id: str) -> None:
+    ws = get_workspace(org_id, workspace_id)
+    if ws is None:
+        raise KeyError(f"Workspace {workspace_id} not found")
+    _WORKSPACES.pop(workspace_id, None)
+    shutil.rmtree(ws["clone_dir"], ignore_errors=True)

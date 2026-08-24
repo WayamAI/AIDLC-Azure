@@ -441,6 +441,7 @@ Return ONLY a raw JSON object (no markdown):
 # ── Suite persistence ──────────────────────────────────────────────────────────
 
 def save_test_suite(
+    org_id: str,
     workspace_id: str,
     name: str,
     scope: str,
@@ -451,6 +452,7 @@ def save_test_suite(
     suite_id = str(uuid.uuid4())
     suite = {
         "suite_id": suite_id,
+        "org_id": org_id,
         "workspace_id": workspace_id,
         "name": name,
         "scope": scope,
@@ -464,20 +466,24 @@ def save_test_suite(
     return {k: v for k, v in suite.items() if k != "tests"}
 
 
-def list_test_suites(workspace_id: str) -> list[dict]:
+def list_test_suites(org_id: str, workspace_id: str) -> list[dict]:
     return [
         {k: v for k, v in suite.items() if k != "tests"}
         for suite in _TEST_SUITES.values()
-        if suite["workspace_id"] == workspace_id
+        if suite["workspace_id"] == workspace_id and suite.get("org_id") == org_id
     ]
 
 
-def get_test_suite(suite_id: str) -> dict | None:
-    return _TEST_SUITES.get(suite_id)
+def get_test_suite(org_id: str, suite_id: str) -> dict | None:
+    suite = _TEST_SUITES.get(suite_id)
+    if suite is None or suite.get("org_id") != org_id:
+        return None
+    return suite
 
 
-def delete_test_suite(suite_id: str) -> bool:
-    if suite_id in _TEST_SUITES:
+def delete_test_suite(org_id: str, suite_id: str) -> bool:
+    suite = _TEST_SUITES.get(suite_id)
+    if suite is not None and suite.get("org_id") == org_id:
         del _TEST_SUITES[suite_id]
         return True
     return False

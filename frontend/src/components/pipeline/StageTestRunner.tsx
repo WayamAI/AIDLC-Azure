@@ -590,7 +590,7 @@ export function StageTestRunner() {
                 <Button 
                    variant="outline" 
                    size="sm" 
-                   className="h-10 text-[10px] gap-2.5 text-orange-700 border-orange-500/20 hover:bg-orange-50 font-black uppercase tracking-widest px-5 rounded-[1.25rem] transition-all hover:border-orange-500/40"
+                   className="h-10 text-[10px] gap-2.5 text-[var(--color-warning)] border-[var(--color-status-warning)]/30 hover:bg-[var(--color-warning-bg)] font-black uppercase tracking-widest px-5 rounded-[1.25rem] transition-all hover:border-[var(--color-status-warning)]/30"
                    onClick={async (e) => {
                      e.stopPropagation();
                      const repoUrl = (window as any).__REPO_URL__;
@@ -781,7 +781,7 @@ export function StageTestRunner() {
                               <Badge variant="outline" className={cn(
                                 "text-[8px] h-4 px-1.5 uppercase font-black shrink-0 tracking-widest rounded-md",
                                 bt.severity.toLowerCase() === "critical" ? "border-red-500/50 text-red-700 bg-red-400/5" :
-                                bt.severity.toLowerCase() === "high" ? "border-orange-500/50 text-orange-700 bg-orange-400/5" :
+                                bt.severity.toLowerCase() === "high" ? "border-[var(--color-status-warning)]/30 text-[var(--color-warning)] bg-[var(--color-warning-bg)]" :
                                 "border-muted-foreground/30 text-muted-foreground"
                               )}>
                                 {bt.severity.slice(0, 3)}

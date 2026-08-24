@@ -7,6 +7,7 @@ from typing import Any
 import httpx
 
 from app.config import settings
+from app.services import connector_settings_service as connectors
 
 VERCEL_API_BASE = "https://api.vercel.com"
 GITHUB_API_BASE = "https://api.github.com"
@@ -19,23 +20,29 @@ class VercelServiceError(Exception):
         self.status_code = status_code
 
 
+def _vercel_cfg() -> dict[str, str]:
+    return connectors.active("vercel")
+
+
 def _auth_headers() -> dict[str, str]:
-    if not settings.VERCEL_TOKEN:
+    token = _vercel_cfg().get("token") or settings.VERCEL_TOKEN
+    if not token:
         raise VercelServiceError(
             "Server missing VERCEL_TOKEN configuration.",
             status_code=500,
         )
 
     return {
-        "Authorization": f"Bearer {settings.VERCEL_TOKEN}",
+        "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
     }
 
 
 def _build_query_params(skip_auto_detection_confirmation: bool = False) -> dict[str, str]:
     params: dict[str, str] = {}
-    if settings.VERCEL_TEAM_ID and not _looks_like_placeholder(settings.VERCEL_TEAM_ID):
-        params["teamId"] = settings.VERCEL_TEAM_ID
+    team_id = _vercel_cfg().get("team_id") or settings.VERCEL_TEAM_ID
+    if team_id and not _looks_like_placeholder(team_id):
+        params["teamId"] = team_id
     if skip_auto_detection_confirmation:
         # For first-time project creation, let Vercel auto-detect framework settings.
         params["skipAutoDetectionConfirmation"] = "1"

@@ -11,13 +11,13 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
-from app.database import get_db
 from app.services import repo_service
 from app.services.ai_service import (
     AIQuotaError,
     analyze_codebase,
     analyze_commit_and_generate_tests,
     generate_playwright_tests,
+    set_current_org_id,
 )
 
 # ── In-memory job store ───────────────────────────────────────────────────────
@@ -25,6 +25,7 @@ _jobs: dict[str, dict[str, Any]] = {}
 
 
 def create_job(
+    org_id: str,
     github_url: str,
     target_url: str,
     test_email: str | None = None,
@@ -38,6 +39,7 @@ def create_job(
     job_id = str(uuid.uuid4())
     _jobs[job_id] = {
         "job_id": job_id,
+        "org_id": org_id,
         "status": "pending",
         "step": "pending",
         "logs": [],
@@ -58,15 +60,26 @@ def create_job(
     return job_id
 
 
-def get_job(job_id: str) -> dict[str, Any] | None:
-    return _jobs.get(job_id)
+def get_job(job_id: str, org_id: str) -> dict[str, Any] | None:
+    job = _jobs.get(job_id)
+    if job is None:
+        return None
+    if job.get("org_id") != org_id:
+        return None
+    return job
 
 
-async def run_analysis(job_id: str) -> None:
+async def run_analysis(db, job_id: str) -> None:
     """
     Background task: runs the full analysis pipeline and updates the job dict in-place.
     """
     job = _jobs[job_id]
+    org_id: str = job["org_id"]
+    # This task runs detached from the request that queued it (via
+    # BackgroundTasks), so any inherited org-context contextvar is not
+    # guaranteed to still be set attribute AI calls made in this task
+    # explicitly rather than relying on it.
+    set_current_org_id(org_id)
     test_email: str | None = job.get("test_email")
     test_password: str | None = job.get("test_password")
     test_preferences: str | None = job.get("test_preferences")
@@ -134,11 +147,11 @@ async def run_analysis(job_id: str) -> None:
         log(f"  ✓ Generated {len(tests_raw)} test cases")
 
         # ── Persist to MongoDB ────────────────────────────────────────────────
-        db = get_db()
         analysis_id = str(uuid.uuid4())
 
         analysis_doc = {
             "_id": analysis_id,
+            "org_id": org_id,
             "github_url": job["github_url"],
             "target_url": job["target_url"],
             "test_email": test_email,
@@ -150,7 +163,7 @@ async def run_analysis(job_id: str) -> None:
 
         test_docs: list[dict] = []
         for t in tests_raw:
-            test_docs.append({"_id": str(uuid.uuid4()), "analysis_id": analysis_id, **t})
+            test_docs.append({"_id": str(uuid.uuid4()), "org_id": org_id, "analysis_id": analysis_id, **t})
         if test_docs:
             await db.playwright_tests.insert_many(test_docs)
 
@@ -181,12 +194,14 @@ async def run_analysis(job_id: str) -> None:
         log(f"✗ Error: {exc}")
 
 
-async def run_commit_analysis(job_id: str) -> None:
+async def run_commit_analysis(db, job_id: str) -> None:
     """
     Background task: runs commit-specific analysis pipeline.
     Steps: cloning → extracting (diff) → analyzing → generating → completed
     """
     job = _jobs[job_id]
+    org_id: str = job["org_id"]
+    set_current_org_id(org_id)
     commit_sha: str = job.get("commit_sha", "")
     commit_message: str = job.get("commit_message", "")
     test_email: str | None = job.get("test_email")
@@ -253,11 +268,11 @@ async def run_commit_analysis(job_id: str) -> None:
         log(f"Step 4/4: Saving targeted test cases...")
         log(f"  ✓ Generated {len(tests_raw)} targeted test cases for this commit")
 
-        db = get_db()
         analysis_id = str(uuid.uuid4())
 
         analysis_doc = {
             "_id": analysis_id,
+            "org_id": org_id,
             "github_url": job["github_url"],
             "target_url": job["target_url"],
             "test_email": test_email,
@@ -271,7 +286,7 @@ async def run_commit_analysis(job_id: str) -> None:
         await db.repo_analyses.insert_one(analysis_doc)
 
         test_docs: list[dict] = [
-            {"_id": str(uuid.uuid4()), "analysis_id": analysis_id, **t}
+            {"_id": str(uuid.uuid4()), "org_id": org_id, "analysis_id": analysis_id, **t}
             for t in tests_raw
         ]
         if test_docs:

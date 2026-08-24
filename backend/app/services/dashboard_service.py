@@ -1,15 +1,13 @@
 """
 Dashboard aggregation service.
 """
-from app.database import get_db
 
 
-async def get_stats() -> dict:
-    db = get_db()
-
+async def get_stats(db, org_id: str) -> dict:
     # Test case counts by category
     tc_pipeline = [
-        {"$group": {"_id": "$category", "count": {"$sum": 1}}}
+        {"$match": {"org_id": org_id}},
+        {"$group": {"_id": "$category", "count": {"$sum": 1}}},
     ]
     tc_agg = await db.test_cases.aggregate(tc_pipeline).to_list(length=10)
     test_case_counts = {r["_id"]: r["count"] for r in tc_agg}
@@ -17,7 +15,7 @@ async def get_stats() -> dict:
 
     # Latest run results
     latest_run = await db.test_results.find_one(
-        {}, sort=[("timestamp", -1)]
+        {"org_id": org_id}, sort=[("timestamp", -1)]
     )
     run_id = latest_run["run_id"] if latest_run else None
 
@@ -27,7 +25,7 @@ async def get_stats() -> dict:
     results_count = 0
 
     if run_id:
-        run_cursor = db.test_results.find({"run_id": run_id})
+        run_cursor = db.test_results.find({"run_id": run_id, "org_id": org_id})
         run_docs = await run_cursor.to_list(length=1000)
         passed = sum(1 for d in run_docs if d["status"] == "PASS")
         failed = sum(1 for d in run_docs if d["status"] == "FAIL")
@@ -38,14 +36,17 @@ async def get_stats() -> dict:
     success_rate = round(passed / results_count * 100, 1) if results_count else 0.0
 
     # Priority counts
-    high_priority = await db.prioritized_tests.count_documents({"priority": {"$gte": 80}})
-    known_failures = await db.prioritized_tests.count_documents({"known_failure": True})
+    high_priority = await db.prioritized_tests.count_documents({"org_id": org_id, "priority": {"$gte": 80}})
+    known_failures = await db.prioritized_tests.count_documents({"org_id": org_id, "known_failure": True})
 
-    # Active vehicles
+    # Active vehicles NOTE: `synthetic_data` is pre-existing fixture/demo data with
+    # no owning route and no org_id field in this codebase (distinct from the
+    # `synthetic_datasets` collection, which IS org-scoped). Left unfiltered.
     active_vehicles = await db.synthetic_data.count_documents({"status": "Active"})
 
     # Weekly trend (last 7 runs, 1 per day aggregated)
     weekly_pipeline = [
+        {"$match": {"org_id": org_id}},
         {
             "$group": {
                 "_id": {
