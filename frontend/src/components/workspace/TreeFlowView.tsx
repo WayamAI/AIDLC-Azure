@@ -933,7 +933,9 @@ export function TreeFlowView({
     fetchBaseline();
   }, [workspace?.repo_url]);
 
-  const roots = impactQuery.data?.roots ?? [];
+  // `?? []` inline would allocate a new array every render, invalidating every
+  // memo below it and re-walking the graph on each paint.
+  const roots = useMemo(() => impactQuery.data?.roots ?? [], [impactQuery.data]);
   const impactNodeMap = useMemo(() => flattenImpactTree(roots), [roots]);
 
   const impactChain = useMemo(() => {
@@ -1410,50 +1412,6 @@ export function TreeFlowView({
           )}
         </AnimatePresence>
       </div>
-
-      {/* ── Generated Tests panel (STILL SUPPORTED FOR INDIVIDUAL REVIEW) ── */}
-      {hasTests && false && (
-        <div className="flex-[3] border-t border-border/40 flex flex-col min-h-0 bg-background max-h-[60%]">
-          {/* Panel header */}
-          <div className="flex-shrink-0 px-4 py-2 border-b border-border/30 bg-muted/10 flex items-center gap-2">
-            <FlaskConical className="h-3.5 w-3.5 text-primary/70" />
-            <span className="text-xs font-semibold text-foreground/80">Generated Test Cases</span>
-            {hasTests && (
-              <span className="text-[10px] text-muted-foreground/60 bg-muted/40 px-1.5 py-0.5 rounded">
-                {totalTests} test{totalTests !== 1 ? "s" : ""} across {fileTests!.length} file{fileTests!.length !== 1 ? "s" : ""}
-              </span>
-            )}
-            {hasTests && (
-              <button
-                className="ml-auto h-6 px-2 rounded border border-border/40 text-[10px] text-muted-foreground hover:text-foreground hover:bg-muted/40 flex items-center gap-1.5"
-                onClick={handleDownloadGeneratedTests}
-                title="Download generated test cases"
-              >
-                <Download className="h-3 w-3" />
-                Download
-              </button>
-            )}
-            {hasTests && (
-              <button
-                className="h-5 w-5 flex items-center justify-center rounded hover:bg-muted/60"
-                onClick={() => setFileTests(null)}
-                title="Close tests panel"
-              >
-                <X className="h-3 w-3 text-muted-foreground" />
-              </button>
-            )}
-          </div>
-
-          {/* Tests content */}
-          {hasTests && (
-            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
-              {fileTests!.map((group, i) => (
-                <FileTestGroup key={group.filePath} group={group} chainIndex={i} />
-              ))}
-            </div>
-          )}
-        </div>
-      )}
 
       <Dialog open={dialogPhase !== "closed"} onOpenChange={(open) => { if (!open) setDialogPhase("closed"); }}>
         <DialogContent className="max-w-md">

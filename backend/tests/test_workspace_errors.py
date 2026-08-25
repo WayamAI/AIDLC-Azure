@@ -34,3 +34,38 @@ def test_sanitize_git_error_keeps_the_useful_reason():
 def test_redact_credentials_leaves_clean_urls_alone():
     assert workspace_service._redact_credentials("https://github.com/o/r") == "https://github.com/o/r"
     assert workspace_service._redact_credentials("https://tok@github.com/o/r") == "https://***@github.com/o/r"
+
+
+def test_push_credentials_are_never_persisted_to_git_config(tmp_path):
+    """The PAT must stay in memory: baking it into .git/config leaves the
+    credential on disk for the life of the workspace."""
+    from app.services import git_service
+
+    work = tmp_path / "work"
+    repo = git.Repo.init(work)
+    repo.create_remote("origin", "https://github.com/o/r.git")
+
+    pat = "ghp_LEAKCANARY0123456789"
+    # Simulate a workspace polluted by the previous implementation.
+    with repo.remotes.origin.config_writer as cw:
+        cw.set("url", f"https://{pat}@github.com/o/r.git")
+    assert pat in (work / ".git" / "config").read_text()
+
+    git_service._strip_persisted_credentials(repo)
+
+    assert pat not in (work / ".git" / "config").read_text()
+    assert repo.remotes.origin.url == "https://github.com/o/r.git"
+    # The tokenised URL is still available for the push itself, in memory only.
+    assert git_service._origin_url_with_pat(repo.remotes.origin.url, pat) == (
+        f"https://{pat}@github.com/o/r.git"
+    )
+    assert pat not in (work / ".git" / "config").read_text()
+
+
+def test_strip_persisted_credentials_leaves_clean_remotes_alone(tmp_path):
+    from app.services import git_service
+
+    repo = git.Repo.init(tmp_path / "clean")
+    repo.create_remote("origin", "https://github.com/o/r.git")
+    git_service._strip_persisted_credentials(repo)
+    assert repo.remotes.origin.url == "https://github.com/o/r.git"
