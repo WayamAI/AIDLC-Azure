@@ -78,7 +78,15 @@ async def run_baseline_scan(
         # ── Step 1: Clone ──────────────────────────────────────────────────
         await progress("Cloning repository…")
         try:
-            repo_path = await _run_blocking(repo_service.clone_repo, github_url)
+            # with_history when we will diff against a previously stored SHA:
+            # a depth-1 clone cannot diff, which silently forced a full rescan
+            # on every incremental run.
+            needs_diff = existing_baseline is not None and bool(
+                existing_baseline.last_commit_sha
+            )
+            repo_path = await _run_blocking(
+                repo_service.clone_repo, github_url, with_history=needs_diff
+            )
         except Exception as exc:
             raise RuntimeError(f"Git clone failed: {exc}") from exc
 
@@ -117,14 +125,20 @@ async def run_baseline_scan(
 
         if is_incremental:
             # Find changed files between stored SHA and current SHA
-            changed_files = await _run_blocking(
-                diff_service.get_changed_files,
-                existing_baseline.last_commit_sha,  # type: ignore[union-attr]
-                current_sha,
-                repo_path,
-            )
+            try:
+                changed_files = await _run_blocking(
+                    diff_service.get_changed_files,
+                    existing_baseline.last_commit_sha,  # type: ignore[union-attr]
+                    current_sha,
+                    repo_path,
+                )
+            except diff_service.DiffUnavailable as exc:
+                # A diff we cannot compute must not masquerade as "no changes";
+                # fall back to a full scan, but say so.
+                log.warning("[%s] %s - falling back to full scan", session.session_id[:8], exc)
+                changed_files = []
             if not changed_files:
-                # git diff returned nothing fall back to full scan
+                # Genuinely nothing changed, or the diff was unavailable.
                 is_incremental = False
             else:
                 # Build the "changed code" string from the diff service context

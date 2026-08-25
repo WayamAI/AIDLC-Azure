@@ -126,7 +126,12 @@ export function downloadLiveTestReport(
     `Generated: ${now.toLocaleString()}`,
   ];
   if (analysis) {
-    meta.push(`Tech Stack: ${analysis.tech_stack}  |  Pages: ${analysis.pages.length}  |  Tests: ${analysis.tests.length}`);
+    // Guard the nested arrays, not just the object: a partially-populated
+    // analysis (e.g. from the spec-upload flow) has no pages/tests, and
+    // `analysis.pages.length` then throws inside the click handler.
+    const pageCount = analysis.pages?.length ?? 0;
+    const testCount = analysis.tests?.length ?? 0;
+    meta.push(`Tech Stack: ${analysis.tech_stack ?? "unknown"}  |  Pages: ${pageCount}  |  Tests: ${testCount}`);
   }
   drawHeader(doc, "AI Test Execution Report", "Live Playwright Test Run", meta, pageW);
 
@@ -177,12 +182,13 @@ export function downloadLiveTestReport(
   }
 
   // Test results table
-  y = drawSectionTitle(doc, `Test Results  (${runStatus.results.length})`, y);
+  const results = runStatus.results ?? [];
+  y = drawSectionTitle(doc, `Test Results  (${results.length})`, y);
 
   autoTable(doc, {
     startY: y,
     head: [["#", "Test Name", "Status", "Duration", "Steps", "Error / Notes"]],
-    body: runStatus.results.map((r, i) => [
+    body: results.map((r, i) => [
       String(i + 1),
       r.test_name,
       r.status.charAt(0).toUpperCase() + r.status.slice(1),
@@ -216,7 +222,7 @@ export function downloadLiveTestReport(
   });
 
   // Failed test detail section (if any)
-  const failed_results = runStatus.results.filter((r) => r.status === "failed" && r.error);
+  const failed_results = results.filter((r) => r.status === "failed" && r.error);
   if (failed_results.length > 0) {
     const finalY = (doc as DocWithAutoTable).lastAutoTable.finalY + 8;
     doc.addPage();

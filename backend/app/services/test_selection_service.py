@@ -180,9 +180,13 @@ async def run_selection(
         try:
             repo_path = await asyncio_to_thread_clone(github_url)
             changed_files = await asyncio_to_thread_diff(old_sha, new_sha, repo_path)
-            diff_available = bool(changed_files) or old_sha == new_sha
+            # get_changed_files now raises when git cannot diff, so reaching here
+            # means the result is real — an empty list is genuinely "no files
+            # changed", not a failure, and must not trigger the full-suite fallback.
+            diff_available = True
         except Exception as exc:
             log.warning("Test selection: diff failed, falling back to full suite: %s", exc)
+            changed_files = []
             diff_available = False
         finally:
             if repo_path:
@@ -221,7 +225,9 @@ async def run_selection(
 
 
 async def asyncio_to_thread_clone(github_url: str) -> str:
-    return await asyncio.to_thread(repo_service.clone_repo, github_url)
+    # with_history: this clone gets diffed between two SHAs, which a depth-1
+    # clone cannot do.
+    return await asyncio.to_thread(repo_service.clone_repo, github_url, with_history=True)
 
 
 async def asyncio_to_thread_diff(old_sha: str, new_sha: str, repo_path: str) -> list[str]:

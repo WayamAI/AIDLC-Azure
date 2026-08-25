@@ -1765,7 +1765,14 @@ function ExecutionPhase({
                   <Button 
                     variant="outline" 
                     className="h-10 px-5 rounded-2xl border-border/40 bg-background/50 hover:bg-background font-black uppercase tracking-[0.18em] text-[10px] shadow-sm transform hover:scale-105 transition-all"
-                    onClick={() => downloadLiveTestReport(runStatus!, analysis)}
+                    onClick={() => {
+                      try {
+                        downloadLiveTestReport(runStatus!, analysis);
+                      } catch (err) {
+                        console.error("Report generation failed", err);
+                        toast.error("Could not generate the report PDF.");
+                      }
+                    }}
                   >
                     <Download className="h-4 w-4 mr-2.5 text-primary" /> Analysis Pack
                   </Button>
@@ -1886,7 +1893,14 @@ function RunDetailSheet({ run, open, onClose }: { run: RunSummaryItem | null; op
                 variant="outline"
                 size="sm"
                 className="h-8 text-xs flex-shrink-0"
-                onClick={() => downloadRunSummaryReport(run)}
+                onClick={() => {
+                  try {
+                    downloadRunSummaryReport(run);
+                  } catch (err) {
+                    console.error("Report generation failed", err);
+                    toast.error("Could not generate the report PDF.");
+                  }
+                }}
               >
                 <Download className="h-3.5 w-3.5 mr-1.5" /> Download PDF
               </Button>

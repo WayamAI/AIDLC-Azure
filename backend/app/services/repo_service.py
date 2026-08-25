@@ -59,16 +59,28 @@ def detect_default_branch(github_url: str) -> str:
     return "main"
 
 
-def clone_repo(github_url: str) -> str:
+def clone_repo(github_url: str, *, with_history: bool = False) -> str:
     """
-    Shallow-clone a GitHub repository into a temporary directory.
-    Returns the path to the cloned repo.
-    Raises ValueError on failure.
+    Clone a GitHub repository into a temporary directory.
+
+    By default this is a --depth=1 snapshot, which is all most callers need.
+
+    Pass with_history=True when the clone will be diffed between two commits.
+    A depth-1 clone contains exactly one commit, so `git diff <old> <new>` in it
+    fails with "fatal: bad object" — which callers were silently treating as
+    "nothing changed". --filter=blob:none keeps the clone cheap (no file blobs
+    up front) while still fetching the full commit graph a diff needs.
     """
     temp_dir = tempfile.mkdtemp(prefix="aidlc_repo_")
+    clone_cmd = ["git", "clone"]
+    if with_history:
+        clone_cmd += ["--filter=blob:none"]
+    else:
+        clone_cmd += ["--depth=1"]
+    clone_cmd += ["--single-branch", github_url, temp_dir]
     try:
         result = subprocess.run(
-            ["git", "clone", "--depth=1", "--single-branch", github_url, temp_dir],
+            clone_cmd,
             capture_output=True,
             text=True,
             timeout=120,

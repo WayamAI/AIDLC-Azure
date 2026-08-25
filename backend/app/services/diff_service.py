@@ -57,12 +57,21 @@ def unchanged_since_last_scan(
     return current_sha == baseline.last_commit_sha
 
 
+class DiffUnavailable(RuntimeError):
+    """git diff could not be computed (missing commits, bad SHA, git error)."""
+
+
 def get_changed_files(
     old_sha: str, new_sha: str, repo_path: str
 ) -> List[str]:
     """
-    Return a list of relative file paths that changed between two commits.
-    Falls back to an empty list if git diff fails.
+    Return the relative paths that changed between two commits.
+
+    Raises DiffUnavailable if git cannot compute the diff. It previously
+    returned [] in that case, which callers could not distinguish from "nothing
+    changed" — so a failed diff silently became "no changes", and both the
+    incremental baseline scan and test selection quietly degraded to full-suite
+    behaviour without ever surfacing an error.
     """
     try:
         result = subprocess.run(
@@ -72,11 +81,14 @@ def get_changed_files(
             text=True,
             timeout=20,
         )
-        if result.returncode == 0:
-            return [f.strip() for f in result.stdout.splitlines() if f.strip()]
     except Exception as exc:
-        log.warning("git diff failed, falling back to full scan: %s", exc)
-    return []
+        raise DiffUnavailable(f"git diff failed: {exc}") from exc
+
+    if result.returncode != 0:
+        raise DiffUnavailable(
+            f"git diff {old_sha[:8]}..{new_sha[:8]} failed: {(result.stderr or '').strip()[:200]}"
+        )
+    return [f.strip() for f in result.stdout.splitlines() if f.strip()]
 
 
 def build_existing_tests_context(
