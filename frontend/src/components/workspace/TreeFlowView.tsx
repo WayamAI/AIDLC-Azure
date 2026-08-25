@@ -935,6 +935,20 @@ export function TreeFlowView({
 
   // `?? []` inline would allocate a new array every render, invalidating every
   // memo below it and re-walking the graph on each paint.
+  // The workspace graph now includes test files (flagged is_test) so the Code
+  // Impact page can offer them behind a toggle. This view has no such toggle,
+  // so filter them out here to keep it showing source dependencies only —
+  // dropping every edge that touches a test as well, so none dangle.
+  const graphData = useMemo(() => {
+    const raw = fallbackGraphQuery.data;
+    if (!raw) return null;
+    const keep = new Set(raw.nodes.filter((n) => !n.is_test).map((n) => n.path));
+    return {
+      nodes: raw.nodes.filter((n) => keep.has(n.path)),
+      edges: raw.edges.filter((e) => keep.has(e.source) && keep.has(e.target)),
+    };
+  }, [fallbackGraphQuery.data]);
+
   const roots = useMemo(() => impactQuery.data?.roots ?? [], [impactQuery.data]);
   const impactNodeMap = useMemo(() => flattenImpactTree(roots), [roots]);
 
@@ -944,13 +958,13 @@ export function TreeFlowView({
   }, [roots, activeTab]);
 
   const fallbackChain = useMemo(() => {
-    if (!activeTab || !fallbackGraphQuery.data) return [];
+    if (!activeTab || !graphData) return [];
     return deriveRootToLeafChain(
       activeTab,
-      fallbackGraphQuery.data.nodes,
-      fallbackGraphQuery.data.edges,
+      graphData.nodes,
+      graphData.edges,
     );
-  }, [activeTab, fallbackGraphQuery.data]);
+  }, [activeTab, graphData]);
 
   const chain = useMemo(() => {
     // Only use impactChain when it's a real path (2+ nodes).
@@ -964,13 +978,13 @@ export function TreeFlowView({
 
   const changedPathSet = useMemo(() => {
     const changed = new Set<string>();
-    const graphNodes = fallbackGraphQuery.data?.nodes ?? [];
+    const graphNodes = graphData?.nodes ?? [];
     for (const node of graphNodes) {
       if (node.is_changed) changed.add(node.path);
     }
     for (const path of impactNodeMap.keys()) changed.add(path);
     return changed;
-  }, [fallbackGraphQuery.data?.nodes, impactNodeMap]);
+  }, [graphData?.nodes, impactNodeMap]);
 
   // Clear tests when chain changes
   useEffect(() => {
@@ -1032,7 +1046,7 @@ export function TreeFlowView({
     setDialogPhase("analyzing");
 
     // Determine which files are directly changed using the impact map and graph nodes
-    const graphNodes = fallbackGraphQuery.data?.nodes ?? [];
+    const graphNodes = graphData?.nodes ?? [];
     const changedFiles = chain.filter((p) => {
       const node = graphNodes.find((n) => n.path === p) as { is_changed?: boolean } | undefined;
       return node?.is_changed || impactNodeMap.has(p);
@@ -1059,7 +1073,7 @@ export function TreeFlowView({
       toast.error("AI analysis failed. Please try again.");
       setDialogPhase("closed");
     }
-  }, [workspace, chain, fallbackGraphQuery.data, impactNodeMap]);
+  }, [workspace, chain, graphData, impactNodeMap]);
 
   const handleConfirmGenerate = useCallback(async () => {
     const countMap = new Map(perFileAnalysis.map((f) => [f.file_path, Math.min(10, Math.max(0, f.requestedCount || 0))]));
@@ -1226,16 +1240,16 @@ export function TreeFlowView({
           flowViewMode === "gephi" ? (
             <GephiSigmaGraph
               focusPath={activeTab}
-              nodes={fallbackGraphQuery.data?.nodes ?? []}
-              edges={fallbackGraphQuery.data?.edges ?? []}
+              nodes={graphData?.nodes ?? []}
+              edges={graphData?.edges ?? []}
               changedPaths={changedPathSet}
             />
           ) : (
             <FlowCanvas
               focusPath={activeTab}
               chain={chain}
-              graphNodes={fallbackGraphQuery.data?.nodes ?? []}
-              graphEdges={fallbackGraphQuery.data?.edges ?? []}
+              graphNodes={graphData?.nodes ?? []}
+              graphEdges={graphData?.edges ?? []}
               impactNodeMap={impactNodeMap}
               viewMode={flowViewMode}
             />
