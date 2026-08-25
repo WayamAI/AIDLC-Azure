@@ -35,11 +35,13 @@ az acr create --resource-group $ResourceGroup --name $AcrName --sku Basic --admi
 
 Write-Host "==> ACR build of unified image (frontend + FastAPI + Playwright Chromium)"
 Push-Location $Root
-# The ACR log stream contains U+2713. On a cp1252 Windows console the CLI dies
-# with UnicodeEncodeError *while printing logs* — the server-side build keeps
+# --no-logs is required on Windows, not cosmetic: the ACR log stream contains
+# U+2713, and colorama writes it through the cp1252 console encoding, so the CLI
+# dies with UnicodeEncodeError *while printing logs*. The server-side build keeps
 # running and succeeds, but az exits 1 and the deploy looks like it failed.
-$env:PYTHONIOENCODING = "utf-8"
-az acr build --registry $AcrName --image "${ImageName}:$ImageTag" --file Dockerfile .
+# PYTHONIOENCODING does not help — the crash is below that layer.
+az acr build --registry $AcrName --image "${ImageName}:$ImageTag" --file Dockerfile . --no-logs
+if ($LASTEXITCODE -ne 0) { throw "az acr build failed (exit $LASTEXITCODE)" }
 Pop-Location
 
 Write-Host "==> Container Apps environment"

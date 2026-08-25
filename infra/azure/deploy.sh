@@ -27,9 +27,11 @@ echo "==> ACR $ACR"
 az acr create --resource-group "$RG" --name "$ACR" --sku Basic --admin-enabled true >/dev/null
 
 echo "==> ACR build of unified image (frontend + FastAPI + Playwright Chromium)"
-# The ACR log stream contains U+2713; on a cp1252 console the CLI dies with
+# --no-logs is required on Windows: the ACR log stream contains U+2713 and
+# colorama writes it through the cp1252 console encoding, so the CLI dies with
 # UnicodeEncodeError while printing logs even though the build succeeds.
-( cd "$ROOT" && PYTHONIOENCODING=utf-8 az acr build --registry "$ACR" --image "${IMAGE_NAME}:$TAG" --file Dockerfile . )
+# PYTHONIOENCODING does not help — the crash is below that layer.
+( cd "$ROOT" && az acr build --registry "$ACR" --image "${IMAGE_NAME}:$TAG" --file Dockerfile . --no-logs )
 
 echo "==> Container Apps environment"
 az containerapp env create --name "$ENV_NAME" --resource-group "$RG" --location "$LOC" 2>/dev/null || true

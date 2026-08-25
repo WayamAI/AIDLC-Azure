@@ -87,8 +87,9 @@ The ACR log stream contains `✓`. On a cp1252 console the CLI raises
 printing the logs** — the server-side build keeps running and succeeds, but
 `az` exits 1, so a healthy build looks like a failure.
 
-The deploy scripts now set `PYTHONIOENCODING=utf-8`. If you hit it running `az`
-by hand, check the real status before assuming failure:
+`PYTHONIOENCODING=utf-8` does **not** fix it — colorama writes below that layer.
+The scripts pass `--no-logs`, which skips the log stream entirely. If you hit
+this running `az` by hand, check the real status before assuming failure:
 
 ```bash
 az acr task list-runs --registry vakyamcr20260820 --top 3 -o table
