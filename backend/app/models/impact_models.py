@@ -19,6 +19,7 @@ class GraphNode(BaseModel):
     ext: str
     is_changed: bool = False
     is_impacted: bool = False
+    is_test: bool = False
     layer: int = 0
     layer_index: int = 0
     x: float = 0
@@ -39,6 +40,7 @@ class DependencyGraphResponse(BaseModel):
     pr_title: Optional[str] = None
     pr_url: Optional[str] = None
     commit_message: Optional[str] = None
+    message: Optional[str] = None
 
 
 # ── File content ───────────────────────────────────────────────────────────────

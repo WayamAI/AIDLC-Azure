@@ -360,7 +360,14 @@ export function AiIdeProvider({ children }: { children: ReactNode }) {
     []
   );
 
-  const reset = useCallback(() => dispatch({ type: "RESET" }), []);
+  const reset = useCallback(() => {
+    try {
+      localStorage.removeItem("aidlc-ai-ide-session");
+    } catch {
+      /* ignore */
+    }
+    dispatch({ type: "RESET" });
+  }, []);
 
   return (
     <AiIdeContext.Provider value={{ state, dispatch, setActiveFile, closeTab, reset }}>

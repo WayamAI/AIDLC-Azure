@@ -19,7 +19,7 @@ router = APIRouter(prefix="/copilot", tags=["Copilot"])
 
 
 @router.post("/suggest", response_model=SuggestCodeResponse)
-async def suggest_code(req: SuggestCodeRequest):
+async def suggest_code(req: SuggestCodeRequest, org: OrganizationOut = Depends(get_current_org)):
     """Generate an AI code suggestion and return original/modified diff."""
     try:
         result = await copilot_service.suggest_code(
@@ -37,7 +37,7 @@ async def suggest_code(req: SuggestCodeRequest):
 
 
 @router.post("/add-comments", response_model=SuggestCodeResponse)
-async def add_comments(req: AddCommentsRequest):
+async def add_comments(req: AddCommentsRequest, org: OrganizationOut = Depends(get_current_org)):
     """Auto-add docstrings and inline comments to a file."""
     try:
         result = await copilot_service.add_comments(
@@ -54,7 +54,7 @@ async def add_comments(req: AddCommentsRequest):
 
 
 @router.post("/explain", response_model=ExplainCodeResponse)
-async def explain_code(req: ExplainCodeRequest):
+async def explain_code(req: ExplainCodeRequest, org: OrganizationOut = Depends(get_current_org)):
     """Explain selected code or whole file in plain English."""
     try:
         result = await copilot_service.explain_code(
@@ -71,7 +71,7 @@ async def explain_code(req: ExplainCodeRequest):
 
 
 @router.post("/suggest-workspace", response_model=WorkspaceSuggestResponse)
-async def suggest_workspace(req: WorkspaceSuggestRequest):
+async def suggest_workspace(req: WorkspaceSuggestRequest, org: OrganizationOut = Depends(get_current_org)):
     """Generate AI suggestions across multiple files in a workspace."""
     try:
         result = await copilot_service.suggest_workspace(
@@ -79,6 +79,7 @@ async def suggest_workspace(req: WorkspaceSuggestRequest):
             instruction=req.instruction,
             history=[m.model_dump() for m in req.history],
             context_files=req.context_files,
+            org_id=org.id,
         )
         return result
     except AIQuotaError as exc:

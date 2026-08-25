@@ -26,6 +26,7 @@ import {
   Activity01Icon,
   Alert02Icon,
   Layers01Icon,
+  Settings01Icon,
 } from "@hugeicons/core-free-icons";
 
 export type NavIcon = typeof DashboardSquare01Icon;
@@ -129,6 +130,7 @@ export const platformSections: NavSection[] = [
       { title: "CI Intelligence", url: "/ci-intelligence", icon: ServerStack01Icon, hint: "Pipeline health and flaky tests" },
       { title: "Monitoring", url: "/monitoring", icon: Activity01Icon, hint: "Anomaly detection" },
       { title: "Incidents", url: "/incidents", icon: Alert02Icon, hint: "Incident response and postmortems" },
+      { title: "Connectors", url: "/settings/connectors", icon: Settings01Icon, hint: "GitHub, Vercel, Ollama, Jira keys" },
     ],
   },
 ];

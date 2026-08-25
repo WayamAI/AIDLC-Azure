@@ -3,6 +3,7 @@ Workspace service manages cloned repos in /tmp/workspaces/.
 Handles: connect (shallow clone), file tree walking, file read/write.
 """
 import asyncio
+import re
 import os
 import shutil
 import uuid
@@ -12,6 +13,7 @@ from typing import Optional
 import git
 
 from app.config import settings
+from app.services.repo_service import detect_default_branch
 
 # ── In-memory workspace registry (workspace_id → metadata) ─────────────────
 # In production this should be persisted to MongoDB; for now, memory is fine
@@ -21,6 +23,9 @@ _WORKSPACES: dict[str, dict] = {}
 # Extensions we care about (extend as needed)
 _CODE_EXTENSIONS = {
     ".py", ".ts", ".tsx", ".js", ".jsx",
+    # module variants the dependency graph also tracks — without these, such a
+    # file shows up as a graph node that cannot be selected in the file tree
+    ".mjs", ".cjs", ".mts", ".cts", ".vue",
     ".json", ".yaml", ".yml", ".toml",
     ".md", ".txt", ".html", ".css", ".scss",
     ".sh", ".env.example",
@@ -70,7 +75,7 @@ def _walk_tree(base: Path, rel_path: Path = Path(".")) -> list[dict]:
             if children:  # only include dirs that have code files
                 entries.append({
                     "name": name,
-                    "path": str(rel),
+                    "path": rel.as_posix(),
                     "type": "directory",
                     "language": None,
                     "children": children,
@@ -82,13 +87,48 @@ def _walk_tree(base: Path, rel_path: Path = Path(".")) -> list[dict]:
                 continue
             entries.append({
                 "name": name,
-                "path": str(rel),
+                "path": rel.as_posix(),
                 "type": "file",
                 "language": _get_language(name),
                 "children": None,
             })
 
     return entries
+
+
+_CREDENTIAL_URL_RE = re.compile(r"(https?://)[^/\s@]+@")
+
+
+def _redact_credentials(text: str) -> str:
+    """Replace any "user:token@" in a URL with "***@"."""
+    return _CREDENTIAL_URL_RE.sub(lambda m: m.group(1) + "***@", text)
+
+
+def _sanitize_git_error(exc: Exception, repo_url: str, clone_dir: str) -> str:
+    """
+    Turn a GitCommandError into a message safe to return over the API.
+
+    GitPython puts the whole command line in the exception, and when a PAT is
+    injected into the clone URL that command line contains the token. It also
+    exposes the server-side clone path. Both are stripped here.
+    """
+    def _scrub(text: str) -> str:
+        text = _redact_credentials(text)
+        text = text.replace(clone_dir, "<workspace>")
+        return text.replace(WORKSPACE_TEMP_DIR, "<workspaces>")
+
+    detail = _scrub(str(exc))
+
+    stderr = getattr(exc, "stderr", "") or ""
+    stderr = _scrub(str(stderr))
+    # GitPython formats this as: stderr: 'fatal: <the actual reason>', often
+    # preceded by progress noise. The last line carries the real reason.
+    for prefix in ("stderr:", "fatal:"):
+        stderr = stderr.strip().strip("'\"").removeprefix(prefix)
+    tail = [ln for ln in stderr.splitlines() if ln.strip()]
+    reason = (tail[-1] if tail else "").strip().strip("'\"").removeprefix("fatal:").strip()
+    reason = reason or detail.splitlines()[0]
+    return f"Could not clone {repo_url}: {reason}"
 
 
 def _clone_with_pat(repo_url: str, clone_dir: str, branch: str, pat: Optional[str]) -> None:
@@ -98,13 +138,16 @@ def _clone_with_pat(repo_url: str, clone_dir: str, branch: str, pat: Optional[st
         # Inject PAT: https://PAT@github.com/owner/repo
         if url.startswith("https://"):
             url = url.replace("https://", f"https://{pat}@")
-    git.Repo.clone_from(
-        url,
-        clone_dir,
-        depth=1,
-        branch=branch,
-        single_branch=True,
-    )
+    try:
+        git.Repo.clone_from(
+            url,
+            clone_dir,
+            depth=1,
+            branch=branch,
+            single_branch=True,
+        )
+    except git.GitCommandError as exc:
+        raise ValueError(_sanitize_git_error(exc, repo_url, clone_dir)) from exc
 
 
 async def connect_repo(org_id: str, repo_url: str, branch: str = "main", pat: Optional[str] = None) -> dict:
@@ -112,9 +155,12 @@ async def connect_repo(org_id: str, repo_url: str, branch: str = "main", pat: Op
     workspace_id = str(uuid.uuid4())
     clone_dir = os.path.join(WORKSPACE_TEMP_DIR, workspace_id)
     os.makedirs(WORKSPACE_TEMP_DIR, exist_ok=True)
+    requested = (branch or "").strip()
+    if not requested:
+        requested = await asyncio.to_thread(detect_default_branch, repo_url)
 
     def _do_clone():
-        _clone_with_pat(repo_url, clone_dir, branch, pat)
+        _clone_with_pat(repo_url, clone_dir, requested, pat)
 
     await asyncio.to_thread(_do_clone)
 
@@ -125,7 +171,7 @@ async def connect_repo(org_id: str, repo_url: str, branch: str = "main", pat: Op
         "workspace_id": workspace_id,
         "org_id": org_id,
         "repo_url": repo_url,
-        "branch": branch,
+        "branch": requested,
         "clone_dir": clone_dir,
         "pat": pat,  # kept server-side only
     }
@@ -133,7 +179,7 @@ async def connect_repo(org_id: str, repo_url: str, branch: str = "main", pat: Op
     return {
         "workspace_id": workspace_id,
         "repo_url": repo_url,
-        "branch": branch,
+        "branch": requested,
         "tree": tree,
     }
 
@@ -146,10 +192,16 @@ def get_workspace(org_id: str, workspace_id: str) -> dict | None:
     return entry
 
 
-def get_file_content(org_id: str, workspace_id: str, file_path: str) -> dict:
+def require_workspace(org_id: str, workspace_id: str) -> dict:
+    """Return org-owned workspace metadata or raise KeyError."""
     ws = get_workspace(org_id, workspace_id)
     if ws is None:
         raise KeyError(f"Workspace {workspace_id} not found")
+    return ws
+
+
+def get_file_content(org_id: str, workspace_id: str, file_path: str) -> dict:
+    ws = require_workspace(org_id, workspace_id)
     abs_path = Path(ws["clone_dir"]) / file_path
 
     # Security: ensure path stays inside the workspace

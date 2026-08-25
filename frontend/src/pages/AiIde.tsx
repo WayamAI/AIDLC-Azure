@@ -21,10 +21,20 @@ import { AiIdeProvider, useAiIde } from "@/context/AiIdeContext";
 import { AiFileTree } from "@/components/ai-ide/AiFileTree";
 import { AiCodeEditor } from "@/components/ai-ide/AiCodeEditor";
 import { useAiGenerationWS } from "@/hooks/useAiGenerationWS";
-import { apiClient } from "@/lib/api";
+import { api, apiClient } from "@/lib/api";
+import { AiIdePreview } from "@/components/ai-ide/AiIdePreview";
 import { cn } from "@/lib/utils";
 
 const RUNTIME_GITHUB_TOKEN_STORAGE_KEY = "ai-ide:github-token";
+const AI_IDE_SESSION_KEY = "aidlc-ai-ide-session";
+
+function persistAiIdeSession(workspaceId: string, idea: string) {
+  try {
+    localStorage.setItem(AI_IDE_SESSION_KEY, JSON.stringify({ workspaceId, idea }));
+  } catch {
+    /* ignore */
+  }
+}
 
 function getRuntimeGithubToken(): string {
   const fromEnv = (import.meta as any)?.env?.VITE_GITHUB_TOKEN;
@@ -49,7 +59,7 @@ function normalizeDeploymentUrl(url?: string | null): string | null {
 
 const STATUS_BADGE = {
   idle: null,
-  creating: { label: "Initializing Matrix…", color: "bg-yellow-500/20 text-amber-700 border border-amber-200 shadow-[0_0_10px_rgba(234,179,8,0.2)]" },
+  creating: { label: "Initializing Matrix…", color: "bg-warning/15 text-warning border border-warning/30" },
   planning: { label: "AI Planning Architecture…", color: "bg-primary/20 text-primary border border-primary/30 shadow-[0_0_10px_hsl(var(--primary)/0.2)]" },
   generating: { label: "Generating Codebase…", color: "bg-primary/20 text-primary border border-primary/30 shadow-[0_0_15px_rgba(20,184,166,0.3)] animate-pulse" },
   done: { label: "System Ready", color: "bg-primary/20 text-positive border border-positive/25 shadow-[0_0_10px_rgba(255,161,43,0.2)]" },
@@ -280,12 +290,10 @@ type LeftPaneKey = "explorer" | "git";
 
 function ActivityRail({
   onSearchClick,
-  isDark,
   activePane,
   onSelectPane,
 }: {
   onSearchClick: () => void;
-  isDark: boolean;
   activePane: LeftPaneKey;
   onSelectPane: (pane: LeftPaneKey) => void;
 }) {
@@ -296,12 +304,7 @@ function ActivityRail({
   ];
 
   return (
-    <div
-      className={cn(
-        "w-11 border-r flex flex-col items-center py-2 gap-1",
-        isDark ? "border-slate-700/90 bg-[#070d18]" : "border-slate-200 bg-slate-100"
-      )}
-    >
+    <div className="w-11 border-r border-border bg-raised flex flex-col items-center py-2 gap-1">
       {items.map((item) => {
         const Icon = item.icon;
         const isActive = item.key !== "search" && item.key === activePane;
@@ -315,12 +318,8 @@ function ActivityRail({
             className={cn(
               "h-8 w-8 rounded-md border flex items-center justify-center transition-colors",
               isActive
-                ? (isDark
-                    ? "bg-cyan-500/20 border-cyan-400/40 text-cyan-300"
-                    : "bg-cyan-100 border-cyan-300 text-cyan-700")
-                : (isDark
-                    ? "bg-transparent border-transparent text-slate-500 hover:text-slate-200 hover:bg-slate-800"
-                    : "bg-transparent border-transparent text-slate-500 hover:text-slate-900 hover:bg-slate-200")
+                ? "bg-primary/15 border-primary/40 text-primary"
+                : "bg-transparent border-transparent text-muted-foreground hover:text-foreground hover:bg-muted"
             )}
           >
             <Icon className="h-4 w-4" />
@@ -403,8 +402,7 @@ function RightRail({
   redeployNonce: number;
 }) {
   const { state, dispatch, setActiveFile, reset } = useAiIde();
-  const { generationLog, status, statusMessage, files, workspaceId } = state;
-  const isDark = false;
+  const { generationLog, status, statusMessage, files, workspaceId, activeFile } = state;
 
   const logEndRef = useRef<HTMLDivElement>(null);
   const [chatInput, setChatInput] = useState("");
@@ -558,18 +556,36 @@ function RightRail({
       return { ok: true, type: "execution", reply: `[AI] Opened ${openMatch[1].trim()}` };
     }
 
-    if (lower.includes("plan") || lower.includes("architecture")) {
-      return { ok: true, type: "planning", reply: "[AI] Plan ready: scaffold files, wire routes, refine UI, finalize deploy." };
-    }
-
     if (lower.startsWith("deploy") || lower.startsWith("init git")) {
       return { ok: true, type: "execution", reply: "[AI] Deploy pipeline is automatic. Use the Live Preview tab to see status, logs, and URL." };
+    }
+
+    if (workspaceId && activeFile && files[activeFile]) {
+      dispatch({ type: "ADD_LOG", message: `Editing ${activeFile} with AI…` });
+      const suggestion = await api.suggestCode({
+        workspace_id: workspaceId,
+        file_path: activeFile,
+        content: files[activeFile],
+        instruction: input,
+        history: [],
+      });
+      dispatch({ type: "UPDATE_FILE", path: activeFile, content: suggestion.modified });
+      await apiClient.post("/ai-ide/file/update", {
+        workspace_id: workspaceId,
+        path: activeFile,
+        content: suggestion.modified,
+      });
+      return {
+        ok: true,
+        type: "file",
+        reply: suggestion.diff_summary || suggestion.explanation || `[AI] Updated ${activeFile}.`,
+      };
     }
 
     return {
       ok: false,
       type: "execution",
-      reply: "[AI] Try: create file src/pages/Home.tsx, create folder src/widgets, rename x to y, move x to y, delete x, open x",
+      reply: "[AI] Open a file, then describe the change. Or: create file src/pages/Home.tsx, create folder src/widgets, rename x to y, delete x, open x",
     };
   };
 
@@ -765,11 +781,11 @@ function RightRail({
   };
 
   return (
-    <div className={cn("h-full flex flex-col", isDark ? "bg-[#0f172a]/95 text-slate-100" : "bg-white text-slate-900")}>
-      <div className={cn("px-4 py-3 border-b flex-shrink-0 flex items-center justify-between", isDark ? "border-slate-700/80 bg-[#0f172a]" : "border-slate-200 bg-slate-50")}>
+    <div className="h-full flex flex-col bg-raised text-foreground">
+      <div className="px-4 py-3 border-b border-border flex-shrink-0 flex items-center justify-between bg-muted/30">
         <div className="flex items-center gap-2">
-          <Bot className={cn("h-4 w-4", isDark ? "text-cyan-300" : "text-cyan-700")} />
-          <span className={cn("text-[11px] font-semibold uppercase tracking-[0.16em]", isDark ? "text-cyan-300" : "text-cyan-700")}>AI Chat</span>
+          <Bot className="h-4 w-4 text-primary" />
+          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">AI Chat</span>
         </div>
         <div className="flex items-center gap-2">
           {!githubToken.trim() && (
@@ -870,7 +886,8 @@ function RightRail({
 
 function IdeLayout({ idea }: { idea: string }) {
   const { state } = useAiIde();
-  const { workspaceId, status } = state;
+  const { workspaceId, status, files } = state;
+  const [previewMode, setPreviewMode] = useState<"local" | "vercel">("local");
   const isMobile = useIsMobile();
   const { startGeneration } = useAiGenerationWS(workspaceId);
   const startedRef = useRef(false);
@@ -932,7 +949,6 @@ function IdeLayout({ idea }: { idea: string }) {
             <div className="h-full border-r border-border/50 flex">
               <ActivityRail
                 onSearchClick={() => window.dispatchEvent(new CustomEvent("ai-ide-focus-search"))}
-                isDark={false}
                 activePane={leftPane}
                 onSelectPane={setLeftPane}
               />
@@ -969,6 +985,28 @@ function IdeLayout({ idea }: { idea: string }) {
                       Live Preview
                     </button>
                   </div>
+                  {centerTab === "preview" && (
+                    <div className="rounded-md border border-border/50 bg-background/60 p-0.5">
+                      <button
+                        className={cn(
+                          "h-7 px-3 text-xs rounded transition-colors",
+                          previewMode === "local" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
+                        )}
+                        onClick={() => setPreviewMode("local")}
+                      >
+                        In-app
+                      </button>
+                      <button
+                        className={cn(
+                          "h-7 px-3 text-xs rounded transition-colors",
+                          previewMode === "vercel" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
+                        )}
+                        onClick={() => setPreviewMode("vercel")}
+                      >
+                        Vercel
+                      </button>
+                    </div>
+                  )}
 
                   {centerTab === "preview" && (
                     <div className="ml-auto flex items-center gap-2">
@@ -1008,7 +1046,15 @@ function IdeLayout({ idea }: { idea: string }) {
                     {/* Use stableDomain (domains[0] stable production alias) for iframe.
                         The deployment-specific URL (url field) blocks iframes; the alias allows it. */}
                     <div className="flex-1 relative min-h-0">
-                      {deployInfo.deployStatus?.status === "READY" && deployInfo.stableDomain ? (
+                      {previewMode === "local" ? (
+                        (status === "generating" || status === "planning" || status === "creating") ? (
+                          <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
+                            Waiting for generation to finish…
+                          </div>
+                        ) : (
+                          <AiIdePreview files={files} />
+                        )
+                      ) : deployInfo.deployStatus?.status === "READY" && deployInfo.stableDomain ? (
                         <iframe
                           key={deployInfo.stableDomain}
                           title="Live Preview"
@@ -1158,6 +1204,37 @@ function IdeLayout({ idea }: { idea: string }) {
 function AiIdeInner() {
   const { state, dispatch } = useAiIde();
   const [currentIdea, setCurrentIdea] = useState<string | null>(null);
+  const [restoring, setRestoring] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const raw = localStorage.getItem(AI_IDE_SESSION_KEY);
+        if (!raw) return;
+        const parsed = JSON.parse(raw) as { workspaceId?: string; idea?: string };
+        if (!parsed.workspaceId) return;
+        const filesRes = await apiClient.get<Record<string, string>>(
+          `/ai-ide/workspace/${parsed.workspaceId}/files`,
+        );
+        if (cancelled) return;
+        dispatch({ type: "SET_WORKSPACE", workspaceId: parsed.workspaceId, initialFiles: filesRes.data });
+        dispatch({ type: "SET_STATUS", status: "done", message: "Restored previous workspace" });
+        setCurrentIdea(parsed.idea || "Restored workspace");
+      } catch {
+        try {
+          localStorage.removeItem(AI_IDE_SESSION_KEY);
+        } catch {
+          /* ignore */
+        }
+      } finally {
+        if (!cancelled) setRestoring(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [dispatch]);
 
   const handleBuild = async (idea: string) => {
     dispatch({ type: "SET_STATUS", status: "creating", message: "Allocating Neural Matrix..." });
@@ -1176,6 +1253,7 @@ function AiIdeInner() {
 
       dispatch({ type: "SET_WORKSPACE", workspaceId: workspace_id, initialFiles });
       dispatch({ type: "SET_STATUS", status: "planning", message: "Synthesizing Architecture..." });
+      persistAiIdeSession(workspace_id, idea);
     } catch (err) {
       dispatch({
         type: "SET_STATUS",
@@ -1185,6 +1263,14 @@ function AiIdeInner() {
       setCurrentIdea(null);
     }
   };
+
+  if (restoring) {
+    return (
+      <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
+        Restoring workspace…
+      </div>
+    );
+  }
 
   if (!currentIdea || state.status === "idle" || state.status === "creating") {
     return <IdeaScreen onBuild={handleBuild} />;

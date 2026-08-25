@@ -33,6 +33,15 @@ def test_classify_failure_type_selector_not_found():
     assert ft == "selector_not_found"
 
 
+def test_classify_failure_type_playwright_locator_timeout():
+    err = (
+        "Locator.click: Timeout 8000ms exceeded.\n"
+        "Call log:\n"
+        "  - waiting for locator(\"#does-not-exist-aidlc\")"
+    )
+    assert root_cause_service.classify_failure_type(err) == "selector_not_found"
+
+
 def test_classify_failure_type_network():
     ft = root_cause_service.classify_failure_type("net::ERR_CONNECTION_REFUSED at http://localhost:8080")
     assert ft == "network_error"

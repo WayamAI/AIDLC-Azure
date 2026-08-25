@@ -57,8 +57,9 @@ import {
   type WorkspacePlaywrightTest,
   type WorkspaceTestStep,
 } from "@/lib/api";
+import { deriveRootToLeafChain } from "@/lib/dep-graph";
 import { useWorkspaceContext } from "@/context/WorkspaceContext";
-import { usePipelineContext } from "@/context/PipelineContext";
+import { useOptionalPipelineContext } from "@/context/PipelineContext";
 import { useCommitImpactTree } from "@/hooks/use-commit-impact";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -132,60 +133,6 @@ function findPathToTarget(
     if (child) return [node.path, ...child];
   }
   return null;
-}
-
-function deriveRootToLeafChain(
-  focusPath: string,
-  nodes: GraphNode[],
-  edges: GraphEdge[],
-): string[] {
-  if (!focusPath || nodes.length === 0) return [];
-
-  const nodeSet = new Set(nodes.map((n) => n.path));
-  if (!nodeSet.has(focusPath)) return [];
-
-  const parentMap = new Map<string, string[]>();
-  const childMap = new Map<string, string[]>();
-
-  for (const edge of edges) {
-    if (!nodeSet.has(edge.source) || !nodeSet.has(edge.target)) continue;
-
-    if (!parentMap.has(edge.target)) parentMap.set(edge.target, []);
-    parentMap.get(edge.target)!.push(edge.source);
-
-    if (!childMap.has(edge.source)) childMap.set(edge.source, []);
-    childMap.get(edge.source)!.push(edge.target);
-  }
-
-  const walkToRoot = (node: string, visited: Set<string>): string[] => {
-    if (visited.has(node)) return [node];
-    const parents = [...(parentMap.get(node) ?? [])].sort();
-    if (parents.length === 0) return [node];
-
-    let bestPath = [node];
-    for (const parent of parents) {
-      const candidate = [...walkToRoot(parent, new Set([...visited, node])), node];
-      if (candidate.length > bestPath.length) bestPath = candidate;
-    }
-    return bestPath;
-  };
-
-  const walkToLeaf = (node: string, visited: Set<string>): string[] => {
-    if (visited.has(node)) return [node];
-    const children = [...(childMap.get(node) ?? [])].sort();
-    if (children.length === 0) return [node];
-
-    let bestPath = [node];
-    for (const child of children) {
-      const candidate = [node, ...walkToLeaf(child, new Set([...visited, node]))];
-      if (candidate.length > bestPath.length) bestPath = candidate;
-    }
-    return bestPath;
-  };
-
-  const upstream = walkToRoot(focusPath, new Set());
-  const downstream = walkToLeaf(focusPath, new Set());
-  return [...upstream, ...downstream.slice(1)];
 }
 
 function deriveNeighborhoodSubset(
@@ -945,7 +892,8 @@ export function TreeFlowView({
   onTestsGenerated?: (tests: WorkspacePlaywrightTest[]) => void;
 } = {}) {
   const { workspace, activeTab, fileTests, setFileTests } = useWorkspaceContext();
-  const { githubPat } = usePipelineContext();
+  const pipeline = useOptionalPipelineContext();
+  const githubPat = pipeline?.githubPat || "";
   const impactQuery = useCommitImpactTree(workspace?.workspace_id ?? null, 5, githubPat || undefined);
   const fallbackGraphQuery = useQuery({
     queryKey: ["tree-flow-fallback-graph", workspace?.workspace_id],

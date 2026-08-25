@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Treemap, ResponsiveContainer, Tooltip } from "recharts";
 import { api } from "@/lib/api";
+import { useActiveRepo } from "@/context/RepoContext";
 import { PageHeader, PageStat } from "@/components/PageHeader";
 import { PageShell } from "@/components/PageShell";
 import { ChartTooltipBox } from "@/components/dashboard/DashboardUi";
@@ -46,8 +47,14 @@ function CustomTreemapContent({ x, y, width, height, name, risk_score }: any) {
 
 const DEFAULT_REPO_URL = "";
 
-function RepoInput({ onSearch }: { onSearch: (owner: string, repo: string) => void }) {
-  const [input, setInput] = useState(DEFAULT_REPO_URL);
+function RepoInput({
+  onSearch,
+  defaultUrl = "",
+}: {
+  onSearch: (owner: string, repo: string) => void;
+  defaultUrl?: string;
+}) {
+  const [input, setInput] = useState(defaultUrl || DEFAULT_REPO_URL);
   const handle = () => {
     const parts = input.trim().replace("https://github.com/", "").split("/");
     if (parts.length >= 2) onSearch(parts[0], parts[1]);
@@ -76,7 +83,10 @@ function RepoInput({ onSearch }: { onSearch: (owner: string, repo: string) => vo
 }
 
 export default function DefectPrediction() {
-  const [repoCoords, setRepoCoords] = useState<{ owner: string; repo: string } | null>(null);
+  const { activeRepo, setActiveRepo } = useActiveRepo();
+  const [repoCoords, setRepoCoords] = useState<{ owner: string; repo: string } | null>(
+    activeRepo ? { owner: activeRepo.owner, repo: activeRepo.repo } : null,
+  );
 
   const riskQuery = useQuery({
     queryKey: ["defect-risk", repoCoords?.owner, repoCoords?.repo],
@@ -101,7 +111,13 @@ export default function DefectPrediction() {
           description="Analyse commit history to score each file on defect likelihood based on change frequency, bug-fix association, and code churn."
         />
 
-        <RepoInput onSearch={(owner, repo) => setRepoCoords({ owner, repo })} />
+        <RepoInput
+          defaultUrl={activeRepo?.repoUrl ?? ""}
+          onSearch={(owner, repo) => {
+            setRepoCoords({ owner, repo });
+            setActiveRepo({ owner, repo, repoUrl: `https://github.com/${owner}/${repo}`, branch: activeRepo?.branch || "main" });
+          }}
+        />
 
         {riskQuery.isLoading && (
           <div className="mt-8 flex items-center justify-center gap-3 py-12">

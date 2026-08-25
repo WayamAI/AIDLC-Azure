@@ -61,9 +61,12 @@ _GIT_STATUS_CACHE: Dict[str, Dict[str, Any]] = {}  # workspace_id → status_dat
 
 
 def _gh_headers() -> Dict[str, str]:
+    from app.services import connector_settings_service as connectors
+
     h = dict(_GH_HEADERS)
-    if settings.GITHUB_TOKEN:
-        h["Authorization"] = f"Bearer {settings.GITHUB_TOKEN}"
+    token = connectors.active("github").get("token") or settings.GITHUB_TOKEN
+    if token:
+        h["Authorization"] = f"Bearer {token}"
     return h
 
 
@@ -119,6 +122,19 @@ async def get_commit_changed_files(owner: str, repo: str, sha: str) -> Tuple[Lis
     return changed, meta
 
 
+_TEST_DIR_PARTS = {"test", "tests", "__tests__", "spec", "e2e"}
+
+
+def _is_test_path(path: str) -> bool:
+    p = PurePosixPath(path)
+    if _TEST_DIR_PARTS & set(p.parts):
+        return True
+    name = p.name
+    # A bare "test_" prefix is NOT enough: this codebase has domain modules like
+    # app/models/test_case.py. Require a test directory or an unambiguous suffix.
+    return ".test." in name or ".spec." in name or name.endswith("_test.py")
+
+
 def _is_relevant(path: str) -> bool:
     p = PurePosixPath(path)
     if p.suffix not in RELEVANT_EXTS:
@@ -131,6 +147,23 @@ def _is_relevant(path: str) -> bool:
     if ".test." in name or ".spec." in name or ".min." in name:
         return False
     return True
+
+
+def _is_workspace_relevant(path: str) -> bool:
+    """
+    Relevance for the workspace dependency graph.
+
+    Unlike _is_relevant (used for PR/commit diffs) this KEEPS test files: which
+    source modules a test imports is the coverage signal the graph exists to
+    show. Nodes are flagged is_test so the UI can filter them out.
+    """
+    p = PurePosixPath(path)
+    if p.suffix not in RELEVANT_EXTS:
+        return False
+    if ".min." in p.name:
+        return False
+    skip_dirs = {"node_modules", ".git", "dist", "build", ".next", "__pycache__", ".venv", "coverage"}
+    return not (skip_dirs & set(p.parts))
 
 
 # ── File content ───────────────────────────────────────────────────────────────
@@ -153,37 +186,241 @@ _TS_IMPORT_RE = re.compile(
     re.MULTILINE,
 )
 _REQUIRE_RE = re.compile(r'''require\s*\(\s*['"]([^'"]+)['"]\s*\)''')
-# Matches: from module.sub import X  OR  import module.sub
-_PY_IMPORT_RE = re.compile(r'''(?:from\s+([a-zA-Z0-9_\.]+)\s+import)|(?:import\s+([a-zA-Z0-9_\.]+))''')
+# Matches: from module.sub import a, b  OR  import module.sub
+_PY_FROM_RE = re.compile(r"^\s*from\s+([\.\w]+)\s+import\s+(\([^)]*\)|[^\n#]+)", re.MULTILINE)
+_PY_IMPORT_RE = re.compile(r"^\s*import\s+([\w\.]+(?:\s*,\s*[\w\.]+)*)", re.MULTILINE)
 
 
-def _parse_imports(content: str, file_ext: str) -> List[str]:
+def _parse_imports(
+    content: str,
+    file_ext: str,
+    alias_prefixes: Tuple[str, ...] = ("@",),
+) -> List[str]:
+    """
+    Extract import specifiers that could point at a file in this repo.
+
+    Bare package specifiers ("react") are skipped deliberately: they can never
+    resolve to a workspace file, and feeding them to the suffix matcher risks
+    inventing an edge to a same-named local file.
+    """
+
+    def _is_local(spec: str) -> bool:
+        if spec.startswith("."):
+            return True
+        return any(spec == p or spec.startswith(p + "/") for p in alias_prefixes)
+
     imports: List[str] = []
     if file_ext in {".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".mts", ".cts", ".vue"}:
         for m in _TS_IMPORT_RE.finditer(content):
             s = m.group(1)
-            if s and (s.startswith(".") or s.startswith("@/")):
+            if s and _is_local(s):
                 imports.append(s)
         for m in _REQUIRE_RE.finditer(content):
             s = m.group(1)
             if s and s.startswith("."):
                 imports.append(s)
     elif file_ext == ".py":
+        for m in _PY_FROM_RE.finditer(content):
+            module = m.group(1)
+            imports.append(module)
+            # `from app.services import foo` should link app/services/foo.py,
+            # not just the package __init__.py.
+            names = m.group(2).strip().strip("()")
+            for name in names.split(","):
+                leaf = name.strip().split(" as ")[0].strip()
+                if not leaf or leaf == "*" or not leaf.isidentifier():
+                    continue
+                imports.append(module + leaf if module.endswith(".") else f"{module}.{leaf}")
         for m in _PY_IMPORT_RE.finditer(content):
-            s = m.group(1) or m.group(2)
-            if s:
-                imports.append(s)
+            for part in m.group(1).split(","):
+                mod = part.strip().split(" as ")[0].strip()
+                if mod:
+                    imports.append(mod)
     return imports
 
 
-def _resolve_import(raw: str, from_file: str, all_paths: Set[str]) -> Optional[str]:
+def _collapse_dot_segments(path: str) -> str:
+    """Resolve "." and ".." segments in a posix-style relative path."""
+    parts: List[str] = []
+    for part in path.split("/"):
+        if part in ("", "."):
+            continue
+        if part == "..":
+            if parts and parts[-1] != "..":
+                parts.pop()
+            else:
+                parts.append("..")
+            continue
+        parts.append(part)
+    return "/".join(parts)
+
+
+_MODULE_EXTS = (".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".mts", ".cts", ".vue", ".py")
+_INDEX_STEMS = ("index", "__init__")
+_SUFFIX_INDEX_CACHE: Dict[int, Dict[str, List[str]]] = {}
+
+
+def _module_key(path: str) -> str:
+    """Strip the extension and any index/__init__ filename: the importable name."""
+    p = PurePosixPath(path)
+    stem = p.stem if p.suffix in _MODULE_EXTS else p.name
+    if stem in _INDEX_STEMS:
+        return str(p.parent) if str(p.parent) != "." else ""
+    parent = str(p.parent)
+    return f"{parent}/{stem}" if parent and parent != "." else stem
+
+
+def _suffix_index(all_paths: Set[str]) -> Dict[str, List[str]]:
+    """
+    Map every trailing path fragment of a file to that file, so an import
+    specifier written relative to a *project* root (frontend/src, backend/) still
+    resolves when the workspace root is the repo root. Monorepos otherwise lose
+    nearly every edge.
+    """
+    cache_key = hash(frozenset(all_paths))
+    cached = _SUFFIX_INDEX_CACHE.get(cache_key)
+    if cached is not None:
+        return cached
+
+    index: Dict[str, List[str]] = {}
+    for path in all_paths:
+        parts = _module_key(path).split("/")
+        for i in range(len(parts)):
+            index.setdefault("/".join(parts[i:]), []).append(path)
+
+    _SUFFIX_INDEX_CACHE.clear()  # only the current workspace matters
+    _SUFFIX_INDEX_CACHE[cache_key] = index
+    return index
+
+
+def _resolve_by_suffix(candidate: str, from_file: str, all_paths: Set[str]) -> Optional[str]:
+    matches = _suffix_index(all_paths).get(candidate.strip("/"))
+    if not matches:
+        return None
+    if len(matches) == 1:
+        return matches[0]
+
+    # Ambiguous: prefer the file sharing the longest directory prefix with the
+    # importer (same package/app), then the shallowest path.
+    from_parts = from_file.split("/")[:-1]
+
+    def shared_prefix(path: str) -> int:
+        parts = path.split("/")[:-1]
+        n = 0
+        for a, b in zip(from_parts, parts):
+            if a != b:
+                break
+            n += 1
+        return n
+
+    return sorted(matches, key=lambda m: (-shared_prefix(m), m.count("/"), m))[0]
+
+
+_ALIAS_CACHE: Dict[str, Dict[str, List[str]]] = {}
+_ALIAS_CONFIG_FILES = ("tsconfig.json", "tsconfig.app.json", "jsconfig.json")
+
+
+def _strip_jsonc(text: str) -> str:
+    """tsconfig files are JSONC: drop // and /* */ comments and trailing commas."""
+    text = re.sub(r"/\*.*?\*/", "", text, flags=re.DOTALL)
+    text = re.sub(r"(?m)^\s*//.*$", "", text)
+    text = re.sub(r",(\s*[}\]])", r"\1", text)
+    return text
+
+
+def _load_path_aliases(ws_path: pathlib.Path) -> Dict[str, List[str]]:
+    """
+    Read TS/JS path aliases so imports like "~/lib/x" or "@app/x" resolve.
+
+    Returns {alias_prefix: [target_prefix, ...]} with any trailing "/*" removed,
+    e.g. {"@": ["src"], "~": ["src"]}. Alias config can live in a nested project
+    dir (frontend/tsconfig.json), so targets are made workspace-relative.
+    """
+    cache_key = str(ws_path)
+    cached = _ALIAS_CACHE.get(cache_key)
+    if cached is not None:
+        return cached
+
+    aliases: Dict[str, List[str]] = {}
+    for config in sorted(ws_path.rglob("tsconfig*.json")) + sorted(ws_path.rglob("jsconfig.json")):
+        if any(part in {"node_modules", ".git", "dist", "build"} for part in config.parts):
+            continue
+        if config.name not in _ALIAS_CONFIG_FILES:
+            continue
+        try:
+            data = json.loads(_strip_jsonc(config.read_text(errors="replace")))
+        except Exception:
+            continue
+
+        opts = data.get("compilerOptions") or {}
+        paths = opts.get("paths") or {}
+        if not isinstance(paths, dict):
+            continue
+
+        project_dir = config.parent.relative_to(ws_path).as_posix()
+        base_url = str(opts.get("baseUrl") or ".")
+        base = _collapse_dot_segments(f"{project_dir}/{base_url}" if project_dir != "." else base_url)
+
+        for alias, targets in paths.items():
+            if not isinstance(targets, list):
+                continue
+            prefix = alias.rstrip("/*").rstrip("/")
+            for target in targets:
+                if not isinstance(target, str):
+                    continue
+                resolved = _collapse_dot_segments(
+                    f"{base}/{target.rstrip('/*').rstrip('/')}" if base else target.rstrip("/*")
+                )
+                aliases.setdefault(prefix, [])
+                if resolved not in aliases[prefix]:
+                    aliases[prefix].append(resolved)
+
+    # "@/..." is near-universal in Vite/Next apps even without a tsconfig entry.
+    aliases.setdefault("@", ["src"])
+
+    _ALIAS_CACHE[cache_key] = aliases
+    return aliases
+
+
+def _apply_alias(raw: str, aliases: Dict[str, List[str]]) -> List[str]:
+    """Expand an aliased specifier into candidate workspace-relative paths."""
+    candidates: List[str] = []
+    for prefix, targets in aliases.items():
+        if raw == prefix:
+            candidates.extend(targets)
+        elif raw.startswith(prefix + "/"):
+            rest = raw[len(prefix) + 1 :]
+            candidates.extend(f"{t}/{rest}" if t else rest for t in targets)
+    return candidates
+
+
+def _match_module(candidate: str, all_paths: Set[str]) -> Optional[str]:
+    """Exact path, or path + a module/index extension."""
+    for ext in ("", ".ts", ".tsx", ".js", ".jsx", ".py", ".mjs", ".cjs", ".vue",
+                "/index.ts", "/index.tsx", "/index.js", "/__init__.py"):
+        full = candidate + ext
+        if full in all_paths:
+            return full
+    return None
+
+
+def _resolve_import(
+    raw: str,
+    from_file: str,
+    all_paths: Set[str],
+    aliases: Optional[Dict[str, List[str]]] = None,
+) -> Optional[str]:
     """Resolve a relative or absolute import specifier to an actual file path in all_paths."""
     base_dir = str(PurePosixPath(from_file).parent)
 
-    # 1. Handle @/ alias → treat as src/ prefix
-    if raw.startswith("@/"):
-        raw = "src/" + raw[2:]
-        base_dir = ""
+    # 1. Configured path aliases (tsconfig/jsconfig "paths"), e.g. @/x, ~/x.
+    if not raw.startswith("."):
+        for candidate in _apply_alias(raw, aliases if aliases is not None else {"@": ["src"]}):
+            resolved = _match_module(candidate, all_paths) or _resolve_by_suffix(
+                candidate, from_file, all_paths
+            )
+            if resolved and resolved != from_file:
+                return resolved
 
     # 2. Convert absolute dot-notation (Python) to slashes
     if "." in raw and not raw.startswith("."):
@@ -208,25 +445,29 @@ def _resolve_import(raw: str, from_file: str, all_paths: Set[str]) -> Optional[s
             
         candidate = "/".join(parts)
     elif raw.startswith("."):
-        # JS/TS relative imports: ./module, ../module
-        candidate = str(PurePosixPath(base_dir) / raw) if base_dir and base_dir != "." else raw
-        # lstrip("./") is problematic if the directory starts with a character 'a'... wait no, 
-        # it strips characters. Let's just resolve via PurePosixPath
-        candidate = str(PurePosixPath(candidate))
+        # JS/TS relative imports: ./module, ../module.
+        # PurePosixPath does NOT collapse "..", so "src/pages/../lib/api" would
+        # never match a real file — normalise the dot segments by hand.
+        joined = f"{base_dir}/{raw}" if base_dir and base_dir != "." else raw
+        candidate = _collapse_dot_segments(joined)
+    elif "." in raw and not raw.endswith(_MODULE_EXTS):
+        # Absolute dot-notation module (Python): app.services.foo → app/services/foo
+        candidate = raw.replace(".", "/")
     else:
         candidate = raw
 
     # 4. Try exact match then common extensions
-    for ext in ("", ".ts", ".tsx", ".js", ".jsx", ".py", "/index.ts", "/index.tsx", "/index.js", "/__init__.py"):
-        full = candidate + ext
-        if full in all_paths:
-            return full
-        
-        # Also try replacing dots with slashes for the whole candidate
-        full_slash = candidate.replace(".", "/") + ext
-        if full_slash in all_paths:
-            return full_slash
-            
+    exact = _match_module(candidate, all_paths)
+    if exact:
+        return exact
+
+    # 5. Fall back to suffix matching, so imports written against a nested
+    #    project root (frontend/src, backend/) still resolve at the repo root.
+    if not candidate.startswith(".."):
+        resolved = _resolve_by_suffix(candidate, from_file, all_paths)
+        if resolved:
+            return resolved
+
     return None
 
 
@@ -244,6 +485,14 @@ def _resolve_import_cached(raw: str, from_file: str, all_paths: Set[str]) -> Opt
         for k in keys_to_delete:
             del _IMPORT_RESOLUTION_CACHE[k]
     return result
+
+
+def _normalize_rel_path(path: str) -> str:
+    """Workspace-relative paths are always posix; callers may send Windows ones."""
+    normalized = path.replace("\\", "/")
+    while normalized.startswith("./"):
+        normalized = normalized[2:]
+    return normalized
 
 
 def _collect_workspace_source_files(ws_path: pathlib.Path, max_files: int = 5000) -> Set[str]:
@@ -264,8 +513,8 @@ def _collect_workspace_source_files(ws_path: pathlib.Path, max_files: int = 5000
                 log.warning(f"Reached file limit ({max_files}) during workspace scan, returning partial results")
                 return all_files
             fpath = pathlib.Path(root) / fname
-            rel = str(fpath.relative_to(ws_path))
-            if _is_relevant(rel):
+            rel = fpath.relative_to(ws_path).as_posix()
+            if _is_workspace_relevant(rel):
                 all_files.add(rel)
                 file_count += 1
     return all_files
@@ -299,14 +548,17 @@ def _build_workspace_adjacency(
         except Exception:
             file_contents[rel] = ""
 
+    aliases = _load_path_aliases(ws_path)
+    alias_prefixes = tuple(aliases.keys())
+
     adjacency: Dict[str, List[str]] = {}
     reverse_adjacency: Dict[str, List[str]] = {f: [] for f in all_files}
     for rel in all_files:
         ext = pathlib.Path(rel).suffix
-        raw_imports = _parse_imports(file_contents.get(rel, ""), ext)
+        raw_imports = _parse_imports(file_contents.get(rel, ""), ext, alias_prefixes)
         resolved: List[str] = []
         for imp in raw_imports:
-            dep = _resolve_import(imp, rel, all_files)
+            dep = _resolve_import(imp, rel, all_files, aliases)
             if dep and dep != rel:
                 resolved.append(dep)
                 reverse_adjacency.setdefault(dep, []).append(rel)
@@ -361,14 +613,16 @@ def _parse_git_porcelain_status(repo: git.Repo) -> Dict[str, str]:
 def build_workspace_commit_impact_tree(
     workspace_id: str,
     max_depth: int = 4,
+    *,
+    org_id: str,
 ) -> Dict[str, Any]:
     """
     Build a root-to-leaf impact tree for the commit view.
     Roots are changed files (M/U/A). Children are import dependencies.
     """
-    from app.services.workspace_service import get_workspace
+    from app.services.workspace_service import require_workspace
 
-    ws = get_workspace(workspace_id)
+    ws = require_workspace(org_id, workspace_id)
     ws_path = pathlib.Path(ws["clone_dir"])
     if not ws_path.exists():
         raise ValueError(f"Workspace {workspace_id} not found")
@@ -622,6 +876,8 @@ async def build_dependency_graph(
 def build_workspace_dependency_graph(
     workspace_id: str,
     focus_paths: Optional[List[str]] = None,
+    *,
+    org_id: str,
 ) -> Tuple[List[GraphNode], List[GraphEdge]]:
     """
     Build a dependency graph for a cloned workspace.
@@ -629,91 +885,64 @@ def build_workspace_dependency_graph(
     If omitted, uses all workspace source files.
     Returns (nodes, edges) with x/y layout positions set.
     """
-    ws_dir = PurePosixPath("/tmp/workspaces") / workspace_id
-    ws_path = pathlib.Path(str(ws_dir))
+    from app.services.workspace_service import require_workspace
+
+    ws = require_workspace(org_id, workspace_id)
+    ws_path = pathlib.Path(ws["clone_dir"])
     if not ws_path.exists():
         raise ValueError(f"Workspace {workspace_id} not found")
 
-    # ── Gather all source files with limit ─────────────────────────────────────
-    all_files: Set[str] = set()
-    file_count = 0
-    max_file_scan = 5000
-    for root, dirs, files in os.walk(ws_path):
-        dirs[:] = [
-            d for d in dirs
-            if d not in {"node_modules", "__pycache__", ".git", "dist", "build",
-                         ".venv", "venv", ".next", "coverage", ".mypy_cache", "vendor"}
-            and not d.startswith(".")
-        ]
-        for fname in files:
-            if file_count >= max_file_scan:
-                log.warning(f"Workspace scan limit ({max_file_scan}) reached")
-                break
-            fpath = pathlib.Path(root) / fname
-            if fpath.suffix in RELEVANT_EXTS:
-                rel = str(fpath.relative_to(ws_path))
-                all_files.add(rel)
-                file_count += 1
+    # ── Gather all source files (posix-relative paths) ────────────────────
+    all_files = _collect_workspace_source_files(ws_path)
+    if not all_files:
+        return [], []
 
-    # ── Read file contents (lazy: only focus files + sample) ──────────────────
-    # Load only focus files or a small sample to avoid memory bloat
-    file_contents: Dict[str, str] = {}
-    focus_set_initial = (set(focus_paths) & all_files) if focus_paths else set()
-    files_to_load = focus_set_initial or list(all_files)[:200]  # Load focus files OR sample 200
-    
-    for f in files_to_load:
-        try:
-            file_contents[f] = (ws_path / f).read_text(errors="replace")[:20_000]
-        except Exception:
-            file_contents[f] = ""
+    # ── Import adjacency for EVERY file (cached by mtime signature) ───────────
+    # Previously only a 200-file sample was read, so the vast majority of files
+    # had no parsed imports and the graph came back as disconnected dots.
+    adjacency, reverse_adjacency = _build_workspace_adjacency(ws_path, all_files)
 
-    # ── Build import adjacency (file → files it imports) ──────────────────────
-    adjacency: Dict[str, List[str]] = {}
-    for f in all_files:
-        ext = pathlib.Path(f).suffix
-        raw = _parse_imports(file_contents.get(f, ""), ext)
-        resolved = [
-            r for raw_s in raw
-            for r in [_resolve_import(raw_s, f, all_files)]
-            if r and r != f
-        ]
-        adjacency[f] = resolved
+    # ── Determine focus set ───────────────────────────────────────
+    if focus_paths:
+        requested = {_normalize_rel_path(p) for p in focus_paths}
+        focus_set: Set[str] = requested & all_files
+        if not focus_set:
+            focus_set = set(all_files)
+    else:
+        focus_set = set(all_files)
 
-    # ── Determine focus set ────────────────────────────────────────────────────
-    focus_set: Set[str] = (set(focus_paths) & all_files) if focus_paths else all_files
-
-    # ── Build 1-hop neighbourhood subgraph ────────────────────────────────────
+    # ── 1-hop neighbourhood subgraph ────────────────────────────────
     subgraph: Set[str] = set(focus_set)
     for f in focus_set:
-        subgraph.update(adjacency.get(f, []))           # children
-        for other, deps in adjacency.items():
-            if f in deps:
-                subgraph.add(other)                     # parents
-
+        subgraph.update(adjacency.get(f, []))            # files this one imports
+        subgraph.update(reverse_adjacency.get(f, []))    # files importing this one
     subgraph &= all_files
     if not subgraph:
         return [], []
 
-    # ── Topological layer assignment ──────────────────────────────────────────
-    # in-degree within subgraph
+    # ── Topological layer assignment ───────────────────────────────
     in_deg: Dict[str, int] = {f: 0 for f in subgraph}
     for src in subgraph:
         for tgt in adjacency.get(src, []):
             if tgt in subgraph:
-                in_deg[tgt] = in_deg.get(tgt, 0) + 1
+                in_deg[tgt] += 1
 
     layer: Dict[str, int] = {}
-    queue_bfs: List[Tuple[str, int]] = [(f, 0) for f, d in in_deg.items() if d == 0]
+    seeds = sorted(f for f, d in in_deg.items() if d == 0) or sorted(subgraph)
+    queue_bfs: List[Tuple[str, int]] = [(f, 0) for f in seeds]
+    max_layer = 64  # cycles in the import graph must not loop forever
     while queue_bfs:
         node, lyr = queue_bfs.pop(0)
-        layer[node] = max(layer.get(node, 0), lyr)
+        if layer.get(node, -1) >= lyr or lyr > max_layer:
+            continue
+        layer[node] = lyr
         for child in adjacency.get(node, []):
             if child in subgraph:
                 queue_bfs.append((child, lyr + 1))
     for f in subgraph:
         layer.setdefault(f, 0)
 
-    # ── Layout positions ──────────────────────────────────────────────────────
+    # ── Layout positions ────────────────────────────────────────
     layers_map: Dict[int, List[str]] = {}
     for f, lyr in layer.items():
         layers_map.setdefault(lyr, []).append(f)
@@ -725,15 +954,15 @@ def build_workspace_dependency_graph(
     max_per_layer = max((len(v) for v in layers_map.values()), default=1)
     canvas_w = max_per_layer * (NODE_W + H_GAP) + H_GAP
 
-    # Compute which non-focus files are directly used by focus files (impacted)
+    # Non-focus files directly wired to a focus file are the "impacted" ones.
     impacted_set: Set[str] = set()
     for f in focus_set:
         for tgt in adjacency.get(f, []):
-            if tgt in subgraph:
+            if tgt in subgraph and tgt not in focus_set:
                 impacted_set.add(tgt)
-        for other in subgraph:
-            if f in adjacency.get(other, []) and other not in focus_set:
-                impacted_set.add(other)
+        for src in reverse_adjacency.get(f, []):
+            if src in subgraph and src not in focus_set:
+                impacted_set.add(src)
 
     nodes: List[GraphNode] = []
     for lyr, lyr_nodes in sorted(layers_map.items()):
@@ -750,17 +979,18 @@ def build_workspace_dependency_graph(
                 name=p.name,
                 ext=p.suffix,
                 is_changed=path in focus_set,
-                is_impacted=path in impacted_set and path not in focus_set,
+                is_impacted=path in impacted_set,
+                is_test=_is_test_path(path),
                 layer=lyr,
                 layer_index=i,
                 x=x,
                 y=y,
             ))
 
-    # ── Edges within subgraph ─────────────────────────────────────────────────
+    # ── Edges within subgraph ────────────────────────────────────
     seen_e: Set[Tuple[str, str]] = set()
     edges: List[GraphEdge] = []
-    for src in subgraph:
+    for src in sorted(subgraph):
         for tgt in adjacency.get(src, []):
             if tgt in subgraph and (src, tgt) not in seen_e:
                 seen_e.add((src, tgt))

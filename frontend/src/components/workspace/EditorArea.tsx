@@ -1,10 +1,12 @@
-import { X, Check, XCircle, CheckCheck, Save, FilePlus, GitCompare } from "lucide-react";
+import { useEffect, useState } from "react";
+import { X, Check, XCircle, CheckCheck, Save, FilePlus, GitCompare, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CodeEditor } from "./CodeEditor";
 import { useWorkspaceContext } from "@/context/WorkspaceContext";
 import { useSaveWorkspaceFile } from "@/hooks/use-workspace";
+import { useAnalyzeCoverage } from "@/hooks/use-coverage";
 import { toast } from "sonner";
 
 export function EditorArea() {
@@ -16,6 +18,12 @@ export function EditorArea() {
   } = useWorkspaceContext();
 
   const saveMutation = useSaveWorkspaceFile();
+  const coverageMutation = useAnalyzeCoverage();
+  const [coveragePct, setCoveragePct] = useState<number | null>(null);
+
+  useEffect(() => {
+    setCoveragePct(null);
+  }, [activeTab]);
 
   const activeTabObj = openTabs.find((t) => t.path === activeTab);
   const isDiffOpen = !!diffState?.isOpen;
@@ -39,6 +47,35 @@ export function EditorArea() {
       toast.success("File saved");
     } catch {
       toast.error("Failed to save file");
+    }
+  };
+
+  const canAnalyzeCoverage =
+    !!workspace &&
+    !!activeTabObj &&
+    !isDiffOpen &&
+    /\.(py|ts|tsx|js|jsx)$/i.test(activeTabObj.path);
+
+  const handleCoverage = async () => {
+    if (!workspace || !activeTabObj) return;
+    try {
+      const result = await coverageMutation.mutateAsync({
+        workspace_id: workspace.workspace_id,
+        file_path: activeTabObj.path,
+        content: activeTabObj.content,
+      });
+      setCoveragePct(result.coverage_pct);
+      const uncovered = result.gaps.filter((g) => !g.covered).length;
+      toast.success(
+        uncovered
+          ? `${result.coverage_pct}% coverage — ${uncovered} uncovered function${uncovered === 1 ? "" : "s"}`
+          : `${result.coverage_pct}% coverage — functions referenced in tests`,
+      );
+    } catch (err: unknown) {
+      const detail =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
+        "Coverage analysis failed";
+      toast.error(String(detail));
     }
   };
 
@@ -69,6 +106,22 @@ export function EditorArea() {
         </div>
 
         <div className="ml-auto flex items-center gap-1 px-2 flex-shrink-0">
+          {canAnalyzeCoverage && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={handleCoverage}
+              disabled={coverageMutation.isPending}
+            >
+              <Target className="h-3 w-3 mr-1" />
+              {coverageMutation.isPending
+                ? "Analyzing…"
+                : coveragePct != null
+                  ? `${coveragePct}%`
+                  : "Coverage"}
+            </Button>
+          )}
           {activeTabObj?.isDirty && !isDiffOpen && (
             <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={handleSave} disabled={saveMutation.isPending}>
               <Save className="h-3 w-3 mr-1" />

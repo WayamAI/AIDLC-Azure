@@ -22,6 +22,7 @@ async def get_commit_impact_tree(
         return impact_service.build_workspace_commit_impact_tree(
             workspace_id=workspace_id,
             max_depth=max_depth,
+            org_id=org.id,
         )
     except KeyError:
         raise HTTPException(status_code=404, detail="Workspace not found")

@@ -3,7 +3,6 @@ Test generation service generates pytest/jest test cases for coverage gaps.
 Uses AI to produce complete, runnable test functions.
 """
 import asyncio
-import json
 import os
 import subprocess
 import tempfile
@@ -12,8 +11,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
-from app.services.ai_service import _call_openai, _clean_json, generate_playwright_tests_from_source
-from app.services.workspace_service import get_workspace
+from app.services.ai_service import _call_openai_json, generate_playwright_tests_from_source
+from app.services.workspace_service import require_workspace
 
 
 # ── Source extensions we care about for test generation ──────────────────────
@@ -107,8 +106,9 @@ COVERAGE GAPS TO TEST:
 SOURCE FILE CONTENT:
 {truncated}"""
 
-    raw = await _call_openai(prompt, json_mode=True)
-    data = json.loads(_clean_json(raw))
+    data = await _call_openai_json(prompt)
+    if not isinstance(data, dict):
+        data = {}
 
     # Derive test file path
     path = Path(file_path)
@@ -238,7 +238,7 @@ def _is_testable_file(rel_path: str) -> bool:
 
 def _score_file(rel_path: str) -> int:
     """Score a file higher = more important for UI testing."""
-    lower = rel_path.lower()
+    lower = rel_path.replace("\\", "/").lower()
     score = 0
     if "pages/" in lower or "page/" in lower:
         score += 10
@@ -250,6 +250,8 @@ def _score_file(rel_path: str) -> int:
         score += 5
     if "app." in lower:
         score += 4
+    if lower.startswith("web/") or "/web/" in lower:
+        score += 8
     return score
 
 
@@ -275,9 +277,11 @@ async def generate_playwright_tests_batch(
 async def generate_playwright_tests_for_app(
     workspace_id: str,
     target_url: str | None = None,
+    *,
+    org_id: str,
 ) -> dict:
     """Scan entire workspace, pick key source files, generate Playwright tests."""
-    ws = get_workspace(workspace_id)
+    ws = require_workspace(org_id, workspace_id)
     clone_dir = Path(ws["clone_dir"])
 
     # Collect testable files
@@ -308,11 +312,13 @@ async def generate_playwright_tests_for_commit(
     workspace_id: str,
     commit_sha: str,
     target_url: str | None = None,
+    *,
+    org_id: str,
 ) -> dict:
     """Generate tests for files changed in a specific git commit."""
     import git as gitlib
 
-    ws = get_workspace(workspace_id)
+    ws = require_workspace(org_id, workspace_id)
     clone_dir = Path(ws["clone_dir"])
 
     def _get_changed_files() -> list[dict]:
@@ -348,12 +354,14 @@ async def analyze_chain_for_tests(
     workspace_id: str,
     chain: list[str],
     changed_files: list[str],
+    *,
+    org_id: str,
 ) -> list[dict]:
     """
     Send all files in the root→leaf chain to AI and get back per-file analysis:
     what changed, what the file does, and how many tests are warranted.
     """
-    ws = get_workspace(workspace_id)
+    ws = require_workspace(org_id, workspace_id)
     clone_dir = Path(ws["clone_dir"])
     changed_set = set(changed_files)
 
@@ -417,8 +425,9 @@ Return ONLY a raw JSON object (no markdown):
   ]
 }}"""
 
-    raw = await _call_openai(prompt, json_mode=True)
-    data = json.loads(_clean_json(raw))
+    data = await _call_openai_json(prompt)
+    if not isinstance(data, dict):
+        data = {}
     analyses = data.get("analyses", [])
 
     # Ensure every chain file has an entry (fill missing ones with defaults)

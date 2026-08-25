@@ -1,4 +1,6 @@
 """AI IDE routes workspace creation (REST) + streaming generation (WebSocket)."""
+import asyncio
+
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 
@@ -11,6 +13,13 @@ from app.services import ai_ide_service
 from app.services import vercel_service
 
 router = APIRouter(prefix="/ai-ide", tags=["AI IDE"])
+
+
+def _require_org_workspace(org: OrganizationOut, workspace_id: str) -> None:
+    try:
+        ai_ide_service.require_org_workspace(org.id, workspace_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Workspace not found")
 
 
 def _fallback_content(path: str, component_name: str | None = None) -> str:
@@ -85,75 +94,64 @@ class DeployWorkspaceRequest(BaseModel):
 
 @router.post("/workspace/create")
 async def create_workspace(org: OrganizationOut = Depends(get_current_org)):
-    workspace_id = await ai_ide_service.create_workspace()
+    workspace_id = await ai_ide_service.create_workspace(org.id)
     files = ai_ide_service.list_file_paths(workspace_id)
     return {"workspace_id": workspace_id, "file_paths": files}
 
 
 @router.get("/workspace/{workspace_id}/files")
 async def get_files(workspace_id: str, org: OrganizationOut = Depends(get_current_org)):
-    try:
-        return ai_ide_service.get_workspace_files(workspace_id)
-    except KeyError:
-        raise HTTPException(status_code=404, detail="Workspace not found")
+    _require_org_workspace(org, workspace_id)
+    return ai_ide_service.get_workspace_files(workspace_id)
 
 
 @router.post("/file/create")
 async def create_file(payload: CreateFileRequest, org: OrganizationOut = Depends(get_current_org)):
-    try:
-        content = payload.content if payload.content.strip() else _fallback_content(payload.path)
-        ai_ide_service.create_file(payload.workspace_id, payload.path, content)
-        return {"ok": True, "path": payload.path, "content": content}
-    except KeyError:
-        raise HTTPException(status_code=404, detail="Workspace not found")
+    _require_org_workspace(org, payload.workspace_id)
+    content = payload.content if payload.content.strip() else _fallback_content(payload.path)
+    ai_ide_service.create_file(payload.workspace_id, payload.path, content)
+    return {"ok": True, "path": payload.path, "content": content}
 
 
 @router.post("/file/update")
 async def update_file(payload: UpdateFileRequest, org: OrganizationOut = Depends(get_current_org)):
-    try:
-        ai_ide_service.save_file(payload.workspace_id, payload.path, payload.content)
-        return {"ok": True, "path": payload.path}
-    except KeyError:
-        raise HTTPException(status_code=404, detail="Workspace not found")
+    _require_org_workspace(org, payload.workspace_id)
+    ai_ide_service.save_file(payload.workspace_id, payload.path, payload.content)
+    return {"ok": True, "path": payload.path}
 
 
 @router.post("/file/delete")
 async def delete_file(payload: DeletePathRequest, org: OrganizationOut = Depends(get_current_org)):
-    try:
-        deleted = ai_ide_service.delete_path(payload.workspace_id, payload.path)
-        return {"ok": True, "deleted": deleted}
-    except KeyError:
-        raise HTTPException(status_code=404, detail="Workspace not found")
+    _require_org_workspace(org, payload.workspace_id)
+    deleted = ai_ide_service.delete_path(payload.workspace_id, payload.path)
+    return {"ok": True, "deleted": deleted}
 
 
 @router.post("/file/rename")
 async def rename_path(payload: RenamePathRequest, org: OrganizationOut = Depends(get_current_org)):
-    try:
-        updated = ai_ide_service.rename_or_move_path(
-            payload.workspace_id,
-            payload.from_path,
-            payload.to_path,
-        )
-        return {"ok": True, "updated": updated}
-    except KeyError:
-        raise HTTPException(status_code=404, detail="Workspace not found")
+    _require_org_workspace(org, payload.workspace_id)
+    updated = ai_ide_service.rename_or_move_path(
+        payload.workspace_id,
+        payload.from_path,
+        payload.to_path,
+    )
+    return {"ok": True, "updated": updated}
 
 
 @router.post("/file/move")
 async def move_path(payload: MovePathRequest, org: OrganizationOut = Depends(get_current_org)):
-    try:
-        updated = ai_ide_service.rename_or_move_path(
-            payload.workspace_id,
-            payload.from_path,
-            payload.to_path,
-        )
-        return {"ok": True, "updated": updated}
-    except KeyError:
-        raise HTTPException(status_code=404, detail="Workspace not found")
+    _require_org_workspace(org, payload.workspace_id)
+    updated = ai_ide_service.rename_or_move_path(
+        payload.workspace_id,
+        payload.from_path,
+        payload.to_path,
+    )
+    return {"ok": True, "updated": updated}
 
 
 @router.post("/git/init-and-push")
 async def ai_ide_git_init_and_push(payload: GitInitPushRequest, org: OrganizationOut = Depends(get_current_org)):
+    _require_org_workspace(org, payload.workspace_id)
     try:
         return await ai_ide_service.init_git_and_create_repo(
             workspace_id=payload.workspace_id,
@@ -163,28 +161,26 @@ async def ai_ide_git_init_and_push(payload: GitInitPushRequest, org: Organizatio
             description=payload.description,
             branch=payload.branch,
         )
-    except KeyError:
-        raise HTTPException(status_code=404, detail="Workspace not found")
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
 
 @router.post("/git/commit-and-push")
 async def ai_ide_git_commit_and_push(payload: GitCommitPushRequest, org: OrganizationOut = Depends(get_current_org)):
+    _require_org_workspace(org, payload.workspace_id)
     try:
         return await ai_ide_service.commit_and_push_workspace(
             workspace_id=payload.workspace_id,
             message=payload.message,
             branch=payload.branch,
         )
-    except KeyError:
-        raise HTTPException(status_code=404, detail="Workspace not found")
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
 
 @router.post("/deploy")
 async def ai_ide_deploy(payload: DeployWorkspaceRequest, org: OrganizationOut = Depends(get_current_org)):
+    _require_org_workspace(org, payload.workspace_id)
     try:
         meta = ai_ide_service.get_workspace_meta(payload.workspace_id)
         repo_url = meta.get("repo_url")
@@ -198,8 +194,6 @@ async def ai_ide_deploy(payload: DeployWorkspaceRequest, org: OrganizationOut = 
             commit_sha=None,
             target=payload.target,
         )
-    except KeyError:
-        raise HTTPException(status_code=404, detail="Workspace not found")
     except vercel_service.VercelServiceError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.message)
 
@@ -238,15 +232,16 @@ async def generate(ws: WebSocket, workspace_id: str):
     """
     # Accept first (ASGI-safe), then enforce session via cookie.
     await ws.accept()
-    if _ws_session_payload(ws) is None:
+    payload = _ws_session_payload(ws)
+    org_id = payload.get("org_id") if payload else None
+    if not org_id:
         await ws.send_json({"type": "ERROR", "message": "Not authenticated"})
         await ws.close(code=1008)
         return
 
     try:
-        # Validate workspace exists
         try:
-            ai_ide_service.get_workspace_files(workspace_id)
+            ai_ide_service.require_org_workspace(org_id, workspace_id)
         except KeyError:
             await ws.send_json({"type": "ERROR", "message": "Workspace not found"})
             await ws.close(code=4004)
@@ -261,7 +256,10 @@ async def generate(ws: WebSocket, workspace_id: str):
         # Step 2: plan
         await ws.send_json({"type": "STATUS", "message": "Planning your app…"})
         try:
-            plan = await plan_files(idea)
+            plan = await asyncio.wait_for(plan_files(idea), timeout=90.0)
+        except asyncio.TimeoutError:
+            await ws.send_json({"type": "ERROR", "message": "Planner timed out after 90s. Try a shorter idea."})
+            return
         except Exception as exc:
             await ws.send_json({"type": "ERROR", "message": f"Planner error: {exc}"})
             return
@@ -285,9 +283,21 @@ async def generate(ws: WebSocket, workspace_id: str):
             await ws.send_json({"type": "FILE_CREATE", "path": path})
 
             content = ""
-            async for token in stream_file(file_spec):
-                content += token
-                await ws.send_json({"type": "STREAM_TOKEN", "path": path, "token": token})
+            async def _collect_file() -> str:
+                parts: list[str] = []
+                async for token in stream_file(file_spec):
+                    parts.append(token)
+                    await ws.send_json({"type": "STREAM_TOKEN", "path": path, "token": token})
+                return "".join(parts)
+
+            try:
+                content = await asyncio.wait_for(_collect_file(), timeout=90.0)
+            except asyncio.TimeoutError:
+                await ws.send_json({
+                    "type": "STATUS",
+                    "message": f"Generation timed out for {path}; using a template.",
+                })
+                content = ""
 
             if not content.strip():
                 content = _fallback_content(path, file_spec.get("component_name"))

@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { RadialBarChart, RadialBar, ResponsiveContainer, PolarAngleAxis } from "recharts";
 import { usePipelineContext } from "@/context/PipelineContext";
-import { useEvaluatePipeline } from "@/hooks/use-pipeline";
+import { useEvaluatePipeline, usePipelineRuns } from "@/hooks/use-pipeline";
+import { useQueryClient } from "@tanstack/react-query";
+import type { PipelineRunSummary } from "@/lib/api";
 
 function ScoreGauge({ score }: { score: number }) {
   const color = score >= 75 ? "#B45309" : score >= 50 ? "#AFAFAF" : "#DC2626";
@@ -61,6 +63,8 @@ export function StageReport() {
   } = usePipelineContext();
 
   const evaluateMutation = useEvaluatePipeline();
+  const runsQuery = usePipelineRuns();
+  const queryClient = useQueryClient();
 
   const handleGenerate = async () => {
     const criticalCount = reviewResult?.review?.findings?.filter((f: any) => f.severity?.toLowerCase() === "critical").length ?? 0;
@@ -76,6 +80,7 @@ export function StageReport() {
       review_critical_count: criticalCount,
     });
     setReportResult(result);
+    void queryClient.invalidateQueries({ queryKey: ["pipeline-runs"] });
   };
 
   const r = reportResult;
@@ -96,7 +101,7 @@ export function StageReport() {
     <div className="flex flex-col h-full">
       {/* Banner */}
       <div className="flex items-center justify-between px-4 py-2 bg-primary/5 border-b border-primary/20 flex-shrink-0">
-        <p className="text-xs text-primary/80">Stage 4 Pipeline Report: GO / CONDITIONAL / NO-GO</p>
+        <p className="text-xs text-primary/80">Stage 5 Pipeline Report: GO / CONDITIONAL / NO-GO</p>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground" onClick={() => goToStage(3)}>← Back</Button>
           {reportResult && (
@@ -139,6 +144,7 @@ export function StageReport() {
                   ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Generating report…</>
                   : "Generate Report"}
               </Button>
+              <PipelineRunHistory runs={runsQuery.data} loading={runsQuery.isLoading} />
             </div>
           )}
 
@@ -198,6 +204,8 @@ export function StageReport() {
               )}
 
               {/* Actions */}
+              <PipelineRunHistory runs={runsQuery.data} loading={runsQuery.isLoading} />
+
               <div className="flex gap-3">
                 <Button
                   variant="outline"
@@ -233,6 +241,46 @@ export function StageReport() {
           )}
         </div>
       </ScrollArea>
+    </div>
+  );
+}
+
+function PipelineRunHistory({
+  runs,
+  loading,
+}: {
+  runs?: PipelineRunSummary[];
+  loading: boolean;
+}) {
+  return (
+    <div className="rounded-xl border border-border/50 bg-muted/10 p-4 text-left">
+      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">Recent reports</p>
+      {loading && <p className="text-xs text-muted-foreground">Loading history…</p>}
+      {!loading && (!runs || runs.length === 0) && (
+        <p className="text-xs text-muted-foreground">No saved reports yet. Generate one to keep a history.</p>
+      )}
+      <div className="space-y-2">
+        {(runs ?? []).map((run) => {
+          const verdict = typeof run.verdict === "string" ? run.verdict : "CONDITIONAL";
+          return (
+            <div key={run.id} className="flex items-center justify-between gap-3 rounded-lg border border-border/40 bg-card/40 px-3 py-2">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium">
+                  {run.owner}/{run.repo} · {run.version}
+                </p>
+                <p className="text-[10px] text-muted-foreground">
+                  {run.commit_sha ? run.commit_sha.slice(0, 7) : "HEAD"}
+                  {run.created_at ? ` · ${new Date(run.created_at).toLocaleString()}` : ""}
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-2 text-xs">
+                <span className="font-mono">{run.score}/100</span>
+                <span className="rounded border border-border px-2 py-0.5 uppercase">{verdict}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -22,6 +22,8 @@ import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/PageHeader";
 import { PageShell } from "@/components/PageShell";
 import { BRAND_NAME, LOGO_ICON_SRC } from "@/lib/brand";
+import { Link } from "react-router-dom";
+import { useActiveRepo } from "@/context/RepoContext";
 
 const FINAL_STATES = new Set(["READY", "ERROR", "CANCELED"]);
 
@@ -30,8 +32,8 @@ type PreviewViewport = "desktop" | "tablet" | "mobile";
 
 function statusTone(status: string) {
   if (status === "READY") return "text-positive border-positive/25 bg-positive/10";
-  if (status === "ERROR" || status === "CANCELED") return "text-red-700 border-red-200 bg-red-50";
-  return "text-amber-800 border-amber-200 bg-amber-50";
+  if (status === "ERROR" || status === "CANCELED") return "text-destructive border-destructive/30 bg-destructive/10";
+  return "text-warning border-warning/30 bg-warning/10";
 }
 
 function formatDateTime(value?: number) {
@@ -115,19 +117,20 @@ function parseLogEvent(event: DeploymentLogEvent, index: number, formatEventTime
 }
 
 function levelColor(level: string) {
-  if (level.includes("error") || level.includes("fatal")) return "text-red-700";
-  if (level.includes("warn")) return "text-amber-700";
-  if (level.includes("debug")) return "text-violet-700";
-  if (level.includes("stdout") || level.includes("info")) return "text-cyan-700";
-  return "text-slate-700";
+  if (level.includes("error") || level.includes("fatal")) return "text-destructive";
+  if (level.includes("warn")) return "text-warning";
+  if (level.includes("debug")) return "text-info";
+  if (level.includes("stdout") || level.includes("info")) return "text-muted-foreground";
+  return "text-foreground";
 }
 
 export default function Deployments() {
+  const { activeRepo, setActiveRepo } = useActiveRepo();
 
   const [screen, setScreen] = useState<ScreenMode>("setup");
-  const [repoUrl, setRepoUrl] = useState("");
+  const [repoUrl, setRepoUrl] = useState(activeRepo?.repoUrl ?? "");
   const [repoValidated, setRepoValidated] = useState(false);
-  const [branch, setBranch] = useState("");
+  const [branch, setBranch] = useState(activeRepo?.branch ?? "");
   const [selectedCommit, setSelectedCommit] = useState("");
   const [deployByCommit, setDeployByCommit] = useState(false);
   const [repoOptions, setRepoOptions] = useState<DeploymentRepoOptionsResponse | null>(null);
@@ -150,8 +153,10 @@ export default function Deployments() {
     onSuccess: (data) => {
       setRepoOptions(data);
       setRepoValidated(true);
-      setBranch(data.selected_branch || data.repo.default_branch || "main");
+      const nextBranch = data.selected_branch || data.repo.default_branch || "main";
+      setBranch(nextBranch);
       setSelectedCommit(data.commits[0]?.sha || "");
+      setActiveRepo(repoUrl.trim(), nextBranch);
     },
   });
 
@@ -438,7 +443,7 @@ export default function Deployments() {
           </Button>
 
           {triggerMutation.isError && (
-            <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
               {(triggerMutation.error as any)?.response?.data?.detail || "Failed to trigger deployment."}
             </div>
           )}
@@ -449,9 +454,18 @@ export default function Deployments() {
             <ShieldCheck className="h-4 w-4 text-positive" />
             <p className="text-[13px] font-semibold tracking-tight">Backend Config Health</p>
           </div>
-          <Badge className={healthQuery.data?.configured ? "bg-positive/10 text-positive border border-positive/25" : "bg-red-50 text-red-700 border border-red-200"}>
+          <Badge className={healthQuery.data?.configured ? "bg-positive/10 text-positive border border-positive/25" : "bg-destructive/10 text-destructive border border-destructive/30"}>
             {healthQuery.data?.configured ? "Configured" : "Missing Configuration"}
           </Badge>
+          {!healthQuery.data?.configured && (
+            <p className="text-xs text-muted-foreground">
+              Add a Vercel token and project name in{" "}
+              <Link to="/settings/connectors" className="text-primary underline underline-offset-2">
+                Settings → Connectors
+              </Link>
+              . Env vars are the fallback if connectors are empty.
+            </p>
+          )}
           <div className="text-xs text-muted-foreground space-y-1">
             <p>Project Name: {healthQuery.data?.project_name || "-"}</p>
             <p>Repo ID: {healthQuery.data?.has_repo_id ? "available" : "missing"}</p>

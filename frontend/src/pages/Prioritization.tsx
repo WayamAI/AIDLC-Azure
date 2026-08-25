@@ -3,7 +3,6 @@ import { ArrowUpDown, AlertTriangle, AlertOctagon, Shield, Bug, Loader2, Refresh
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { usePrioritizedTests, useRefreshPrioritization } from "@/hooks/use-prioritization";
-import { mockPrioritizedTests } from "@/lib/mockData";
 import { PageHeader } from "@/components/PageHeader";
 import { PageShell } from "@/components/PageShell";
 
@@ -17,17 +16,7 @@ const Prioritization = () => {
   const { data, isLoading, isError } = usePrioritizedTests();
   const refreshMutation = useRefreshPrioritization();
 
-  // Fall back to mock data
-  const rawTests = data ?? (isError ? mockPrioritizedTests.map((t) => ({
-    id: t.id,
-    tc_id: t.id,
-    name: t.name,
-    failure_count: t.failureCount,
-    severity: t.severity,
-    priority: t.priority,
-    status: t.status as "failed" | "warning" | "stable",
-    known_failure: t.knownFailure,
-  })) : []);
+  const rawTests = data ?? [];
 
   const high = rawTests.filter((t) => t.priority >= 80);
   const medium = rawTests.filter((t) => t.priority >= 40 && t.priority < 80);
@@ -62,8 +51,10 @@ const Prioritization = () => {
             title="Risk-Based Test Prioritization"
             description={
               isError
-                ? "Live data unavailable displaying cached reference prioritization"
-                : "AI-ranked test execution order derived from failure history, risk exposure, and severity"
+                ? "Could not load risk ranking. Confirm the API is running and tests have been executed."
+                : rawTests.length === 0
+                  ? "No ranking yet. Execute a test suite first."
+                  : "AI-ranked test execution order derived from failure history, risk exposure, and severity"
             }
           />
           <Button

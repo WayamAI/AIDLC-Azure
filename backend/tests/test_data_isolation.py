@@ -415,6 +415,37 @@ async def test_org_a_cannot_update_org_b_playwright_test(app_client, db):
 
 
 @pytest.mark.anyio
+async def test_playwright_test_update_cannot_overwrite_org_id(app_client, db):
+    org_a = await organization_service.create_organization(db, workos_org_id="org_a", name="A")
+    await organization_service.create_organization(db, workos_org_id="org_b", name="B")
+
+    await db.playwright_tests.insert_one({
+        "_id": "test-allowlist-1",
+        "org_id": org_a.id,
+        "analysis_id": "analysis-1",
+        "name": "n",
+        "description": "d",
+    })
+
+    _cookies(app_client, org_a.id)
+    resp = await app_client.put(
+        "/api/repo/tests/test-allowlist-1",
+        json={"name": "renamed", "org_id": "hacked", "analysis_id": "stolen"},
+    )
+    assert resp.status_code == 200
+    doc = await db.playwright_tests.find_one({"_id": "test-allowlist-1"})
+    assert doc["org_id"] == org_a.id
+    assert doc["analysis_id"] == "analysis-1"
+    assert doc["name"] == "renamed"
+
+    resp = await app_client.put(
+        "/api/repo/tests/test-allowlist-1",
+        json={"org_id": "hacked"},
+    )
+    assert resp.status_code == 400
+
+
+@pytest.mark.anyio
 async def test_org_a_cannot_poll_org_b_execution_run(app_client, db):
     from app.services import playwright_service
 
@@ -476,6 +507,11 @@ async def test_dashboard_stats_are_org_scoped(app_client, db):
         "org_id": org_a.id, "tc_id": "TC-1", "name": "n", "failure_count": 1,
         "severity": "High", "priority": 90, "status": "flaky", "known_failure": True,
     })
+    await db.test_results.insert_one({
+        "org_id": org_a.id, "tc_id": "TC-1", "name": "login flow",
+        "status": "PASS", "duration": 0.4, "run_id": "run-1",
+        "timestamp": datetime.now(timezone.utc),
+    })
 
     _cookies(app_client, org_b.id)
     resp = await app_client.get("/api/dashboard/stats")
@@ -484,6 +520,8 @@ async def test_dashboard_stats_are_org_scoped(app_client, db):
     assert body["total_tests"] == 0
     assert body["high_priority"] == 0
     assert body["known_failures"] == 0
+    assert body["recent_activity"] == []
+    assert all(item["count"] == 0 for item in body["severity_breakdown"])
 
     _cookies(app_client, org_a.id)
     resp = await app_client.get("/api/dashboard/stats")
@@ -491,6 +529,11 @@ async def test_dashboard_stats_are_org_scoped(app_client, db):
     assert body["total_tests"] == 1
     assert body["high_priority"] == 1
     assert body["known_failures"] == 1
+    sev = {item["severity"]: item["count"] for item in body["severity_breakdown"]}
+    assert sev["High"] == 1
+    assert len(body["recent_activity"]) == 1
+    assert body["recent_activity"][0]["name"] == "login flow"
+    assert body["recent_activity"][0]["status"] == "PASS"
 
 
 # ── auth required ─────────────────────────────────────────────────────────
@@ -507,6 +550,7 @@ async def test_dashboard_stats_are_org_scoped(app_client, db):
     ("GET", "/api/pipeline/runs"),
     ("GET", "/api/repo/analyses/analysis-1"),
     ("GET", "/api/dashboard/stats"),
+    ("PATCH", "/api/auth/me"),
     ("GET", "/api/tests/workspace-suites/suite-1"),
     ("DELETE", "/api/tests/workspace-suites/suite-1"),
     ("GET", "/api/repo/execution/run-1"),

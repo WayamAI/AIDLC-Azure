@@ -13,6 +13,8 @@ router = APIRouter(prefix="/jira", tags=["Jira"])
 async def list_projects(org: OrganizationOut = Depends(get_current_org)):
     try:
         return await jira_service.list_projects()
+    except jira_service.JiraNotConfiguredError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=400, detail=f"Jira error: {exc}")
 
@@ -26,6 +28,8 @@ async def get_stories(
 ):
     try:
         return await jira_service.get_sprint_stories(project, sprint_id, max_results)
+    except jira_service.JiraNotConfiguredError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=400, detail=f"Jira error: {exc}")
 
@@ -47,6 +51,8 @@ async def generate_ac_for_story(
         existing = [s for s in stories if s["key"] != issue_key]
         result = await generate_acceptance_criteria(story, existing)
         return {"issue_key": issue_key, "story": story, "ai_analysis": result}
+    except jira_service.JiraNotConfiguredError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
     except AIQuotaError as exc:
         raise HTTPException(status_code=429, detail=str(exc))
     except HTTPException:
@@ -80,6 +86,8 @@ async def list_bugs(
 ):
     try:
         return await jira_service.get_open_bugs(project, version)
+    except jira_service.JiraNotConfiguredError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=400, detail=f"Jira error: {exc}")
 
@@ -104,6 +112,8 @@ async def analyze_manual_story(body: dict = Body(...), org: OrganizationOut = De
     try:
         result = await generate_acceptance_criteria(story, [])
         return {"issue_key": "MANUAL-1", "story": story, "ai_analysis": result}
+    except jira_service.JiraNotConfiguredError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
     except AIQuotaError as exc:
         raise HTTPException(status_code=429, detail=str(exc))
     except Exception as exc:
@@ -129,6 +139,8 @@ async def analyze_sprint(body: dict = Body(...), org: OrganizationOut = Depends(
             except Exception:
                 results.append({"story": story, "ai_analysis": None, "error": "AI analysis failed"})
         return {"stories": results, "total": len(results)}
+    except jira_service.JiraNotConfiguredError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
     except AIQuotaError as exc:
         raise HTTPException(status_code=429, detail=str(exc))
     except Exception as exc:

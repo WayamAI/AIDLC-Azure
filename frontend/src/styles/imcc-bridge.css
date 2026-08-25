@@ -224,3 +224,101 @@
 .dark {
   color-scheme: dark;
 }
+
+/*
+ * Compatibility: leftover light-only Tailwind from pre-IMCC pages
+ * (bg-red-50 + text-red-700, pale cards, slate body copy) is unreadable
+ * on the dark default. Remap those classes without rewriting every page.
+ * Preview iframes still use their own document colors.
+ */
+:root.dark .bg-red-50,
+.dark .bg-red-50,
+:root.dark .bg-red-100,
+.dark .bg-red-100 {
+  background-color: color-mix(in srgb, var(--color-status-critical) 16%, transparent) !important;
+}
+:root.dark .text-red-700,
+.dark .text-red-700,
+:root.dark .text-red-600,
+.dark .text-red-600,
+:root.dark .text-red-800,
+.dark .text-red-800 {
+  color: var(--ref-red-300) !important;
+}
+:root.dark .border-red-200,
+.dark .border-red-200,
+:root.dark .border-red-300,
+.dark .border-red-300 {
+  border-color: color-mix(in srgb, var(--color-status-critical) 40%, transparent) !important;
+}
+
+:root.dark .bg-amber-50,
+.dark .bg-amber-50,
+:root.dark .bg-yellow-50,
+.dark .bg-yellow-50 {
+  background-color: color-mix(in srgb, var(--color-status-warning) 16%, transparent) !important;
+}
+:root.dark .text-amber-700,
+.dark .text-amber-700,
+:root.dark .text-amber-800,
+.dark .text-amber-800,
+:root.dark .text-yellow-700,
+.dark .text-yellow-700 {
+  color: var(--ref-amber-300) !important;
+}
+:root.dark .border-amber-200,
+.dark .border-amber-200,
+:root.dark .border-yellow-200,
+.dark .border-yellow-200 {
+  border-color: color-mix(in srgb, var(--color-status-warning) 40%, transparent) !important;
+}
+
+:root.dark .bg-sky-50,
+.dark .bg-sky-50,
+:root.dark .bg-blue-50,
+.dark .bg-blue-50 {
+  background-color: color-mix(in srgb, var(--color-status-info) 16%, transparent) !important;
+}
+:root.dark .text-sky-700,
+.dark .text-sky-700,
+:root.dark .text-blue-600,
+.dark .text-blue-600,
+:root.dark .text-blue-700,
+.dark .text-blue-700 {
+  color: var(--ref-blue-300) !important;
+}
+
+:root.dark .bg-white,
+.dark .bg-white,
+:root.dark .bg-slate-50,
+.dark .bg-slate-50,
+:root.dark .bg-slate-100,
+.dark .bg-slate-100 {
+  background-color: var(--color-raised) !important;
+}
+:root.dark .bg-white\/50,
+.dark .bg-white\/50 {
+  background-color: color-mix(in srgb, var(--color-raised) 70%, transparent) !important;
+}
+:root.dark .text-slate-900,
+.dark .text-slate-900,
+:root.dark .text-slate-800,
+.dark .text-slate-800,
+:root.dark .text-slate-700,
+.dark .text-slate-700 {
+  color: var(--color-primary) !important;
+}
+:root.dark .text-slate-600,
+.dark .text-slate-600,
+:root.dark .text-slate-500,
+.dark .text-slate-500,
+:root.dark .text-slate-400,
+.dark .text-slate-400 {
+  color: var(--color-tertiary) !important;
+}
+:root.dark .border-slate-200,
+.dark .border-slate-200,
+:root.dark .border-slate-300,
+.dark .border-slate-300 {
+  border-color: var(--color-stroke-muted) !important;
+}

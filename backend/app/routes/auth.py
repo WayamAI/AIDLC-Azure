@@ -26,6 +26,12 @@ class PasswordAuthBody(BaseModel):
     name: str | None = Field(default=None, max_length=120)
 
 
+class ProfileUpdateBody(BaseModel):
+    name: str | None = Field(default=None, max_length=120)
+    notifications: bool | None = None
+    newsletter: bool | None = None
+
+
 def _workos_configured() -> bool:
     return bool(settings.WORKOS_API_KEY.strip() and settings.WORKOS_CLIENT_ID.strip())
 
@@ -43,8 +49,10 @@ def _set_session(response: Response, user_id: str, org_id: str) -> None:
 
 
 def _ollama_configured() -> bool:
-    """True when a real (non-placeholder) Ollama API key is present."""
-    key = (settings.OLLAMA_API_KEY or "").strip()
+    """True when a real (non-placeholder) Ollama API key is present (env or org connector)."""
+    from app.services import connector_settings_service as connectors
+
+    key = (connectors.active("ollama").get("api_key") or settings.OLLAMA_API_KEY or "").strip()
     if not key:
         return False
     placeholders = {
@@ -170,22 +178,66 @@ async def logout():
     return resp
 
 
-@router.get("/me")
-async def me(user_id: str = Depends(get_current_user_id), org=Depends(get_current_org), db=Depends(get_db)):
+async def _me_payload(db, user_id: str, org) -> dict:
     email = None
     name = None
+    notifications = True
+    newsletter = False
     if not user_id.startswith("dev:"):
         doc = await user_service.get_by_id(db, user_id)
         if doc:
             email = doc.get("email")
             name = doc.get("name")
+            if "notifications" in doc:
+                notifications = bool(doc["notifications"])
+            if "newsletter" in doc:
+                newsletter = bool(doc["newsletter"])
     else:
         email = user_id.removeprefix("dev:")
         name = email.split("@")[0]
+
+    overlay = await user_service.get_profile_overlay(db, user_id)
+    if overlay.get("name"):
+        name = overlay["name"]
+    if "notifications" in overlay:
+        notifications = bool(overlay["notifications"])
+    if "newsletter" in overlay:
+        newsletter = bool(overlay["newsletter"])
+
     return {
         "user_id": user_id,
         "org_id": org.id,
         "org_name": org.name,
         "email": email,
         "name": name,
+        "notifications": notifications,
+        "newsletter": newsletter,
     }
+
+
+@router.get("/me")
+async def me(user_id: str = Depends(get_current_user_id), org=Depends(get_current_org), db=Depends(get_db)):
+    return await _me_payload(db, user_id, org)
+
+
+@router.patch("/me")
+async def update_me(
+    body: ProfileUpdateBody,
+    user_id: str = Depends(get_current_user_id),
+    org=Depends(get_current_org),
+    db=Depends(get_db),
+):
+    if body.name is None and body.notifications is None and body.newsletter is None:
+        raise HTTPException(status_code=400, detail="No updatable fields provided")
+    try:
+        await user_service.update_profile(
+            db,
+            user_id=user_id,
+            org_id=org.id,
+            name=body.name,
+            notifications=body.notifications,
+            newsletter=body.newsletter,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return await _me_payload(db, user_id, org)

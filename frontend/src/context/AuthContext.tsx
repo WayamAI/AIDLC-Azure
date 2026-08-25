@@ -7,6 +7,8 @@ export type AuthUser = {
   org_name: string;
   email?: string | null;
   name?: string | null;
+  notifications?: boolean;
+  newsletter?: boolean;
 };
 
 type AuthContextType = {

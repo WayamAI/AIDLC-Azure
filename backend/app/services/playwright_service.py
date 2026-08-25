@@ -13,6 +13,7 @@ import asyncio
 import base64
 import logging
 import re
+import sys
 import time
 import uuid
 from datetime import datetime, timezone
@@ -84,6 +85,38 @@ async def list_runs_from_db(db, org_id: str, limit: int = 20) -> list[dict[str, 
 
 def _utcnow() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+async def run_in_playwright_loop(factory):
+    """Run an async Playwright job on a loop that can spawn subprocesses (Windows)."""
+    if sys.platform != "win32":
+        return await factory()
+
+    def _worker():
+        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            return loop.run_until_complete(factory())
+        finally:
+            loop.close()
+
+    return await asyncio.to_thread(_worker)
+
+
+def _format_playwright_error(exc: BaseException) -> str:
+    text = str(exc).strip()
+    if isinstance(exc, NotImplementedError) or not text:
+        if isinstance(exc, NotImplementedError):
+            return (
+                "Playwright cannot launch Chromium on this Windows event loop. "
+                "The backend will retry in a worker thread after restart; "
+                "if this persists, run the API on Linux or Azure."
+            )
+        return type(exc).__name__
+    if "Executable doesn't exist" in text or "playwright install" in text.lower():
+        return "Playwright Chromium is not installed on this server. Run: playwright install chromium"
+    return text[:600]
 
 
 # ── Screenshot helper ─────────────────────────────────────────────────────────
@@ -962,7 +995,7 @@ async def execute_playwright_tests(
         _runs[run_id]["error"] = msg
         return
 
-    try:
+    async def _run() -> None:
         async with async_playwright() as pw:
             log.info("🌐 Launching Chromium (headless) …")
             browser = await pw.chromium.launch(
@@ -1051,7 +1084,6 @@ async def execute_playwright_tests(
 
         _runs[run_id]["status"] = "completed"
         _runs[run_id]["completed_at"] = _utcnow()
-        await save_run_to_db(db, org_id, _runs[run_id])
         log.info("")
         log.info("=" * 60)
         log.info(
@@ -1060,6 +1092,10 @@ async def execute_playwright_tests(
         )
         log.info("=" * 60)
 
+    try:
+        await run_in_playwright_loop(_run)
+        if _runs[run_id].get("status") == "completed":
+            await save_run_to_db(db, org_id, _runs[run_id])
     except asyncio.CancelledError:
         _runs[run_id]["status"] = "failed"
         _runs[run_id]["error"] = "Run cancelled server was restarted while tests were running."
@@ -1067,7 +1103,8 @@ async def execute_playwright_tests(
         log.warning("⚠️  Run %s cancelled (server shutdown)", run_id[:8])
 
     except Exception as exc:
+        err = _format_playwright_error(exc)
         _runs[run_id]["status"] = "failed"
-        _runs[run_id]["error"] = str(exc)[:600]
+        _runs[run_id]["error"] = err[:600]
         _runs[run_id]["completed_at"] = _utcnow()
         log.error("❌ Run %s crashed: %s", run_id[:8], exc, exc_info=True)

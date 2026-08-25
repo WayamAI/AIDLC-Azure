@@ -166,12 +166,14 @@ async def suggest_workspace(
     instruction: str,
     history: list[dict],
     context_files: list[str] = [],
+    *,
+    org_id: str,
 ) -> dict:
     """Generate multi-file changes based on a workspace-wide instruction."""
-    from app.services.workspace_service import get_workspace, _walk_tree, get_file_content
+    from app.services.workspace_service import require_workspace, _walk_tree, get_file_content
     from pathlib import Path
 
-    ws = get_workspace(workspace_id)
+    ws = require_workspace(org_id, workspace_id)
     clone_dir = ws["clone_dir"]
     base = Path(clone_dir)
 

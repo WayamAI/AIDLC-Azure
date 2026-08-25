@@ -128,10 +128,13 @@ async def generate_playwright_app(req: PlaywrightAppGenerateRequest, org: Organi
         result = await test_gen_service.generate_playwright_tests_for_app(
             workspace_id=req.workspace_id,
             target_url=req.target_url,
+            org_id=org.id,
         )
         return result
     except AIQuotaError as exc:
         raise HTTPException(status_code=429, detail=str(exc))
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
@@ -144,10 +147,13 @@ async def generate_playwright_commit(req: PlaywrightCommitGenerateRequest, org: 
             workspace_id=req.workspace_id,
             commit_sha=req.commit_sha,
             target_url=req.target_url,
+            org_id=org.id,
         )
         return result
     except AIQuotaError as exc:
         raise HTTPException(status_code=429, detail=str(exc))
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
@@ -162,10 +168,13 @@ async def analyze_chain(req: ChainAnalyzeRequest, org: OrganizationOut = Depends
             workspace_id=req.workspace_id,
             chain=req.chain,
             changed_files=req.changed_files,
+            org_id=org.id,
         )
         return {"analyses": analyses}
     except AIQuotaError as exc:
         raise HTTPException(status_code=429, detail=str(exc))
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 

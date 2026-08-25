@@ -8,16 +8,6 @@ export type SearchHistoryEntry = {
   visitedAt: number;
 };
 
-export type ActivityHistoryItem = {
-  id: string;
-  kind: string;
-  title: string;
-  url: string;
-  section?: string | null;
-  payload?: Record<string, unknown>;
-  visited_at?: string | null;
-};
-
 function readRaw(): SearchHistoryEntry[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);

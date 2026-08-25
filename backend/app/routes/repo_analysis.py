@@ -27,6 +27,8 @@ from app.services.analysis_runner import create_job, get_job, run_analysis, run_
 
 log = logging.getLogger("repo_analysis")
 
+_ALLOWED_TEST_FIELDS = {"name", "description", "severity", "steps", "page_name"}
+
 
 async def _check_url_reachable(url: str) -> str | None:
     """
@@ -51,6 +53,22 @@ router = APIRouter(prefix="/repo", tags=["Repo Analysis"])
 # ── Start analysis job (returns immediately) ──────────────────────────────────
 
 # ── Fetch recent commits (for commit-picker UI) ───────────────────────────────
+
+@router.post("/default-branch")
+async def fetch_default_branch(
+    body: dict = Body(...),
+    org: OrganizationOut = Depends(get_current_org),
+):
+    """Return the GitHub default branch (HEAD) without cloning the full repo."""
+    github_url = (body.get("github_url") or "").strip()
+    if not github_url:
+        raise HTTPException(status_code=400, detail="github_url is required")
+    try:
+        branch = await asyncio.to_thread(repo_service.detect_default_branch, github_url)
+        return {"branch": branch}
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
 
 @router.post("/commits")
 async def fetch_commits(
@@ -235,7 +253,10 @@ async def update_test(
     doc = await db.playwright_tests.find_one({"_id": test_id, "org_id": org.id})
     if not doc:
         raise HTTPException(status_code=404, detail="Test not found")
-    await db.playwright_tests.update_one({"_id": test_id, "org_id": org.id}, {"$set": body})
+    updates = {k: v for k, v in body.items() if k in _ALLOWED_TEST_FIELDS}
+    if not updates:
+        raise HTTPException(status_code=400, detail="No updatable fields provided")
+    await db.playwright_tests.update_one({"_id": test_id, "org_id": org.id}, {"$set": updates})
     updated = await db.playwright_tests.find_one({"_id": test_id, "org_id": org.id})
     updated["id"] = updated.pop("_id")
     return updated
@@ -314,6 +335,14 @@ async def execute_tests_direct(
     if not target_url:
         raise HTTPException(status_code=400, detail="target_url is required")
 
+    try:
+        import playwright  # noqa: F401
+    except ImportError:
+        raise HTTPException(
+            status_code=503,
+            detail="Playwright is not installed on this server. Run: pip install playwright && playwright install chromium",
+        )
+
     reach_err = await _check_url_reachable(target_url)
     if reach_err:
         raise HTTPException(
@@ -333,6 +362,19 @@ async def execute_tests_direct(
         doc.setdefault("id", str(uuid.uuid4()))
         doc["analysis_id"] = analysis_id
         prepared.append(doc)
+
+    for doc in prepared:
+        persist = {
+            "_id": doc["id"],
+            "org_id": org.id,
+            "analysis_id": analysis_id,
+            "name": doc.get("name") or "Test",
+            "description": doc.get("description") or "",
+            "page_name": doc.get("page_name") or "",
+            "severity": doc.get("severity") or "Medium",
+            "steps": doc.get("steps") or [],
+        }
+        await db.playwright_tests.replace_one({"_id": persist["_id"], "org_id": org.id}, persist, upsert=True)
 
     background_tasks.add_task(
         playwright_service.execute_playwright_tests,
@@ -460,7 +502,7 @@ def _parse_spec_to_tests(spec_content: str, filename: str) -> list[dict]:
 
 
 @router.post("/upload-spec")
-async def upload_spec(file: UploadFile = File(...)):
+async def upload_spec(file: UploadFile = File(...), org: OrganizationOut = Depends(get_current_org)):
     """
     Parse a Playwright .spec.ts file and return structured test cases.
     The returned tests can be passed to POST /repo/execute-direct to run them.

@@ -93,16 +93,22 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS – Vite, Vercel, Azure Container Apps / Static Web Apps
-_cors_regex = r"https://.*\.(vercel\.app|azurecontainerapps\.io|azurestaticapps\.net)"
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_origin_regex=_cors_regex,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# CORS – explicit origins only in production (credentialed wildcard regex is unsafe).
+# Dev still allows preview hosts so local + preview deploys work without extra env.
+_cors_kwargs: dict = {
+    "allow_origins": list(settings.CORS_ORIGINS),
+    "allow_credentials": True,
+    "allow_methods": ["*"],
+    "allow_headers": ["*"],
+}
+_frontend_url = (settings.FRONTEND_URL or "").rstrip("/")
+if _frontend_url and _frontend_url not in _cors_kwargs["allow_origins"]:
+    _cors_kwargs["allow_origins"].append(_frontend_url)
+if settings.APP_ENV != "production":
+    _cors_kwargs["allow_origin_regex"] = (
+        r"https://.*\.(vercel\.app|azurecontainerapps\.io|azurestaticapps\.net)"
+    )
+app.add_middleware(CORSMiddleware, **_cors_kwargs)
 
 
 @app.middleware("http")

@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { RadialBarChart, RadialBar, ResponsiveContainer, PolarAngleAxis } from "recharts";
 import { api } from "@/lib/api";
+import { useActiveRepo } from "@/context/RepoContext";
 import { PageHeader } from "@/components/PageHeader";
 import { PageShell } from "@/components/PageShell";
 
@@ -32,7 +33,13 @@ function ScoreGauge({ score }: { score: number }) {
 }
 
 export default function ReleaseGate() {
-  const [form, setForm] = useState({ version: "", owner: "", repo: "", jira_project: "" });
+  const { activeRepo, setActiveRepo } = useActiveRepo();
+  const [form, setForm] = useState({
+    version: "",
+    owner: activeRepo?.owner ?? "",
+    repo: activeRepo?.repo ?? "",
+    jira_project: "",
+  });
 
   const evaluateMutation = useMutation({
     mutationFn: () => api.evaluateRelease({
@@ -89,7 +96,10 @@ export default function ReleaseGate() {
             </div>
           </div>
           <Button
-            onClick={() => evaluateMutation.mutate()}
+            onClick={() => {
+              if (form.owner && form.repo) setActiveRepo({ owner: form.owner, repo: form.repo, repoUrl: `https://github.com/${form.owner}/${form.repo}`, branch: activeRepo?.branch || "main" });
+              evaluateMutation.mutate();
+            }}
             disabled={!form.owner || !form.repo || evaluateMutation.isPending}
             className="bg-primary text-primary-foreground w-full"
           >

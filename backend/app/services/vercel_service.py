@@ -68,8 +68,9 @@ def _github_headers() -> dict[str, str]:
         "Accept": "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28",
     }
-    if settings.GITHUB_TOKEN:
-        headers["Authorization"] = f"Bearer {settings.GITHUB_TOKEN}"
+    token = connectors.active("github").get("token") or settings.GITHUB_TOKEN
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
     return headers
 
 
@@ -300,7 +301,7 @@ async def trigger_deployment(
     if not ref:
         raise VercelServiceError("branch or commit_sha is required", 400)
 
-    project_name = settings.VERCEL_PROJECT_NAME
+    project_name = _vercel_cfg().get("project_name") or settings.VERCEL_PROJECT_NAME
     if not project_name and repo_url:
         project_name = parse_github_repo(repo_url)[1]
 
@@ -310,7 +311,8 @@ async def trigger_deployment(
         target=target,
         project_name=project_name,
     )
-    has_project_id = bool(settings.VERCEL_PROJECT_ID) and not _looks_like_placeholder(settings.VERCEL_PROJECT_ID)
+    project_id = _vercel_cfg().get("project_id") or settings.VERCEL_PROJECT_ID
+    has_project_id = bool(project_id) and not _looks_like_placeholder(project_id)
     params = _build_query_params(skip_auto_detection_confirmation=not has_project_id)
 
     try:
@@ -440,14 +442,19 @@ async def get_deployment_events(deployment_id: str, limit: int = 120) -> dict[st
 
 
 def deployment_config_health() -> dict[str, Any]:
-    team_placeholder = _looks_like_placeholder(settings.VERCEL_TEAM_ID)
-    project_placeholder = _looks_like_placeholder(settings.VERCEL_PROJECT_ID)
+    cfg = _vercel_cfg()
+    token = cfg.get("token") or settings.VERCEL_TOKEN
+    project_name = cfg.get("project_name") or settings.VERCEL_PROJECT_NAME
+    team_id = cfg.get("team_id") or settings.VERCEL_TEAM_ID
+    project_id = cfg.get("project_id") or settings.VERCEL_PROJECT_ID
+    team_placeholder = _looks_like_placeholder(team_id)
+    project_placeholder = _looks_like_placeholder(project_id)
 
     return {
-        "configured": bool(settings.VERCEL_TOKEN and settings.VERCEL_PROJECT_NAME),
-        "project_name": settings.VERCEL_PROJECT_NAME,
-        "has_project_id": bool(settings.VERCEL_PROJECT_ID),
-        "has_team_id": bool(settings.VERCEL_TEAM_ID),
+        "configured": bool(token and project_name),
+        "project_name": project_name or "",
+        "has_project_id": bool(project_id) and not project_placeholder,
+        "has_team_id": bool(team_id) and not team_placeholder,
         "project_id_placeholder": project_placeholder,
         "team_id_placeholder": team_placeholder,
         "has_repo_id": bool(settings.GITHUB_REPO_ID),

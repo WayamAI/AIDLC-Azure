@@ -115,67 +115,20 @@ function buildGraphologyGraph(
   changedPaths: Set<string>,
 ): Graph {
   const graph = new Graph({ type: "directed", multi: false });
-  
-  // Normalization: strip extensions, convert dots/slashes to a canonical form, strip prefixes
-  const normalize = (p: string) => 
-    p.replace(/\\/g, "/")
-     .replace(/^\.?\//, "")
-     .replace(/\.(py|ts|tsx|js|jsx|css|scss|json)$/i, "")
-     .split("/")
-     .join("."); // Convert everything to dots for a common denominator
-
-  // Map of normalized paths and their suffixes to original paths
-  const pathMap = new Map<string, string>(); 
-  
-  nodes.forEach(n => {
-    const fullNorm = normalize(n.path);
-    pathMap.set(fullNorm, n.path);
-    
-    // Support suffix matching (e.g., if edge is "auth.route" and path is "backend/auth/route.py")
-    const parts = fullNorm.split(".");
-    for (let i = 1; i < parts.length; i++) {
-      const suffix = parts.slice(i).join(".");
-      // Only set if not already present or if the new one is "shorter" (closer match)
-      if (!pathMap.has(suffix)) {
-        pathMap.set(suffix, n.path);
-      }
-    }
-
-    // Special handling for directory/init files
-    if (n.path.endsWith("/__init__.py")) {
-      const dirPath = normalize(n.path.replace("/__init__.py", ""));
-      pathMap.set(dirPath, n.path);
-    }
-  });
-
-  const getOriginalPath = (p: string) => {
-    const norm = normalize(p);
-    // 1. Try exact match
-    if (pathMap.has(p)) return pathMap.get(p)!;
-    // 2. Try normalized match
-    if (pathMap.has(norm)) return pathMap.get(norm)!;
-    
-    // 3. Try dot-to-slash conversion if not already handled
-    const dotNorm = p.replace(/\./g, "/");
-    if (pathMap.has(dotNorm)) return pathMap.get(dotNorm)!;
-
-    return p;
-  };
 
   const nodeSet = new Set(nodes.map((n) => n.path));
   const inDegree = new Map<string, number>();
   const outDegree = new Map<string, number>();
 
-  // Resolve edges with multi-strategy matching
+  // Edge endpoints are node ids straight from the backend graph builder, so they
+  // match exactly. An edge that does not match is dropped rather than fuzzily
+  // remapped: guessing a nearby file draws a connection that does not exist.
   const matchedEdges: { source: string; target: string }[] = [];
-  edges.forEach(e => {
-    const s = getOriginalPath(e.source);
-    const t = getOriginalPath(e.target);
-    if (nodeSet.has(s) && nodeSet.has(t) && s !== t) {
-      matchedEdges.push({ source: s, target: t });
-      outDegree.set(s, (outDegree.get(s) ?? 0) + 1);
-      inDegree.set(t, (inDegree.get(t) ?? 0) + 1);
-    }
+  edges.forEach((e) => {
+    if (!nodeSet.has(e.source) || !nodeSet.has(e.target) || e.source === e.target) return;
+    matchedEdges.push({ source: e.source, target: e.target });
+    outDegree.set(e.source, (outDegree.get(e.source) ?? 0) + 1);
+    inDegree.set(e.target, (inDegree.get(e.target) ?? 0) + 1);
   });
 
   // Calculate max importance for normalization

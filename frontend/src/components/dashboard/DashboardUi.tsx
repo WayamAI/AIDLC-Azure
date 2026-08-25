@@ -60,8 +60,8 @@ export function DashboardKpi({
   label: string;
   value: ReactNode;
   icon: LucideIcon;
-  change: string;
-  up: boolean;
+  change?: string;
+  up?: boolean;
   accent?: "primary" | "positive" | "success" | "destructive" | "warning";
 }) {
   const accentMap = {
@@ -80,14 +80,16 @@ export function DashboardKpi({
           <div className="dash-kpi-icon">
             <Icon className="h-4 w-4" strokeWidth={2} />
           </div>
-          <span
-            className={cn(
-              "dash-kpi-delta",
-              up ? "text-positive" : change === "0" ? "text-muted-foreground" : "text-destructive",
-            )}
-          >
-            {change}
-          </span>
+          {change ? (
+            <span
+              className={cn(
+                "dash-kpi-delta",
+                up ? "text-positive" : change === "0" ? "text-muted-foreground" : "text-destructive",
+              )}
+            >
+              {change}
+            </span>
+          ) : null}
         </div>
         <p className="dash-kpi-value">{value}</p>
         <p className="mt-auto pt-2 text-[11px] font-medium text-muted-foreground">{label}</p>

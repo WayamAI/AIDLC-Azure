@@ -8,7 +8,7 @@ import hashlib
 import hmac
 import logging
 import secrets
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from bson import ObjectId
@@ -17,6 +17,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 log = logging.getLogger("user_service")
 
 COLLECTION = "users"
+PROFILES = "user_profiles"
 _SEED_EMAIL = "mriganka.dey@wayam.ai"
 _SEED_PASSWORD = "wayam"
 _SEED_ORG_WORKOS_ID = "wayam_local_org"
@@ -42,6 +43,7 @@ async def ensure_indexes(db: AsyncIOMotorDatabase) -> None:
     try:
         await db[COLLECTION].create_index("email", unique=True)
         await db[COLLECTION].create_index("org_id")
+        await db[PROFILES].create_index("user_id", unique=True)
     except Exception as exc:
         log.warning("user index creation failed (non-fatal): %s", exc)
 
@@ -76,7 +78,9 @@ async def create_user(
         "password_hash": password_hash,
         "salt": salt,
         "org_id": org_id,
-        "created_at": datetime.utcnow(),
+        "created_at": datetime.now(timezone.utc),
+        "notifications": True,
+        "newsletter": False,
     }
     result = await db[COLLECTION].insert_one(doc)
     doc["_id"] = result.inserted_id
@@ -92,9 +96,54 @@ async def authenticate(db: AsyncIOMotorDatabase, email: str, password: str) -> O
     return doc
 
 
+async def get_profile_overlay(db: AsyncIOMotorDatabase, user_id: str) -> dict:
+    doc = await db[PROFILES].find_one({"user_id": user_id})
+    return doc or {}
+
+
+async def update_profile(
+    db: AsyncIOMotorDatabase,
+    *,
+    user_id: str,
+    org_id: str,
+    name: str | None = None,
+    notifications: bool | None = None,
+    newsletter: bool | None = None,
+) -> dict:
+    updates: dict = {"user_id": user_id, "org_id": org_id, "updated_at": datetime.now(timezone.utc)}
+    if name is not None:
+        cleaned = name.strip()
+        if not cleaned:
+            raise ValueError("Name cannot be empty")
+        updates["name"] = cleaned
+    if notifications is not None:
+        updates["notifications"] = notifications
+    if newsletter is not None:
+        updates["newsletter"] = newsletter
+
+    await db[PROFILES].update_one({"user_id": user_id}, {"$set": updates}, upsert=True)
+
+    if ObjectId.is_valid(user_id):
+        user_fields: dict = {}
+        if "name" in updates:
+            user_fields["name"] = updates["name"]
+        if notifications is not None:
+            user_fields["notifications"] = notifications
+        if newsletter is not None:
+            user_fields["newsletter"] = newsletter
+        if user_fields:
+            await db[COLLECTION].update_one({"_id": ObjectId(user_id)}, {"$set": user_fields})
+
+    return await get_profile_overlay(db, user_id)
+
+
 async def seed_wayam_account(db: AsyncIOMotorDatabase) -> None:
-    """Ensure mriganka.dey@wayam.ai exists with password wayam (idempotent)."""
+    """Ensure the local demo account exists (never in production)."""
+    from app.config import settings
     from app.services import organization_service
+
+    if settings.APP_ENV == "production":
+        return
 
     existing = await get_by_email(db, _SEED_EMAIL)
     if existing:

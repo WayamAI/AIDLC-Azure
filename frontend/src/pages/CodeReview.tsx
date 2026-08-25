@@ -11,20 +11,22 @@ import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
 import { PageHeader } from "@/components/PageHeader";
 import { PageShell } from "@/components/PageShell";
+import { toast } from "sonner";
+import { useActiveRepo } from "@/context/RepoContext";
 
 const SEVERITY_CONFIG: Record<string, { textColor: string; bg: string; border: string; icon: React.ElementType; label: string }> = {
-  critical: { textColor: "text-red-700", bg: "bg-red-50", border: "border-red-200", icon: XCircle, label: "Critical" },
+  critical: { textColor: "text-destructive", bg: "bg-destructive/10", border: "border-destructive/30", icon: XCircle, label: "Critical" },
   high: { textColor: "text-[var(--color-warning)]", bg: "bg-[var(--color-warning-bg)]", border: "border-[var(--color-status-warning)]/30", icon: AlertTriangle, label: "High" },
-  medium: { textColor: "text-amber-700", bg: "bg-amber-50", border: "border-amber-200", icon: Info, label: "Medium" },
-  low: { textColor: "text-sky-700", bg: "bg-sky-50", border: "border-sky-200", icon: Info, label: "Low" },
+  medium: { textColor: "text-warning", bg: "bg-warning/10", border: "border-warning/30", icon: Info, label: "Medium" },
+  low: { textColor: "text-info", bg: "bg-info/10", border: "border-info/30", icon: Info, label: "Low" },
 };
 
 const RECOMMENDATION_CONFIG: Record<string, { label: string; description: string; color: string }> = {
   APPROVE: { label: "Approved", description: "No blocking issues. Code is ready to merge.", color: "text-positive border-positive/25" },
-  REQUEST_CHANGES: { label: "Changes Requested", description: "Issues found that must be resolved before merging.", color: "text-red-700 border-red-200" },
+  REQUEST_CHANGES: { label: "Changes Requested", description: "Issues found that must be resolved before merging.", color: "text-destructive border-destructive/30" },
   NEEDS_DISCUSSION: { label: "Needs Discussion", description: "Review found concerns requiring engineering discussion.", color: "text-[var(--color-warning)] border-[var(--color-status-warning)]/30" },
-  COMMENT: { label: "Commented", description: "Suggestions provided not blocking, but worth reviewing.", color: "text-amber-700 border-amber-200" },
-  CONDITIONAL: { label: "Conditional", description: "Can merge after addressing the listed conditions.", color: "text-amber-700 border-amber-200" },
+  COMMENT: { label: "Commented", description: "Suggestions provided not blocking, but worth reviewing.", color: "text-warning border-warning/30" },
+  CONDITIONAL: { label: "Conditional", description: "Can merge after addressing the listed conditions.", color: "text-warning border-warning/30" },
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -61,8 +63,14 @@ function isActionableFinding(finding: any): boolean {
   return !["lgtm", "lgtm!", "looks good", "looks good to me", "no changes needed."].includes(message);
 }
 
-function RepoInput({ onSearch }: { onSearch: (owner: string, repo: string) => void }) {
-  const [input, setInput] = useState("");
+function RepoInput({
+  onSearch,
+  defaultUrl = "",
+}: {
+  onSearch: (owner: string, repo: string) => void;
+  defaultUrl?: string;
+}) {
+  const [input, setInput] = useState(defaultUrl);
 
   const handleSearch = () => {
     const parts = input.trim().replace("https://github.com/", "").split("/");
@@ -98,6 +106,12 @@ function PRCard({ pr, owner, repo, customRules }: { pr: any; owner: string; repo
   const [expanded, setExpanded] = useState(false);
   const reviewMutation = useMutation({
     mutationFn: () => api.reviewPR(owner, repo, pr.number, customRules),
+    onError: (err: unknown) => {
+      const detail = (err as { response?: { data?: { detail?: string } }; message?: string })?.response?.data?.detail
+        || (err as { message?: string })?.message
+        || "AI review failed";
+      toast.error(String(detail));
+    },
   });
 
   const review = reviewMutation.data as any;
@@ -135,7 +149,7 @@ function PRCard({ pr, owner, repo, customRules }: { pr: any; owner: string; repo
             {(pr.additions > 0 || pr.deletions > 0) && (
               <>
                 <span className="text-positive">+{pr.additions}</span>
-                <span className="text-red-700">-{pr.deletions}</span>
+                <span className="text-destructive">-{pr.deletions}</span>
               </>
             )}
           </div>
@@ -163,6 +177,12 @@ function PRCard({ pr, owner, repo, customRules }: { pr: any; owner: string; repo
             >
               {reviewMutation.isPending ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" />Reviewing...</> : "AI Review"}
             </Button>
+          )}
+          {reviewMutation.isError && !review && (
+            <span className="text-[10px] text-destructive max-w-[160px]">
+              {(reviewMutation.error as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+                || "Review failed"}
+            </span>
           )}
           <Button size="sm" variant="ghost" onClick={() => setExpanded(!expanded)}>
             {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
@@ -249,10 +269,10 @@ function PRCard({ pr, owner, repo, customRules }: { pr: any; owner: string; repo
               )}
 
               {reviewPayload?.security_flags?.length > 0 && (
-                <div className="p-3 rounded-lg bg-red-500/5 border border-red-500/20">
+                <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
                   <div className="flex items-center gap-2 mb-2">
-                    <Shield className="h-4 w-4 text-red-700" />
-                    <span className="text-xs font-medium text-red-700">Security Flags</span>
+                    <Shield className="h-4 w-4 text-destructive" />
+                    <span className="text-xs font-medium text-destructive">Security Flags</span>
                   </div>
                   <ul className="space-y-1">
                     {reviewPayload.security_flags.map((f: string, i: number) => (
@@ -290,7 +310,10 @@ function PRCard({ pr, owner, repo, customRules }: { pr: any; owner: string; repo
 }
 
 export default function CodeReview() {
-  const [repoCoords, setRepoCoords] = useState<{ owner: string; repo: string } | null>(null);
+  const { activeRepo, setActiveRepo } = useActiveRepo();
+  const [repoCoords, setRepoCoords] = useState<{ owner: string; repo: string } | null>(
+    activeRepo ? { owner: activeRepo.owner, repo: activeRepo.repo } : null,
+  );
   const [customRules, setCustomRules] = useState<string>("");
   const [isRulesExpanded, setIsRulesExpanded] = useState(false);
 
@@ -323,7 +346,13 @@ export default function CodeReview() {
           description="Connect a GitHub repository, fetch open PRs, and run AI-powered inline code review."
         />
 
-        <RepoInput onSearch={(owner, repo) => setRepoCoords({ owner, repo })} />
+        <RepoInput
+          defaultUrl={activeRepo?.repoUrl ?? ""}
+          onSearch={(owner, repo) => {
+            setRepoCoords({ owner, repo });
+            setActiveRepo({ owner, repo, repoUrl: `https://github.com/${owner}/${repo}`, branch: activeRepo?.branch || "main" });
+          }}
+        />
 
         {repoCoords && (
           <div className="mt-4 mb-4 text-xs text-muted-foreground flex items-center gap-2">
@@ -402,7 +431,8 @@ export default function CodeReview() {
 
         {prsQuery.isError && (
           <div className="mt-4 p-4 rounded-lg bg-destructive/10 border border-destructive/30 text-sm text-destructive">
-            Failed to fetch PRs. Check the repo name and ensure the GitHub token has access.
+            {(prsQuery.error as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+              || "Failed to fetch PRs. Check the repo name and GitHub token in Settings → Connectors."}
           </div>
         )}
 

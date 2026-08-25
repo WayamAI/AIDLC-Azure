@@ -35,6 +35,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { usePipelineContext } from "@/context/PipelineContext";
 import LiveTestRunner from "@/pages/LiveTestRunner";
+import { HealFailedTest } from "@/components/live-testing/HealFailedTest";
 import { cn } from "@/lib/utils";
 import { useLiveTesting } from "@/hooks/use-live-testing";
 import { api, baselineApi, type WorkspacePlaywrightTest, type PlaywrightTestCase, type TestStep, type LiveTestResult, type BaselineTest } from "@/lib/api";
@@ -342,7 +343,14 @@ function CommittedTestsRunner({
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {results.map((r) => <MiniTestCard key={r.test_id} result={r} />)}
+          {results.map((r) => (
+            <MiniTestCard
+              key={r.test_id}
+              result={r}
+              runId={runStatus.run_id}
+              targetUrl={targetUrl}
+            />
+          ))}
         </div>
       </div>
     </motion.div>
@@ -351,7 +359,15 @@ function CommittedTestsRunner({
 
 // ── Mini live test card ────────────────────────────────────────────────────────
 
-function MiniTestCard({ result }: { result: LiveTestResult }) {
+function MiniTestCard({
+  result,
+  runId,
+  targetUrl,
+}: {
+  result: LiveTestResult;
+  runId?: string;
+  targetUrl?: string;
+}) {
   const [open, setOpen] = useState(false);
   const icon = {
     running: <Loader2 className="h-4 w-4 animate-spin text-amber-700" />,
@@ -392,6 +408,9 @@ function MiniTestCard({ result }: { result: LiveTestResult }) {
                   <AlertTriangle className="h-3.5 w-3.5 text-red-700 mt-0.5 flex-shrink-0" />
                   <p className="text-xs text-red-700">{result.error}</p>
                 </div>
+              )}
+              {result.status === "failed" && runId && targetUrl && (
+                <HealFailedTest runId={runId} testId={result.test_id} targetUrl={targetUrl} />
               )}
               {result.step_results.map((sr, i) => (
                 <div

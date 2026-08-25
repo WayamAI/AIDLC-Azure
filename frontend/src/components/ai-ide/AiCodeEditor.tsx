@@ -1,5 +1,8 @@
+import { useRef } from "react";
 import Editor from "@monaco-editor/react";
 import { useAiIde } from "@/context/AiIdeContext";
+import { useMonacoTheme } from "@/hooks/use-editor-theme";
+import { apiClient } from "@/lib/api";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -16,7 +19,9 @@ function languageFor(path: string | null): string {
 
 export function AiCodeEditor() {
   const { state, dispatch, setActiveFile, closeTab } = useAiIde();
-  const { activeFile, files, status, openTabs, fileStatuses } = state;
+  const { activeFile, files, status, openTabs, fileStatuses, workspaceId } = state;
+  const monacoTheme = useMonacoTheme();
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const content = activeFile ? (files[activeFile] ?? "") : "";
 
@@ -72,11 +77,19 @@ export function AiCodeEditor() {
           height="100%"
           language={languageFor(activeFile)}
           value={content}
-          theme="light"
+          theme={monacoTheme}
           onChange={(value) => {
-            if (value !== undefined && activeFile) {
-              dispatch({ type: "UPDATE_FILE", path: activeFile, content: value });
-            }
+            if (value === undefined || !activeFile) return;
+            dispatch({ type: "UPDATE_FILE", path: activeFile, content: value });
+            if (!workspaceId || status === "generating" || status === "planning" || status === "creating") return;
+            if (saveTimer.current) clearTimeout(saveTimer.current);
+            const path = activeFile;
+            const ws = workspaceId;
+            saveTimer.current = setTimeout(() => {
+              apiClient
+                .post("/ai-ide/file/update", { workspace_id: ws, path, content: value })
+                .catch(() => {});
+            }, 600);
           }}
           options={{
             readOnly: status === "generating" || status === "planning" || status === "creating",

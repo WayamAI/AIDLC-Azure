@@ -24,6 +24,7 @@ import {
   Background,
   BackgroundVariant,
   Controls,
+  Panel,
   Handle,
   Position,
   MarkerType,
@@ -38,7 +39,10 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useConnectWorkspace } from "@/hooks/use-workspace";
+import { useMonacoTheme } from "@/hooks/use-editor-theme";
+import { useActiveRepo } from "@/context/RepoContext";
 import { impactApi, api } from "@/lib/api";
+import { buildAdjacency, deriveRootToLeafChain, type Adjacency } from "@/lib/dep-graph";
 import type {
   WorkspaceInfo,
   WorkspaceGraphResponse,
@@ -58,15 +62,22 @@ interface FlowNodeData extends Record<string, unknown> {
   label: string;
   path: string;
   ext: string;
-  tone: "root" | "chain" | "normal";
+  tone: "focus" | "chain" | "normal";
   isRoot: boolean;
   isLeaf: boolean;
+  isFocus: boolean;
+  isTest: boolean;
+  imports: number;
+  importedBy: number;
 }
 
 const NODE_W = 230;
-const NODE_H = 70;
-const X_GAP = 110;
-const Y_GAP = 110;
+const NODE_H = 76;
+const X_GAP = 130;
+const Y_GAP = 118;
+const MAX_HOPS = 3;
+const MAX_SUBSET = 140;
+const MAX_LAYERS = 40;
 
 function parseRepoUrl(value: string): { owner: string; repo: string; normalized: string } | null {
   const input = value.trim().replace(/\.git$/, "");
@@ -110,54 +121,44 @@ function fileIcon(path: string, isRoot: boolean) {
   return <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />;
 }
 
-function deriveRootToLeafChain(focusPath: string, nodes: GraphNode[], edges: GraphEdge[]): string[] {
-  if (!focusPath || nodes.length === 0) return [];
+/**
+ * Collect the connected neighbourhood around the focus file: everything it
+ * imports (downstream) and everything importing it (upstream), up to MAX_HOPS,
+ * capped at MAX_SUBSET nodes. The root-to-leaf chain is always included.
+ */
+function collectNeighbourhood(
+  focusPath: string,
+  chain: string[],
+  adj: Adjacency,
+): { subset: Set<string>; truncated: boolean } {
+  const subset = new Set<string>([focusPath, ...chain.filter((p) => adj.nodeSet.has(p))]);
+  let truncated = false;
 
-  const nodeSet = new Set(nodes.map((n) => n.path));
-  if (!nodeSet.has(focusPath)) return [focusPath];
-
-  const parentMap = new Map<string, string[]>();
-  const childMap = new Map<string, string[]>();
-
-  for (const edge of edges) {
-    if (!nodeSet.has(edge.source) || !nodeSet.has(edge.target)) continue;
-
-    if (!parentMap.has(edge.target)) parentMap.set(edge.target, []);
-    parentMap.get(edge.target)!.push(edge.source);
-
-    if (!childMap.has(edge.source)) childMap.set(edge.source, []);
-    childMap.get(edge.source)!.push(edge.target);
-  }
-
-  const walkToRoot = (node: string, visited: Set<string>): string[] => {
-    if (visited.has(node)) return [node];
-    const parents = [...(parentMap.get(node) ?? [])].sort();
-    if (parents.length === 0) return [node];
-
-    let bestPath = [node];
-    for (const parent of parents) {
-      const candidate = [...walkToRoot(parent, new Set([...visited, node])), node];
-      if (candidate.length > bestPath.length) bestPath = candidate;
+  const expand = (map: Map<string, string[]>) => {
+    let frontier = [focusPath];
+    for (let hop = 0; hop < MAX_HOPS; hop += 1) {
+      const next: string[] = [];
+      for (const node of frontier) {
+        for (const neighbour of map.get(node) ?? []) {
+          if (subset.has(neighbour)) continue;
+          if (subset.size >= MAX_SUBSET) {
+            truncated = true;
+            return;
+          }
+          subset.add(neighbour);
+          next.push(neighbour);
+        }
+      }
+      if (next.length === 0) return;
+      frontier = next;
     }
-    return bestPath;
+    // more neighbours exist beyond the hop limit
+    if (frontier.some((n) => (map.get(n) ?? []).some((x) => !subset.has(x)))) truncated = true;
   };
 
-  const walkToLeaf = (node: string, visited: Set<string>): string[] => {
-    if (visited.has(node)) return [node];
-    const children = [...(childMap.get(node) ?? [])].sort();
-    if (children.length === 0) return [node];
-
-    let bestPath = [node];
-    for (const child of children) {
-      const candidate = [node, ...walkToLeaf(child, new Set([...visited, node]))];
-      if (candidate.length > bestPath.length) bestPath = candidate;
-    }
-    return bestPath;
-  };
-
-  const upstream = walkToRoot(focusPath, new Set());
-  const downstream = walkToLeaf(focusPath, new Set());
-  return [...upstream, ...downstream.slice(1)];
+  expand(adj.parents);
+  expand(adj.children);
+  return { subset, truncated };
 }
 
 function layoutBranchTree(
@@ -165,43 +166,33 @@ function layoutBranchTree(
   chain: string[],
   nodes: GraphNode[],
   edges: GraphEdge[],
-): { rfNodes: Node[]; rfEdges: Edge[] } {
+): { rfNodes: Node[]; rfEdges: Edge[]; truncated: boolean } {
   const nodeMap = new Map(nodes.map((n) => [n.path, n]));
-  const nodeSet = new Set(nodes.map((n) => n.path));
+  const adj = buildAdjacency(nodes, edges);
+  const { parents, children } = adj;
 
-  const parentMap = new Map<string, string[]>();
-  const childMap = new Map<string, string[]>();
-  for (const edge of edges) {
-    if (!nodeSet.has(edge.source) || !nodeSet.has(edge.target)) continue;
+  const { subset, truncated } = collectNeighbourhood(focusPath, chain, adj);
 
-    if (!parentMap.has(edge.target)) parentMap.set(edge.target, []);
-    parentMap.get(edge.target)!.push(edge.source);
-
-    if (!childMap.has(edge.source)) childMap.set(edge.source, []);
-    childMap.get(edge.source)!.push(edge.target);
-  }
-
-  // Show only the selected file's actual connection path (root -> ... -> leaf).
-  const subset = new Set<string>(chain.length > 0 ? chain : [focusPath]);
-
-  const roots = [...subset].filter((p) => ((parentMap.get(p) ?? []).filter((x) => subset.has(x)).length === 0));
-  const orderedRoots = roots.length > 0 ? roots : [focusPath];
+  // Layer = distance from the subset's entry points, so imports flow left→right.
+  const roots = [...subset].filter(
+    (p) => (parents.get(p) ?? []).filter((x) => subset.has(x)).length === 0,
+  );
+  const seeds = roots.length > 0 ? roots.sort() : [focusPath];
 
   const layer = new Map<string, number>();
-  const queue: Array<{ path: string; depth: number }> = orderedRoots.map((r) => ({ path: r, depth: 0 }));
-
+  const queue: Array<{ path: string; depth: number }> = seeds.map((r) => ({ path: r, depth: 0 }));
   while (queue.length > 0) {
     const current = queue.shift()!;
+    if (current.depth > MAX_LAYERS) continue;
     const prevDepth = layer.get(current.path);
     if (prevDepth !== undefined && prevDepth >= current.depth) continue;
 
     layer.set(current.path, current.depth);
-    for (const child of childMap.get(current.path) ?? []) {
+    for (const child of children.get(current.path) ?? []) {
       if (!subset.has(child)) continue;
       queue.push({ path: child, depth: current.depth + 1 });
     }
   }
-
   for (const p of subset) {
     if (!layer.has(p)) layer.set(p, 0);
   }
@@ -231,16 +222,25 @@ function layoutBranchTree(
     const arr = groups.get(d) ?? [];
     arr.forEach((p, idx) => {
       const g = nodeMap.get(p);
-      const isRoot = chain.length > 0 ? p === chain[0] : idx === 0 && d === 0;
-      const isLeaf = chain.length > 0 ? p === chain[chain.length - 1] : p === focusPath;
-      const tone: "root" | "chain" | "normal" = isRoot ? "root" : chainIndex.has(p) ? "chain" : "normal";
+      const isFocus = p === focusPath;
+      const isRoot = chain.length > 0 && p === chain[0] && !isFocus;
+      const isLeaf = chain.length > 0 && p === chain[chain.length - 1] && !isFocus;
+      const tone: FlowNodeData["tone"] = isFocus
+        ? "focus"
+        : chainIndex.has(p)
+        ? "chain"
+        : "normal";
 
       rfNodes.push({
         id: p,
         type: "impactNode",
-        draggable: false,
+        draggable: true,
         selectable: true,
-        position: { x: d * (NODE_W + X_GAP), y: idx * Y_GAP },
+        position: {
+          // centre each layer vertically around y = 0
+          x: d * (NODE_W + X_GAP),
+          y: (idx - (arr.length - 1) / 2) * Y_GAP,
+        },
         data: {
           label: p.split("/").pop() ?? p,
           path: p,
@@ -248,6 +248,10 @@ function layoutBranchTree(
           tone,
           isRoot,
           isLeaf,
+          isFocus,
+          isTest: g?.is_test ?? false,
+          imports: (children.get(p) ?? []).length,
+          importedBy: (parents.get(p) ?? []).length,
         } satisfies FlowNodeData,
         style: { width: NODE_W, height: NODE_H },
       });
@@ -260,37 +264,45 @@ function layoutBranchTree(
   }
 
   const rfEdges: Edge[] = [];
+  const seen = new Set<string>();
   for (const edge of edges) {
     if (!subset.has(edge.source) || !subset.has(edge.target)) continue;
-    const highlighted = chainEdges.has(`${edge.source}->${edge.target}`);
+    if (edge.source === edge.target) continue;
+    const id = `e:${edge.source}:${edge.target}`;
+    if (seen.has(id)) continue;
+    seen.add(id);
+
+    const onChain = chainEdges.has(`${edge.source}->${edge.target}`);
+    const touchesFocus = edge.source === focusPath || edge.target === focusPath;
+    const strong = onChain || touchesFocus;
+    const color = touchesFocus ? "#B45309" : onChain ? "#2563EB" : "hsl(var(--muted-foreground) / 0.45)";
+
     rfEdges.push({
-      id: `e:${edge.source}:${edge.target}`,
+      id,
       source: edge.source,
       target: edge.target,
-      type: "step",
-      animated: highlighted,
-      style: {
-        stroke: highlighted ? "#B45309" : "hsl(var(--border))",
-        strokeWidth: highlighted ? 2.2 : 1.4,
-      },
+      type: "smoothstep",
+      animated: touchesFocus,
+      zIndex: strong ? 2 : 1,
+      style: { stroke: color, strokeWidth: strong ? 2.2 : 1.2 },
       markerEnd: {
         type: MarkerType.ArrowClosed,
         width: 12,
         height: 12,
-        color: highlighted ? "#B45309" : "hsl(var(--border))",
+        color,
       },
     });
   }
 
-  return { rfNodes, rfEdges };
+  return { rfNodes, rfEdges, truncated };
 }
 
 const ImpactNode = memo(({ data, selected }: NodeProps) => {
   const d = data as FlowNodeData;
 
   const classes =
-    d.tone === "root"
-      ? "border-[var(--color-status-warning)]/30 bg-[var(--color-warning-bg)]"
+    d.tone === "focus"
+      ? "border-[var(--color-status-warning)]/60 bg-[var(--color-warning-bg)]"
       : d.tone === "chain"
       ? "border-blue-400/60 bg-blue-400/8"
       : "border-border/60 bg-card";
@@ -320,14 +332,24 @@ const ImpactNode = memo(({ data, selected }: NodeProps) => {
       </div>
 
       <div className="flex items-center gap-1.5 flex-wrap">
+        {d.isFocus && (
+          <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-[var(--color-warning-bg)] text-[var(--color-warning)]">
+            selected
+          </span>
+        )}
         {d.isRoot && (
           <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-[var(--color-warning-bg)] text-[var(--color-warning)]">
             root
           </span>
         )}
-        {d.isLeaf && !d.isRoot && (
+        {d.isLeaf && (
           <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-primary/15 text-primary">
             leaf
+          </span>
+        )}
+        {d.isTest && (
+          <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-violet-400/15 text-violet-600 dark:text-violet-300">
+            test
           </span>
         )}
         {d.tone === "chain" && !d.isRoot && !d.isLeaf && (
@@ -335,6 +357,12 @@ const ImpactNode = memo(({ data, selected }: NodeProps) => {
             chain
           </span>
         )}
+        <span
+          className="ml-auto text-[9px] font-mono text-muted-foreground"
+          title={`${d.importedBy} file(s) import this - this file imports ${d.imports}`}
+        >
+          &darr;{d.importedBy} &uarr;{d.imports}
+        </span>
       </div>
 
       <Handle
@@ -355,29 +383,62 @@ function BranchFlowCanvas({
   chain,
   nodes,
   edges,
+  showTests,
   onNodeClick,
 }: {
   focusPath: string;
   chain: string[];
   nodes: GraphNode[];
   edges: GraphEdge[];
+  showTests: boolean;
   onNodeClick: (path: string) => void;
 }) {
-  const { rfNodes, rfEdges } = useMemo(
-    () => layoutBranchTree(focusPath, chain, nodes, edges),
-    [focusPath, chain, nodes, edges]
+  // Hiding tests drops their nodes AND any edge touching them, so no edge is
+  // left dangling. The selected file is never hidden, even if it is a test.
+  const visible = useMemo(() => {
+    if (showTests) return { nodes, edges };
+    const keep = new Set(
+      nodes.filter((n) => !n.is_test || n.path === focusPath).map((n) => n.path),
+    );
+    return {
+      nodes: nodes.filter((n) => keep.has(n.path)),
+      edges: edges.filter((e) => keep.has(e.source) && keep.has(e.target)),
+    };
+  }, [nodes, edges, showTests, focusPath]);
+
+  const { rfNodes, rfEdges, truncated } = useMemo(
+    () => layoutBranchTree(focusPath, chain, visible.nodes, visible.edges),
+    [focusPath, chain, visible]
   );
+
+  if (rfNodes.length <= 1) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center gap-2 p-8 text-muted-foreground/70">
+        <Code2 className="h-8 w-8 opacity-20" />
+        <p className="text-xs text-center max-w-sm">
+          <span className="font-mono text-foreground/80">{focusPath.split("/").pop()}</span> has no
+          resolved imports and nothing in this repo imports it, so there is nothing to wire up.
+        </p>
+        <p className="text-[10px] text-center max-w-sm opacity-70">
+          Only relative / <code>@/</code> imports between <code>.ts .tsx .js .jsx .py</code> files are
+          tracked; test files are excluded from the graph.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <ReactFlow
+      key={focusPath}
       nodes={rfNodes}
       edges={rfEdges}
       nodeTypes={NODE_TYPES}
-      nodesDraggable={false}
+      nodesDraggable
       nodesConnectable={false}
       elementsSelectable={true}
+      minZoom={0.1}
       fitView
-      fitViewOptions={{ padding: 0.35, maxZoom: 1.2 }}
+      fitViewOptions={{ padding: 0.25, maxZoom: 1.1 }}
       onNodeClick={(_e, node) => onNodeClick(node.id)}
       proOptions={{ hideAttribution: true }}
       style={{ background: "transparent" }}
@@ -392,6 +453,27 @@ function BranchFlowCanvas({
         showInteractive={false}
         className="!bg-muted/40 !border-border/40 !shadow-none [&>button]:!bg-transparent [&>button]:!border-border/30"
       />
+      <Panel position="top-right">
+        <div className="rounded-md border border-border/40 bg-card/80 px-2.5 py-1.5 text-[10px] backdrop-blur space-y-1">
+          <div className="flex items-center gap-1.5">
+            <span className="h-0.5 w-4 rounded bg-[#B45309]" /> touches selected file
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="h-0.5 w-4 rounded bg-[#2563EB]" /> root &rarr; leaf chain
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="h-0.5 w-4 rounded bg-muted-foreground/45" /> other links
+          </div>
+          <div className="pt-0.5 text-muted-foreground">
+            arrow points from importer &rarr; imported
+          </div>
+          {truncated && (
+            <div className="pt-1 mt-1 border-t border-border/40 text-[var(--color-warning)]">
+              showing {rfNodes.length} nearest files &mdash; more exist beyond {MAX_HOPS} hops
+            </div>
+          )}
+        </div>
+      </Panel>
     </ReactFlow>
   );
 }
@@ -472,12 +554,13 @@ function FileTreeNode({
 }
 
 export default function CodeImpact() {
-  const editorTheme = "light";
+  const editorTheme = useMonacoTheme();
 
   const connectWorkspace = useConnectWorkspace();
+  const { activeRepo, setActiveRepo } = useActiveRepo();
 
-  const [repoUrl, setRepoUrl] = useState("");
-  const [branch, setBranch] = useState("main");
+  const [repoUrl, setRepoUrl] = useState(activeRepo?.repoUrl ?? "");
+  const [branch, setBranch] = useState(activeRepo?.branch ?? "main");
   const [workspace, setWorkspace] = useState<WorkspaceInfo | null>(null);
 
   const [graphData, setGraphData] = useState<WorkspaceGraphResponse | null>(null);
@@ -487,14 +570,28 @@ export default function CodeImpact() {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [highlightedPath, setHighlightedPath] = useState<string[]>([]);
   const [previewFile, setPreviewFile] = useState<{ path: string; content: string; language: string } | null>(null);
+  const [showTests, setShowTests] = useState(false);
+
+  const testFileCount = useMemo(
+    () => (graphData?.nodes ?? []).filter((n) => n.is_test).length,
+    [graphData],
+  );
 
   const parseRepo = useMemo(() => parseRepoUrl(repoUrl), [repoUrl]);
 
-  const loadWorkspaceGraph = useCallback(async (workspaceId: string) => {
+  const loadWorkspaceGraph = useCallback(async (workspaceId: string): Promise<boolean> => {
     setLoadingGraph(true);
     try {
       const graph = await impactApi.buildWorkspaceGraph({ workspace_id: workspaceId });
       setGraphData(graph);
+      return true;
+    } catch (err: unknown) {
+      setGraphData(null);
+      toast.error(
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+          ?? "Failed to build dependency graph",
+      );
+      return false;
     } finally {
       setLoadingGraph(false);
     }
@@ -514,13 +611,18 @@ export default function CodeImpact() {
 
       setWorkspace(ws);
       setTreeNodes(mapWorkspaceTree(ws.tree ?? []));
-      await loadWorkspaceGraph(ws.workspace_id);
+      setActiveRepo(parseRepo.normalized, branch);
+      const graphed = await loadWorkspaceGraph(ws.workspace_id);
 
       setSelectedFile(null);
       setHighlightedPath([]);
       setPreviewFile(null);
 
-      toast.success(`Connected ${parseRepo.owner}/${parseRepo.repo} and analyzed entire repository`);
+      if (graphed) {
+        toast.success(`Connected ${parseRepo.owner}/${parseRepo.repo} and analyzed entire repository`);
+      } else {
+        toast.success(`Connected ${parseRepo.owner}/${parseRepo.repo}. Graph analysis failed — see the error above.`);
+      }
     } catch (err: unknown) {
       toast.error((err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? "Failed to connect repository");
     }
@@ -734,7 +836,19 @@ export default function CodeImpact() {
                     {chain.length} chain nodes
                   </span>
                 )}
-                <span className="ml-auto text-muted-foreground">click a node to preview code</span>
+                <label className="ml-auto flex items-center gap-1.5 cursor-pointer select-none text-[10px] text-muted-foreground hover:text-foreground">
+                  <input
+                    type="checkbox"
+                    className="h-3 w-3 accent-[var(--color-warning)]"
+                    checked={showTests}
+                    onChange={(e) => setShowTests(e.target.checked)}
+                  />
+                  show test files
+                  {testFileCount > 0 && (
+                    <span className="text-muted-foreground/60">({testFileCount})</span>
+                  )}
+                </label>
+                <span className="text-muted-foreground">click a node to preview code</span>
               </div>
 
               <div className="flex-1 min-h-0 flex overflow-hidden">
@@ -755,6 +869,7 @@ export default function CodeImpact() {
                       chain={chain}
                       nodes={graphData.nodes}
                       edges={graphData.edges}
+                      showTests={showTests}
                       onNodeClick={handleNodePreview}
                     />
                   )}

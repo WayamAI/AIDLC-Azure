@@ -13,6 +13,7 @@ import {
   RadarChart, PolarGrid, PolarAngleAxis, Radar,
 } from "recharts";
 import { api } from "@/lib/api";
+import { useActiveRepo } from "@/context/RepoContext";
 import { PageHeader, PageStat } from "@/components/PageHeader";
 import { PageShell } from "@/components/PageShell";
 import { ChartTooltipBox } from "@/components/dashboard/DashboardUi";
@@ -48,7 +49,13 @@ function DoraLevel({ rate }: { rate: number }) {
 }
 
 export default function SprintIntelligence() {
-  const [form, setForm] = useState({ owner: "", repo: "", jira_project: "", sprint_name: "" });
+  const { activeRepo, setActiveRepo } = useActiveRepo();
+  const [form, setForm] = useState({
+    owner: activeRepo?.owner ?? "",
+    repo: activeRepo?.repo ?? "",
+    jira_project: "",
+    sprint_name: "",
+  });
 
   const reportMutation = useMutation({
     mutationFn: () =>
@@ -201,7 +208,17 @@ export default function SprintIntelligence() {
           )}
 
           <Button
-            onClick={() => reportMutation.mutate()}
+            onClick={() => {
+              if (form.owner && form.repo) {
+                setActiveRepo({
+                  owner: form.owner,
+                  repo: form.repo,
+                  repoUrl: `https://github.com/${form.owner}/${form.repo}`,
+                  branch: activeRepo?.branch || "main",
+                });
+              }
+              reportMutation.mutate();
+            }}
             disabled={!hasGitHub || reportMutation.isPending}
             className="bg-primary text-primary-foreground w-full"
           >

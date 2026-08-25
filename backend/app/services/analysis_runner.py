@@ -23,6 +23,120 @@ from app.services.ai_service import (
 # ── In-memory job store ───────────────────────────────────────────────────────
 _jobs: dict[str, dict[str, Any]] = {}
 
+_GENERATE_TIMEOUT_S = 90.0
+_ANALYZE_TIMEOUT_S = 180.0
+
+
+def fallback_playwright_tests(
+    analysis: dict[str, Any],
+    target_url: str,
+    num_tests: int = 1,
+) -> list[dict[str, Any]]:
+    """Deterministic tests from analysis pages/flows so Live Tests can proceed without LLM."""
+    pages = analysis.get("pages") or []
+    flows = analysis.get("user_flows") or []
+    sources: list[dict[str, Any]] = []
+    for page in pages:
+        if isinstance(page, dict):
+            sources.append(page)
+    if not sources:
+        for flow in flows:
+            if isinstance(flow, dict):
+                sources.append({"name": flow.get("name") or "Flow", "path": "/", "description": flow.get("name")})
+    if not sources:
+        sources = [{"name": "Home", "path": "/", "description": "Open the application"}]
+
+    n = max(1, min(int(num_tests or 1), 3, len(sources)))
+    base = (target_url or "").rstrip("/")
+    tests: list[dict[str, Any]] = []
+    for i, page in enumerate(sources[:n]):
+        name = str(page.get("name") or f"Page {i + 1}")
+        path = str(page.get("path") or "/")
+        url = base if path in {"", "/"} else f"{base}{path if path.startswith('/') else '/' + path}"
+        tests.append({
+            "name": f"Open {name}",
+            "description": page.get("description") or f"Load {name} and capture a screenshot",
+            "page_name": name,
+            "severity": "High" if i == 0 else "Medium",
+            "steps": [
+                {"action": "navigate", "selector": None, "value": url, "description": f"Navigate to {name}"},
+                {"action": "screenshot", "selector": None, "value": None, "description": "Capture page load"},
+                {"action": "assert_text", "selector": None, "value": name, "description": f"Look for {name}"},
+            ],
+        })
+    return tests
+
+
+async def _generate_tests_or_fallback(
+    *,
+    analysis_data: dict[str, Any],
+    target_url: str,
+    test_email: str | None,
+    test_password: str | None,
+    test_preferences: str | None,
+    num_tests: int,
+    log,
+) -> tuple[list[dict[str, Any]], str]:
+    try:
+        tests_raw = await asyncio.wait_for(
+            generate_playwright_tests(
+                analysis_data,
+                target_url,
+                test_email=test_email,
+                test_password=test_password,
+                test_preferences=test_preferences,
+                num_tests=num_tests,
+            ),
+            timeout=_GENERATE_TIMEOUT_S,
+        )
+        if tests_raw:
+            return tests_raw, "ai"
+        log("  ⚠ AI returned no tests; using template tests")
+    except asyncio.TimeoutError:
+        log(f"  ⚠ AI test generation timed out after {_GENERATE_TIMEOUT_S:.0f}s; using template tests")
+    except AIQuotaError as exc:
+        log(f"  ⚠ AI quota during test generation: {exc}; using template tests")
+    except Exception as exc:
+        log(f"  ⚠ AI test generation failed: {exc}; using template tests")
+    return fallback_playwright_tests(analysis_data, target_url, num_tests), "fallback"
+
+
+def fallback_analysis(target_url: str, reason: str = "") -> dict[str, Any]:
+    """Minimal analysis so Live Tests can still generate template coverage."""
+    return {
+        "summary": reason or "AI analysis was unavailable; using template coverage.",
+        "tech_stack": "unknown",
+        "pages": [{"name": "Home", "path": "/", "description": "Application home"}],
+        "user_flows": [{"name": "Open app", "steps": [f"Navigate to {target_url or '/'}"]}],
+    }
+
+
+async def _analyze_or_fallback(
+    *,
+    codebase_content: str,
+    target_url: str,
+    log,
+) -> tuple[dict[str, Any], str]:
+    try:
+        analysis_data = await asyncio.wait_for(
+            analyze_codebase(codebase_content, target_url),
+            timeout=_ANALYZE_TIMEOUT_S,
+        )
+        if isinstance(analysis_data, dict) and (
+            analysis_data.get("pages")
+            or analysis_data.get("user_flows")
+            or analysis_data.get("summary")
+        ):
+            return analysis_data, "ai"
+        log("  ⚠ AI analysis returned no structure; using a minimal analysis")
+    except asyncio.TimeoutError:
+        log(f"  ⚠ AI analysis timed out after {_ANALYZE_TIMEOUT_S:.0f}s; using a minimal analysis")
+    except AIQuotaError as exc:
+        log(f"  ⚠ AI quota during analysis: {exc}; using a minimal analysis")
+    except Exception as exc:
+        log(f"  ⚠ AI analysis failed: {exc}; using a minimal analysis")
+    return fallback_analysis(target_url), "fallback"
+
 
 def create_job(
     org_id: str,
@@ -116,10 +230,13 @@ async def run_analysis(db, job_id: str) -> None:
         # ── Step 3: LLM codebase analysis ─────────────────────────────────────
         job["step"] = "analyzing"
         log("Step 3/4: AI is reading and analysing the codebase...")
-        try:
-            analysis_data = await analyze_codebase(codebase_content, job["target_url"])
-        except AIQuotaError as exc:
-            raise RuntimeError(f"AI quota exceeded: {exc}") from exc
+        analysis_data, analysis_source = await _analyze_or_fallback(
+            codebase_content=codebase_content,
+            target_url=job["target_url"],
+            log=log,
+        )
+        if analysis_source != "ai":
+            log("  ⚠ Continuing with template analysis so test generation can proceed")
 
         pages_found = len(analysis_data.get("pages", []))
         flows_found = len(analysis_data.get("user_flows", []))
@@ -132,19 +249,16 @@ async def run_analysis(db, job_id: str) -> None:
         if test_email:
             log(f"  ℹ Using provided credentials ({test_email}) in test generation")
         log(f"Step 4/4: Generating {num_tests} Playwright test case(s)...")
-        try:
-            tests_raw = await generate_playwright_tests(
-                analysis_data,
-                job["target_url"],
-                test_email=test_email,
-                test_password=test_password,
-                test_preferences=test_preferences,
-                num_tests=num_tests,
-            )
-        except AIQuotaError as exc:
-            raise RuntimeError(f"AI quota exceeded during test generation: {exc}") from exc
-
-        log(f"  ✓ Generated {len(tests_raw)} test cases")
+        tests_raw, tests_source = await _generate_tests_or_fallback(
+            analysis_data=analysis_data,
+            target_url=job["target_url"],
+            test_email=test_email,
+            test_password=test_password,
+            test_preferences=test_preferences,
+            num_tests=num_tests,
+            log=log,
+        )
+        log(f"  ✓ Generated {len(tests_raw)} test cases ({tests_source})")
 
         # ── Persist to MongoDB ────────────────────────────────────────────────
         analysis_id = str(uuid.uuid4())
@@ -159,13 +273,20 @@ async def run_analysis(db, job_id: str) -> None:
             "created_at": datetime.now(timezone.utc),
             **analysis_data,
         }
-        await db.repo_analyses.insert_one(analysis_doc)
+        try:
+            await db.repo_analyses.insert_one(analysis_doc)
 
-        test_docs: list[dict] = []
-        for t in tests_raw:
-            test_docs.append({"_id": str(uuid.uuid4()), "org_id": org_id, "analysis_id": analysis_id, **t})
-        if test_docs:
-            await db.playwright_tests.insert_many(test_docs)
+            test_docs: list[dict] = []
+            for t in tests_raw:
+                test_docs.append({"_id": str(uuid.uuid4()), "org_id": org_id, "analysis_id": analysis_id, **t})
+            if test_docs:
+                await db.playwright_tests.insert_many(test_docs)
+        except Exception as exc:
+            raise RuntimeError(
+                "Tests were generated but could not be saved. "
+                "Start MongoDB (docker start aidlc-mongo) and try again. "
+                f"Details: {exc}"
+            ) from exc
 
         response_tests = [{**d, "id": d.pop("_id")} for d in test_docs]
 
@@ -181,6 +302,7 @@ async def run_analysis(db, job_id: str) -> None:
             "pages": analysis_data.get("pages", []),
             "user_flows": analysis_data.get("user_flows", []),
             "tests": response_tests,
+            "tests_source": tests_source,
         }
         log(f"✓ Analysis complete ready to run {len(test_docs)} tests live!")
 
@@ -241,20 +363,47 @@ async def run_commit_analysis(db, job_id: str) -> None:
         # ── Step 3: LLM analysis + test generation (combined call) ────────────
         job["step"] = "analyzing"
         log("Step 3/4: AI analysing commit changes...")
+        analysis_data: dict[str, Any] = {}
+        tests_raw: list[dict[str, Any]] = []
+        tests_source = "ai"
         try:
-            analysis_data, tests_raw = await analyze_commit_and_generate_tests(
-                commit_sha=commit_sha,
-                commit_message=commit_message,
-                diff_text=diff_data["diff_text"],
-                file_contents=diff_data["file_contents"],
-                changed_files=changed_files,
-                target_url=job["target_url"],
-                test_email=test_email,
-                test_password=test_password,
-                num_tests=num_tests,
+            analysis_data, tests_raw = await asyncio.wait_for(
+                analyze_commit_and_generate_tests(
+                    commit_sha=commit_sha,
+                    commit_message=commit_message,
+                    diff_text=diff_data["diff_text"],
+                    file_contents=diff_data["file_contents"],
+                    changed_files=changed_files,
+                    target_url=job["target_url"],
+                    test_email=test_email,
+                    test_password=test_password,
+                    num_tests=num_tests,
+                ),
+                timeout=_GENERATE_TIMEOUT_S,
             )
+        except asyncio.TimeoutError:
+            log(f"  ⚠ Commit AI timed out after {_GENERATE_TIMEOUT_S:.0f}s; using template tests")
+            tests_source = "fallback"
+            analysis_data = {
+                "summary": commit_message or "Commit analysis timed out",
+                "tech_stack": "unknown",
+                "pages": [],
+                "user_flows": [],
+            }
+            tests_raw = fallback_playwright_tests(analysis_data, job["target_url"], num_tests)
         except AIQuotaError as exc:
-            raise RuntimeError(f"AI quota exceeded: {exc}") from exc
+            log(f"  ⚠ AI quota: {exc}; using template tests")
+            tests_source = "fallback"
+            analysis_data = {
+                "summary": commit_message or "Commit analysis skipped (AI quota)",
+                "tech_stack": "unknown",
+                "pages": [],
+                "user_flows": [],
+            }
+            tests_raw = fallback_playwright_tests(analysis_data, job["target_url"], num_tests)
+        if not tests_raw:
+            tests_raw = fallback_playwright_tests(analysis_data, job["target_url"], num_tests)
+            tests_source = "fallback"
 
         pages_found = len(analysis_data.get("pages", []))
         flows_found = len(analysis_data.get("user_flows", []))
@@ -309,6 +458,7 @@ async def run_commit_analysis(db, job_id: str) -> None:
             "commit_sha": commit_sha,
             "commit_message": commit_message,
             "changed_files": changed_files,
+            "tests_source": tests_source,
         }
         log(f"✓ Analysis complete ready to run {len(test_docs)} targeted tests live!")
 

@@ -21,8 +21,8 @@ export default function Login() {
   } = useAuth();
   const [mode, setMode] = useState<Mode>("login");
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("mriganka.dey@wayam.ai");
-  const [password, setPassword] = useState("wayam");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);

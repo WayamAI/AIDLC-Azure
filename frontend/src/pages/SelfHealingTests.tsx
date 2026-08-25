@@ -1,9 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Wrench01Icon } from "@hugeicons/core-free-icons";
 import { AppIcon } from "@/components/AppIcon";
 import { PageShell } from "@/components/PageShell";
-import { apiClient } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { api, apiClient } from "@/lib/api";
+import { toast } from "sonner";
 
 type HealingSummary = {
   broken_tests: number;
@@ -26,7 +28,8 @@ type HealingListItem = {
 };
 
 export default function SelfHealingTests() {
-  const navigate = useNavigate();
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const { data, isLoading, isError } = useQuery({
     queryKey: ["healing", "list"],
     queryFn: async () => {
@@ -35,6 +38,19 @@ export default function SelfHealingTests() {
         items: HealingListItem[];
       }>("/testing/healing");
       return body;
+    },
+  });
+
+  const decide = useMutation({
+    mutationFn: ({ id, action }: { id: string; action: "approve" | "reject" }) =>
+      action === "approve" ? api.approveHealing(id) : api.rejectHealing(id),
+    onSuccess: (body) => {
+      void queryClient.invalidateQueries({ queryKey: ["healing"] });
+      toast.success(body.status === "approved" ? "Selector applied." : "Healing rejected.");
+    },
+    onError: (err: unknown) => {
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(detail || "Could not update healing attempt");
     },
   });
 
@@ -91,28 +107,62 @@ export default function SelfHealingTests() {
         <div className="mt-4 space-y-2">
           {(data?.items.length ?? 0) === 0 && !isLoading && (
             <p className="text-xs text-muted-foreground">
-              No healing attempts yet. Trigger one from a failed Playwright run via the healing analyze API.
+              No healing attempts yet. On a failed Live Test, open the result and click Heal selector.
             </p>
           )}
           {data?.items.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => navigate(`/self-healing/${item.id}`)}
-              className="flex w-full items-center justify-between rounded-lg border border-border/40 bg-muted/10 px-4 py-3 text-left transition hover:bg-muted/20"
-            >
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium">{item.test_name}</p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {item.original_selector ?? "—"}
-                  {item.candidate_selector ? ` → ${item.candidate_selector}` : ""}
-                </p>
-              </div>
-              <div className="flex shrink-0 items-center gap-2 text-xs">
-                <span className="text-muted-foreground">{item.confidence}%</span>
-                <span className="rounded border border-border px-2 py-0.5 uppercase">{item.status}</span>
-              </div>
-            </button>
+            <div key={item.id} className="rounded-lg border border-border/40 bg-muted/10">
+              <button
+                type="button"
+                onClick={() => setSelectedId((cur) => (cur === item.id ? null : item.id))}
+                className="flex w-full items-center justify-between px-4 py-3 text-left transition hover:bg-muted/20"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{item.test_name}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {item.original_selector ?? "—"}
+                    {item.candidate_selector ? ` → ${item.candidate_selector}` : ""}
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-2 text-xs">
+                  <span className="text-muted-foreground">{item.confidence}%</span>
+                  <span className="rounded border border-border px-2 py-0.5 uppercase">{item.status}</span>
+                </div>
+              </button>
+              {selectedId === item.id && (
+                <div className="border-t border-border/40 px-4 py-3 text-xs text-muted-foreground space-y-1">
+                  <p><span className="text-foreground">Failure:</span> {item.failure_type}</p>
+                  <p><span className="text-foreground">Original:</span> {item.original_selector || "—"}</p>
+                  <p><span className="text-foreground">Candidate:</span> {item.candidate_selector || "—"}</p>
+                  <p><span className="text-foreground">Confidence:</span> {item.confidence}% ({item.confidence_label})</p>
+                  <p><span className="text-foreground">Status:</span> {item.status}</p>
+                  {item.created_at && (
+                    <p><span className="text-foreground">Created:</span> {item.created_at}</p>
+                  )}
+                  {item.status === "pending" && item.candidate_selector && (
+                    <div className="flex gap-2 pt-2">
+                      <Button
+                        size="sm"
+                        className="h-7 text-xs"
+                        disabled={decide.isPending}
+                        onClick={() => decide.mutate({ id: item.id, action: "approve" })}
+                      >
+                        Approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs"
+                        disabled={decide.isPending}
+                        onClick={() => decide.mutate({ id: item.id, action: "reject" })}
+                      >
+                        Reject
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           ))}
         </div>
       </div>

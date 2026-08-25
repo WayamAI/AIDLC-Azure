@@ -8,7 +8,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useGroupedTestCases, useUpdateTestCase } from "@/hooks/use-test-cases";
-import { mockTestCases } from "@/lib/mockData";
 import { Edit2 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { PageShell } from "@/components/PageShell";
@@ -57,8 +56,7 @@ const GeneratedTests = () => {
 
   const toggle = (key: string) => setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
 
-  // Fall back to mock data if backend is unreachable
-  const grouped = data ?? (isError ? (mockTestCases as unknown as typeof data) : null);
+  const grouped = data ?? null;
   const total = grouped ? Object.values(grouped).flat().length : 0;
 
   if (isLoading) {
@@ -101,8 +99,10 @@ const GeneratedTests = () => {
             title="AI-Generated Test Suite"
             description={
               isError
-                ? "Live data unavailable displaying cached reference test suite"
-                : "Comprehensive test suite generated from your submitted requirement"
+                ? "Could not load generated tests. Confirm you are signed in and the API is running."
+                : total === 0
+                  ? "No test cases yet. Submit a requirement first."
+                  : "Test suite generated from your submitted requirement"
             }
           />
           <div className="floating-card shrink-0 px-4 py-2">
@@ -112,10 +112,18 @@ const GeneratedTests = () => {
         </div>
 
         {isError && (
-          <div className="floating-card p-4 mb-6 border-warning/30 flex items-center gap-3 text-sm text-warning">
+          <div className="floating-card p-4 mb-6 border-destructive/30 flex items-center gap-3 text-sm text-destructive">
             <ServerCrash className="h-4 w-4 shrink-0" />
-            The analysis service is currently unreachable. Displaying reference data. To restore live connectivity, start the server with{" "}
-            <code className="font-mono bg-muted px-1 rounded">uv run uvicorn main:app --reload --port 8000</code>
+            Could not load the test suite. Start the backend and refresh, or generate tests from Requirements.
+          </div>
+        )}
+        {!isError && total === 0 && (
+          <div className="floating-card p-6 mb-6 text-sm text-muted-foreground">
+            No generated tests for this workspace yet.{" "}
+            <button type="button" className="text-primary underline underline-offset-2" onClick={() => navigate("/requirements")}>
+              Submit a requirement
+            </button>{" "}
+            to create a suite.
           </div>
         )}
 

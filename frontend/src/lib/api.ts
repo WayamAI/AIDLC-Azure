@@ -12,14 +12,17 @@ export const apiClient = axios.create({
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
+export type ActivityKind = "search" | "nav" | "repo_probe";
+
 export interface ActivityHistoryItem {
   id: string;
-  kind: "search" | "nav" | "repo_probe";
+  kind: ActivityKind;
   title: string;
   url: string;
-  section?: string;
+  section?: string | null;
   payload?: Record<string, unknown>;
-  visited_at: string;
+  visited_at?: string | null;
+  user_id?: string | null;
 }
 
 export type ConnectorsPublic = {
@@ -134,6 +137,14 @@ export interface PrioritizedTest {
   known_failure: boolean;
 }
 
+export interface DashboardActivityItem {
+  id: string;
+  name: string;
+  status: string;
+  timestamp: string;
+  time_ago: string;
+}
+
 export interface DashboardStats {
   total_tests: number;
   test_case_counts: Record<string, number>;
@@ -150,6 +161,8 @@ export interface DashboardStats {
   known_failures: number;
   active_vehicles: number;
   weekly_trend: { day: string; passed: number; failed: number; total: number }[];
+  severity_breakdown?: { severity: string; count: number }[];
+  recent_activity?: DashboardActivityItem[];
 }
 
 // ── Repo Analysis & Live Testing Types ────────────────────────────────────────
@@ -200,6 +213,7 @@ export interface RepoAnalysisResult {
   pages: PageInfo[];
   user_flows: UserFlow[];
   tests: PlaywrightTestCase[];
+  tests_source?: "ai" | "fallback";
   // commit mode extras
   mode?: "full" | "commit";
   commit_sha?: string;
@@ -331,6 +345,8 @@ export interface PipelineRunSummary {
   version: string;
   score: number;
   verdict: string;
+  commit_sha?: string | null;
+  created_at?: string | null;
 }
 
 export interface DeploymentTriggerRequest {
@@ -915,6 +931,35 @@ export interface UnanalyzedFailure {
   completed_at: string | null;
 }
 
+export interface HealingAttemptDetail {
+  id: string;
+  run_id: string;
+  test_id: string;
+  step_number: number;
+  test_name: string;
+  failure_type: string;
+  original_selector: string | null;
+  step_description: string | null;
+  target_url: string;
+  candidate: {
+    selector: string | null;
+    source: string;
+    reasoning: string | null;
+    considered: Array<{ selector: string; tag: string; text?: string | null }>;
+  };
+  validation: {
+    attempted: boolean;
+    selector_found_on_page: boolean | null;
+    error: string | null;
+  };
+  confidence: number;
+  confidence_label: string;
+  status: "pending" | "approved" | "rejected" | "failed";
+  error: string | null;
+  created_at: string | null;
+  decided_at: string | null;
+}
+
 // ── Intelligent Test Selection types ──
 export interface SelectionReason {
   label: string;
@@ -954,17 +999,6 @@ export interface TestSelectionRun {
   status: "completed" | "failed";
   error: string | null;
   created_at: string;
-}
-
-export interface ActivityHistoryItem {
-  id: string;
-  kind: string;
-  title: string;
-  url: string;
-  section?: string | null;
-  payload?: Record<string, unknown>;
-  visited_at?: string | null;
-  user_id?: string | null;
 }
 
 export interface OptimizationFinding {
@@ -1069,6 +1103,19 @@ export const api = {
   getDashboardStats: () =>
     apiClient.get<DashboardStats>("/dashboard/stats").then((r) => r.data),
 
+  updateMe: (data: { name?: string; notifications?: boolean; newsletter?: boolean }) =>
+    apiClient
+      .patch<{
+        user_id: string;
+        org_id: string;
+        org_name: string;
+        email?: string | null;
+        name?: string | null;
+        notifications?: boolean;
+        newsletter?: boolean;
+      }>("/auth/me", data)
+      .then((r) => r.data),
+
   // ── Repo Analysis & Live Testing ──────────────────────────────────────────
   startAnalyzeRepo: (
     github_url: string,
@@ -1101,6 +1148,9 @@ export const api = {
     apiClient
       .post<{ commits: CommitInfo[] }>("/repo/commits", { github_url, ...(pat ? { pat } : {}) })
       .then((r) => r.data),
+
+  getDefaultBranch: (github_url: string) =>
+    apiClient.post<{ branch: string }>("/repo/default-branch", { github_url }).then((r) => r.data),
 
   getAnalysisJob: (jobId: string) =>
     apiClient.get<AnalysisJob>(`/repo/jobs/${jobId}`).then((r) => r.data),
@@ -1211,6 +1261,15 @@ export const api = {
   listUnanalyzedFailures: () =>
     apiClient.get<{ failures: UnanalyzedFailure[] }>("/testing/root-cause/failures").then(r => r.data),
 
+  analyzeHealing: (payload: { run_id: string; test_id: string; target_url: string }) =>
+    apiClient.post<HealingAttemptDetail>("/testing/healing/analyze", payload).then((r) => r.data),
+  getHealingAttempt: (id: string) =>
+    apiClient.get<HealingAttemptDetail>(`/testing/healing/${id}`).then((r) => r.data),
+  approveHealing: (id: string) =>
+    apiClient.post<HealingAttemptDetail>(`/testing/healing/${id}/approve`).then((r) => r.data),
+  rejectHealing: (id: string) =>
+    apiClient.post<HealingAttemptDetail>(`/testing/healing/${id}/reject`).then((r) => r.data),
+
   // ── Intelligent Test Selection ──
   analyzeTestSelection: (repoId: string, githubUrl: string, oldSha?: string, newSha?: string) =>
     apiClient.post<TestSelectionRun>("/testing/test-selection/analyze", {
@@ -1222,18 +1281,18 @@ export const api = {
     apiClient.get<{ runs: TestSelectionRun[] }>("/testing/test-selection/history").then(r => r.data),
 
   // ── Activity / search / repo-probe history (server-side) ──
-  listActivityHistory: (params?: { kind?: "search" | "nav" | "repo_probe"; limit?: number }) =>
+  listActivityHistory: (params?: { kind?: ActivityKind; limit?: number }) =>
     apiClient
       .get<{ items: ActivityHistoryItem[] }>("/activity/history", { params })
       .then((r) => r.data),
   pushActivityHistory: (body: {
-    kind?: "search" | "nav" | "repo_probe";
+    kind?: ActivityKind;
     title: string;
     url: string;
     section?: string;
     payload?: Record<string, unknown>;
   }) => apiClient.post<ActivityHistoryItem>("/activity/history", body).then((r) => r.data),
-  clearActivityHistory: (kind?: "search" | "nav" | "repo_probe") =>
+  clearActivityHistory: (kind?: ActivityKind) =>
     apiClient.delete<{ deleted: number }>("/activity/history", { params: kind ? { kind } : {} }).then((r) => r.data),
 
   // ── Org connectors (reconfigurable secrets) ──
@@ -1448,6 +1507,8 @@ export interface GraphNode {
   ext: string;
   is_changed: boolean;
   is_impacted: boolean;
+  /** Test/spec file — the UI can filter these out of the graph. */
+  is_test?: boolean;
   layer: number;
   layer_index: number;
   x: number;
@@ -1468,6 +1529,7 @@ export interface DependencyGraphResponse {
   pr_title?: string;
   pr_url?: string;
   commit_message?: string;
+  message?: string;
 }
 
 export interface ImpactPathResponse {

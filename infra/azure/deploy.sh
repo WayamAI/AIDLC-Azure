@@ -1,16 +1,24 @@
 #!/usr/bin/env bash
-# Azure Container Apps deploy for AIDLC API
+# Azure Container Apps deploy for AIDLC (unified SPA + FastAPI + Playwright).
+# Builds the repo-root Dockerfile. Docker is not required (`az acr build`).
 set -euo pipefail
 
 RG="${RESOURCE_GROUP:-aidlc-rg}"
 LOC="${LOCATION:-eastus}"
 ACR="${ACR_NAME:-aidlcregistry}"
 ENV_NAME="${ACA_ENV:-aidlc-env}"
-APP="${APP_NAME:-aidlc-api}"
+APP="${APP_NAME:-aidlc}"
+IMAGE_NAME="${IMAGE_NAME:-aidlc}"
 TAG="${IMAGE_TAG:-latest}"
+ENV_FILE="${ENV_FILE:-.env.azure}"
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 BACKEND="$ROOT/backend"
-IMAGE="$ACR.azurecr.io/aidlc-api:$TAG"
+IMAGE="$ACR.azurecr.io/${IMAGE_NAME}:$TAG"
+
+if [[ ! -f "$ROOT/Dockerfile" ]]; then
+  echo "Root Dockerfile not found at $ROOT/Dockerfile" >&2
+  exit 1
+fi
 
 echo "==> Resource group $RG ($LOC)"
 az group create --name "$RG" --location "$LOC" >/dev/null
@@ -18,8 +26,8 @@ az group create --name "$RG" --location "$LOC" >/dev/null
 echo "==> ACR $ACR"
 az acr create --resource-group "$RG" --name "$ACR" --sku Basic --admin-enabled true >/dev/null
 
-echo "==> ACR build"
-( cd "$BACKEND" && az acr build --registry "$ACR" --image "aidlc-api:$TAG" . )
+echo "==> ACR build of unified image (frontend + FastAPI + Playwright Chromium)"
+( cd "$ROOT" && az acr build --registry "$ACR" --image "${IMAGE_NAME}:$TAG" --file Dockerfile . )
 
 echo "==> Container Apps environment"
 az containerapp env create --name "$ENV_NAME" --resource-group "$RG" --location "$LOC" 2>/dev/null || true
@@ -27,29 +35,55 @@ az containerapp env create --name "$ENV_NAME" --resource-group "$RG" --location 
 ACR_USER=$(az acr credential show --name "$ACR" --query username -o tsv)
 ACR_PASS=$(az acr credential show --name "$ACR" --query "passwords[0].value" -o tsv)
 
+SECRET_ARGS=()
+ENV_ARGS=("APP_ENV=production")
+if [[ -f "$BACKEND/$ENV_FILE" ]]; then
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line="${line%%$'\r'}"
+    [[ -z "$line" || "$line" == \#* ]] && continue
+    key="${line%%=*}"
+    val="${line#*=}"
+    key="$(echo "$key" | xargs)"
+    val="${val%\"}"
+    val="${val#\"}"
+    [[ -z "$key" ]] && continue
+    SECRET_ARGS+=("${key}=${val}")
+    ENV_ARGS+=("${key}=secretref:${key}")
+  done < "$BACKEND/$ENV_FILE"
+fi
+
+echo "==> Create / update Container App $APP"
 if ! az containerapp show --name "$APP" --resource-group "$RG" >/dev/null 2>&1; then
-  az containerapp create \
-    --name "$APP" \
-    --resource-group "$RG" \
-    --environment "$ENV_NAME" \
-    --image "$IMAGE" \
-    --registry-server "$ACR.azurecr.io" \
-    --registry-username "$ACR_USER" \
-    --registry-password "$ACR_PASS" \
-    --target-port 8000 \
-    --ingress external \
-    --cpu 1.0 --memory 2.0Gi \
-    --min-replicas 1 --max-replicas 3 \
-    --env-vars "APP_ENV=production"
+  CREATE=(az containerapp create
+    --name "$APP"
+    --resource-group "$RG"
+    --environment "$ENV_NAME"
+    --image "$IMAGE"
+    --registry-server "$ACR.azurecr.io"
+    --registry-username "$ACR_USER"
+    --registry-password "$ACR_PASS"
+    --target-port 8000
+    --ingress external
+    --cpu 1.0 --memory 2.0Gi
+    --min-replicas 1 --max-replicas 3
+    --env-vars "${ENV_ARGS[@]}"
+  )
+  if ((${#SECRET_ARGS[@]})); then
+    CREATE+=(--secrets "${SECRET_ARGS[@]}")
+  fi
+  "${CREATE[@]}"
 else
   az containerapp update --name "$APP" --resource-group "$RG" --image "$IMAGE"
+  if ((${#SECRET_ARGS[@]})); then
+    az containerapp secret set --name "$APP" --resource-group "$RG" --secrets "${SECRET_ARGS[@]}" >/dev/null
+    az containerapp update --name "$APP" --resource-group "$RG" --set-env-vars "${ENV_ARGS[@]}" >/dev/null
+  fi
 fi
 
 FQDN=$(az containerapp show --name "$APP" --resource-group "$RG" --query "properties.configuration.ingress.fqdn" -o tsv)
 echo ""
-echo "Deployed: https://$FQDN"
+echo "Deployed unified AIDLC (SPA + API) at: https://$FQDN"
 echo "Health:   https://$FQDN/health"
 echo "Ready:    https://$FQDN/ready"
-echo "Configure secrets (MONGODB_URI, SESSION_SECRET, OLLAMA_*, GITHUB_TOKEN, CORS_ORIGINS) via:"
-echo "  az containerapp secret set -n $APP -g $RG --secrets mongodb-uri=... session-secret=..."
-echo "  az containerapp update -n $APP -g $RG --set-env-vars MONGODB_URI=secretref:mongodb-uri SESSION_SECRET=secretref:session-secret"
+echo "The frontend is served from this container. Set FRONTEND_URL and CORS_ORIGINS to https://$FQDN"
+echo "Also set VERCEL_TOKEN / GITHUB_TOKEN (or save them in Settings → Connectors) for user-app deploys."

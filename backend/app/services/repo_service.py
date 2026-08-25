@@ -29,6 +29,35 @@ SKIP_FILENAMES = {
 MAX_FILE_SIZE_BYTES = 40 * 1024      # 40 KB per file
 MAX_TOTAL_CHARS = 90_000             # ~90 K chars sent to LLM
 
+_PRIORITY_FILENAMES = {
+    "App.tsx", "App.jsx", "App.vue", "main.tsx", "main.jsx",
+    "index.tsx", "index.jsx", "router.tsx", "router.jsx",
+    "routes.tsx", "routes.jsx", "package.json",
+}
+
+
+def detect_default_branch(github_url: str) -> str:
+    """Return the remote HEAD branch (e.g. 'dev') without cloning the repo."""
+    try:
+        result = subprocess.run(
+            ["git", "ls-remote", "--symref", github_url, "HEAD"],
+            capture_output=True,
+            text=True,
+            timeout=20,
+        )
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        return "main"
+    if result.returncode != 0:
+        return "main"
+    for line in result.stdout.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("ref:"):
+            ref = stripped.split("ref:", 1)[1].strip().split()[0]
+            prefix = "refs/heads/"
+            if ref.startswith(prefix):
+                return ref[len(prefix):] or "main"
+    return "main"
+
 
 def clone_repo(github_url: str) -> str:
     """
@@ -56,19 +85,34 @@ def clone_repo(github_url: str) -> str:
         raise ValueError("'git' command not found on this server.")
 
 
+def _posix_rel(rel_path: str) -> str:
+    return rel_path.replace("\\", "/").lower()
+
+
+def _file_sort_key(filename: str, rel_path: str) -> tuple[int, int, str]:
+    """Lower tuple sorts first. Prefer UI source over backend dumps."""
+    posix = _posix_rel(rel_path)
+    name_pri = 0 if filename in _PRIORITY_FILENAMES else 1
+    if (
+        posix.startswith(("web/src/", "frontend/src/", "src/pages/", "src/components/", "src/routes/", "app/"))
+        or any(part in posix for part in ("/pages/", "/components/", "/routes/", "/views/"))
+    ):
+        path_pri = 0
+    elif posix.startswith(("web/", "frontend/", "src/")):
+        path_pri = 1
+    elif posix.startswith(("api/", "backend/", "core/", "server/")):
+        path_pri = 4
+    else:
+        path_pri = 2
+    return (path_pri, name_pri, posix)
+
+
 def extract_codebase(repo_path: str) -> str:
     """
     Walk the cloned repo and collect the contents of relevant source files.
     Returns a single formatted string suitable for sending to an LLM.
     """
-    # Collect files, prioritising routing / entry-point files first
-    priority_hints = {
-        "App.tsx", "App.jsx", "App.vue", "main.tsx", "main.jsx",
-        "index.tsx", "index.jsx", "router.tsx", "router.jsx",
-        "routes.tsx", "routes.jsx", "package.json",
-    }
-
-    collected: list[tuple[int, str, str]] = []  # (priority, rel_path, content)
+    collected: list[tuple[tuple[int, int, str], str, str]] = []
     total_chars = 0
 
     for root, dirs, filenames in os.walk(repo_path):
@@ -92,11 +136,9 @@ def extract_codebase(repo_path: str) -> str:
             except OSError:
                 continue
 
-            priority = 0 if filename in priority_hints else 1
-            collected.append((priority, rel_path, content))
+            collected.append((_file_sort_key(filename, rel_path), rel_path, content))
 
-    # Sort: priority files first, then alphabetical
-    collected.sort(key=lambda x: (x[0], x[1]))
+    collected.sort(key=lambda x: x[0])
 
     parts: list[str] = []
     for _, rel_path, content in collected:

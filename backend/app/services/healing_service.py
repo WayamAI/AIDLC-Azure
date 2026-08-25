@@ -12,6 +12,7 @@ import logging
 from typing import Optional
 
 from app.models.healing import DomElementCandidate, HealingAttempt, ValidationResult
+from app.services.playwright_service import run_in_playwright_loop
 
 log = logging.getLogger("healing_service")
 
@@ -41,7 +42,7 @@ async def scan_page_elements(target_url: str, path: str, limit: int = 40) -> lis
         log.warning("Healing: Playwright not installed")
         return []
 
-    try:
+    async def _scan() -> list[DomElementCandidate]:
         async with async_playwright() as pw:
             browser = await pw.chromium.launch(headless=True, args=_LAUNCH_ARGS)
             try:
@@ -62,23 +63,31 @@ async def scan_page_elements(target_url: str, path: str, limit: int = 40) -> lis
 
                 elements = await page.eval_on_selector_all(
                     "button, a, input, select, textarea, [role], [id]",
-                    """(els) => els.slice(0, 60).map((el, i) => ({
-                        tag: el.tagName.toLowerCase(),
-                        text: (el.innerText || el.value || el.getAttribute('aria-label') || '').trim().slice(0, 60),
-                        role: el.getAttribute('role'),
-                        id: el.id || null,
-                        idx: i,
-                    }))""",
+                    """(els) => els.slice(0, 60).map((el, i) => {
+                        const tag = el.tagName.toLowerCase();
+                        const placeholder = el.getAttribute('placeholder');
+                        const name = el.getAttribute('name');
+                        const cls = (el.getAttribute('class') || '').trim().split(/\\s+/).filter(Boolean)[0];
+                        let selector;
+                        if (el.id) selector = '#' + el.id;
+                        else if (placeholder) selector = tag + '[placeholder="' + placeholder.replace(/"/g, '') + '"]';
+                        else if (name) selector = tag + '[name="' + name.replace(/"/g, '') + '"]';
+                        else if (cls && /^[A-Za-z_-][\\w-]*$/.test(cls)) selector = tag + '.' + cls;
+                        else selector = tag + ':nth-of-type(' + (i + 1) + ')';
+                        return {
+                            tag,
+                            text: (el.innerText || el.value || el.getAttribute('aria-label') || '').trim().slice(0, 60),
+                            role: el.getAttribute('role'),
+                            id: el.id || null,
+                            selector,
+                        };
+                    })""",
                 )
                 out: list[DomElementCandidate] = []
                 for el in elements[:limit]:
-                    if el.get("id"):
-                        selector = f"#{el['id']}"
-                    else:
-                        selector = f"{el['tag']}:nth-of-type({el['idx'] + 1})"
                     out.append(
                         DomElementCandidate(
-                            selector=selector,
+                            selector=el.get("selector") or el["tag"],
                             tag=el["tag"],
                             text=el.get("text") or None,
                             role=el.get("role"),
@@ -88,6 +97,9 @@ async def scan_page_elements(target_url: str, path: str, limit: int = 40) -> lis
                 return out
             finally:
                 await browser.close()
+
+    try:
+        return await run_in_playwright_loop(_scan)
     except Exception as exc:
         log.warning("Healing: DOM scan failed for %s%s: %s", target_url, path, exc)
         return []
@@ -104,7 +116,7 @@ async def validate_candidate(target_url: str, path: str, selector: str) -> Valid
             error="Playwright not installed",
         )
 
-    try:
+    async def _validate() -> ValidationResult:
         async with async_playwright() as pw:
             browser = await pw.chromium.launch(headless=True, args=_LAUNCH_ARGS)
             try:
@@ -122,11 +134,14 @@ async def validate_candidate(target_url: str, path: str, selector: str) -> Valid
                 return ValidationResult(attempted=True, selector_found_on_page=count > 0)
             finally:
                 await browser.close()
+
+    try:
+        return await run_in_playwright_loop(_validate)
     except Exception as exc:
         return ValidationResult(
             attempted=True,
             selector_found_on_page=False,
-            error=str(exc)[:300],
+            error=str(exc)[:300] or type(exc).__name__,
         )
 
 

@@ -32,12 +32,33 @@ def _headers() -> dict[str, str]:
     }
 
 
+class JiraNotConfiguredError(RuntimeError):
+    """Raised when a Jira call is attempted without domain/email/token set."""
+
+
+def is_configured() -> bool:
+    cfg = _jira_cfg()
+    return bool(
+        (cfg.get("domain") or settings.JIRA_DOMAIN or "").strip()
+        and (cfg.get("email") or settings.JIRA_EMAIL or "").strip()
+        and (cfg.get("token") or settings.JIRA_TOKEN or "").strip()
+    )
+
+
 def _base_url() -> str:
     cfg = _jira_cfg()
     domain = (cfg.get("domain") or settings.JIRA_DOMAIN or "").strip().rstrip("/")
+    if not domain:
+        # Without this the request goes out protocol-less and httpx raises
+        # "Request URL is missing an 'http://' or 'https://' protocol", which
+        # surfaced to users as a baffling 400.
+        raise JiraNotConfiguredError(
+            "Jira is not configured. Set JIRA_DOMAIN, JIRA_EMAIL and JIRA_TOKEN, "
+            "or connect Jira under Settings → Connectors."
+        )
     if domain.startswith("http"):
         return domain
-    return f"https://{domain}" if domain else settings.jira_base_url
+    return f"https://{domain}"
 
 
 async def _get(path: str, params: dict | None = None) -> Any:

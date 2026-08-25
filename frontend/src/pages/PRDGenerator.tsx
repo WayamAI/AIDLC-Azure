@@ -893,19 +893,11 @@ export default function PRDGenerator() {
     }
     setGenerating(true);
     try {
-      let result: PRDData;
-      try {
-        // Try AI-powered backend first
-        const resp = await apiClient.post<PRDData>("/prd/generate", {
-          product_name: productName.trim(),
-          description: description.trim(),
-        });
-        result = resp.data;
-      } catch {
-        // Fall back to client-side generation if backend unavailable
-        await new Promise((r) => setTimeout(r, 900));
-        result = generatePRDFromInput(productName.trim(), description.trim());
-      }
+      const resp = await apiClient.post<PRDData>("/prd/generate", {
+        product_name: productName.trim(),
+        description: description.trim(),
+      });
+      const result = resp.data;
       setPrd(result);
       setEditMarkdown(result.markdown);
       setTab("view");

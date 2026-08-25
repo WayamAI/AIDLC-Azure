@@ -214,7 +214,7 @@ const TestExecution = () => {
           <div className="flex-1">
             <span className="font-display font-semibold text-sm">Step 3 of 4 Execute Test Suite</span>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Select a data source configuration, then initiate execution. Choose to upload an existing file, define a column schema, or allow the AI to manage the data context automatically.
+              This step <strong>simulates</strong> pass/fail against generated cases (it is not Playwright). For real browser runs use Live Test Runner after a public URL is deployed.
             </p>
           </div>
           <Button size="sm" variant="outline" className="shrink-0 font-display gap-1.5" onClick={() => navigate("/prioritization")}>
@@ -229,7 +229,7 @@ const TestExecution = () => {
             title="Test Execution"
             description={
               phase === "results"
-                ? `Execution complete ${liveResults.length} test cases · ${totalDuration}s total duration`
+                ? `Execution complete ${liveResults.length} test cases ï¿½ ${totalDuration}s total duration`
                 : "Configure a data source and initiate execution"
             }
           />
@@ -379,7 +379,7 @@ const TestExecution = () => {
                       className="font-display gap-1.5 border-positive/40 text-positive hover:bg-positive/10"
                     >
                       {isPreviewLoading
-                        ? <><Loader2 className="h-3.5 w-3.5 animate-spin" />Synthesizing dataset…</>
+                        ? <><Loader2 className="h-3.5 w-3.5 animate-spin" />Synthesizing datasetï¿½</>
                         : <><Table2 className="h-3.5 w-3.5" />Generate Data Preview</>}
                     </Button>
                   </motion.div>
@@ -406,7 +406,7 @@ const TestExecution = () => {
                   className="bg-primary text-primary-foreground hover:bg-primary/90 font-display glow-primary gap-2 px-8"
                 >
                   {isPreviewLoading ? (
-                    <><Loader2 className="h-4 w-4 animate-spin" />Generating…</>
+                    <><Loader2 className="h-4 w-4 animate-spin" />Generatingï¿½</>
                   ) : dataSource === "auto" ? (
                     <><Table2 className="h-4 w-4" />Generate Data Preview</>
                   ) : (
@@ -542,7 +542,7 @@ const TestExecution = () => {
                 <div className="h-14 w-14 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-4 animate-pulse-glow">
                   <Loader2 className="h-6 w-6 text-primary animate-spin" />
                 </div>
-                <h3 className="font-display font-semibold text-lg mb-1">Executing Test Suite…</h3>
+                <h3 className="font-display font-semibold text-lg mb-1">Executing Test Suiteï¿½</h3>
                 <p className="text-sm text-muted-foreground mb-4">
                   {liveResults.length} of {totalExpected} test cases executed
                 </p>
@@ -564,7 +564,7 @@ const TestExecution = () => {
                     <span className="font-display text-[13px] font-semibold tracking-tight">Live Execution Feed</span>
                     <span className="ml-auto font-mono">
                       <span className="text-positive">{liveResults.filter(r => r.status === "PASS").length} pass</span>
-                      {" · "}
+                      {" ï¿½ "}
                       <span className="text-destructive">{liveResults.filter(r => r.status === "FAIL").length} fail</span>
                     </span>
                   </div>
@@ -603,9 +603,9 @@ const TestExecution = () => {
                   <span className="text-muted-foreground text-xs">
                     {runStarted.data_source === "file" ? "Executed using uploaded file data" : "Executed using AI-synthesized data"}
                     {runStarted.data_columns && runStarted.data_columns.length > 0 && (
-                      <> · columns: {runStarted.data_columns.map((c) => <Badge key={c} variant="outline" className="ml-1 text-[10px] font-mono">{c}</Badge>)}</>
+                      <> ï¿½ columns: {runStarted.data_columns.map((c) => <Badge key={c} variant="outline" className="ml-1 text-[10px] font-mono">{c}</Badge>)}</>
                     )}
-                    {runStarted.data_row_count != null && ` · ${runStarted.data_row_count} rows`}
+                    {runStarted.data_row_count != null && ` ï¿½ ${runStarted.data_row_count} rows`}
                   </span>
                 </div>
               )}
@@ -671,7 +671,7 @@ const TestExecution = () => {
                   <Clock className="h-4 w-4 text-primary" />
                   <span className="font-display text-[13px] font-semibold tracking-tight">Complete Execution Results</span>
                   <Badge variant="secondary" className="ml-2 text-xs">{liveResults.length} test cases</Badge>
-                  {activeRunId && <span className="text-xs font-mono text-muted-foreground ml-auto">Run ID: {activeRunId.slice(0, 8)}…</span>}
+                  {activeRunId && <span className="text-xs font-mono text-muted-foreground ml-auto">Run ID: {activeRunId.slice(0, 8)}ï¿½</span>}
                 </div>
 
                 {/* Failed tests first, then passed */}

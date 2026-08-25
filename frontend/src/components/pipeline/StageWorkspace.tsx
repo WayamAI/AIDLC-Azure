@@ -7,9 +7,11 @@ import { WorkspaceLayout } from "@/pages/Workspace";
 import { api } from "@/lib/api";
 import type { WorkspacePlaywrightTest } from "@/lib/api";
 import { toast } from "sonner";
+import { useActiveRepo } from "@/context/RepoContext";
 
 function WorkspaceWithCapture() {
   const pipeline = usePipelineContext();
+  const { setActiveRepo } = useActiveRepo();
   const { workspace, openTabs, currentBranch } = useWorkspaceContext();
   const [isCommitting, setIsCommitting] = useState(false);
 
@@ -24,6 +26,12 @@ function WorkspaceWithCapture() {
         branch: workspace.branch,
         workspaceId: workspace.workspace_id,
         githubPat: pipeline.githubPat,
+      });
+      setActiveRepo({
+        owner: parts[0] ?? "",
+        repo: (parts[1] ?? "").replace(/\.git$/, ""),
+        repoUrl: workspace.repo_url,
+        branch: workspace.branch,
       });
     }
   }, [workspace, pipeline.workspaceId]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -43,7 +51,7 @@ function WorkspaceWithCapture() {
   const handleDeployAndTest = useCallback(async () => {
     const wsId = workspace?.workspace_id ?? pipeline.workspaceId;
     if (!wsId) {
-      pipeline.goToStage(3);
+      pipeline.completeStage(1, 3);
       return;
     }
 
@@ -87,7 +95,7 @@ function WorkspaceWithCapture() {
         toast.info("No local changes deploying latest commit");
       }
 
-      pipeline.goToStage(3);
+      pipeline.completeStage(1, 3);
     } catch (err: any) {
       toast.error(err?.response?.data?.detail ?? "Failed to commit before deploy");
     } finally {
@@ -148,7 +156,7 @@ function WorkspaceWithCapture() {
             <Button
               size="sm"
               className="h-7 text-xs"
-              onClick={() => pipeline.goToStage(2)}
+              onClick={() => pipeline.completeStage(1)}
             >
               Next <ArrowRight className="h-3 w-3 ml-1" />
             </Button>

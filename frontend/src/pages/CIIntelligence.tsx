@@ -5,11 +5,13 @@ import {
   Activity, Search, CheckCircle, XCircle, AlertTriangle, Clock,
   TrendingUp, Zap, Loader2, RefreshCw, ChevronRight, Workflow,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { api } from "@/lib/api";
+import { useActiveRepo } from "@/context/RepoContext";
 import { PageHeader, PageStat } from "@/components/PageHeader";
 import { PageShell } from "@/components/PageShell";
 import { ChartTooltipBox } from "@/components/dashboard/DashboardUi";
@@ -27,8 +29,14 @@ const PIE_COLORS = [DS_CHART.pass, DS_CHART.fail, DS_CHART.warn, DS_CHART.neutra
 
 const DEFAULT_REPO_URL = "";
 
-function RepoInput({ onSearch }: { onSearch: (owner: string, repo: string) => void }) {
-  const [input, setInput] = useState(DEFAULT_REPO_URL);
+function RepoInput({
+  onSearch,
+  defaultUrl = "",
+}: {
+  onSearch: (owner: string, repo: string) => void;
+  defaultUrl?: string;
+}) {
+  const [input, setInput] = useState(defaultUrl || DEFAULT_REPO_URL);
   const handle = () => {
     const parts = input.trim().replace("https://github.com/", "").split("/");
     if (parts.length >= 2) onSearch(parts[0], parts[1]);
@@ -57,7 +65,10 @@ function RepoInput({ onSearch }: { onSearch: (owner: string, repo: string) => vo
 }
 
 export default function CIIntelligence() {
-  const [repoCoords, setRepoCoords] = useState<{ owner: string; repo: string } | null>(null);
+  const { activeRepo, setActiveRepo } = useActiveRepo();
+  const [repoCoords, setRepoCoords] = useState<{ owner: string; repo: string } | null>(
+    activeRepo ? { owner: activeRepo.owner, repo: activeRepo.repo } : null,
+  );
   const [explainRunId, setExplainRunId] = useState<number | null>(null);
 
   const healthQuery = useQuery({
@@ -102,13 +113,29 @@ export default function CIIntelligence() {
           description="Build health trends, flaky test detection, and AI failure explanations."
         />
 
-        <RepoInput onSearch={(owner, repo) => setRepoCoords({ owner, repo })} />
+        <RepoInput
+          defaultUrl={activeRepo?.repoUrl ?? ""}
+          onSearch={(owner, repo) => {
+            setRepoCoords({ owner, repo });
+            setActiveRepo({ owner, repo, repoUrl: `https://github.com/${owner}/${repo}`, branch: activeRepo?.branch || "main" });
+          }}
+        />
 
         {isLoading && (
           <div className="mt-8 flex items-center justify-center gap-3 py-12">
             <Loader2 className="h-5 w-5 animate-spin text-primary" />
             <span className="text-sm text-muted-foreground">Analysing CI/CD pipeline…</span>
           </div>
+        )}
+
+        {healthQuery.isError && (
+          <p className="mt-6 text-sm text-destructive">
+            Could not load CI data for this repo. For private repos, add a GitHub token under{" "}
+            <Link to="/settings/connectors" className="underline underline-offset-2">
+              Settings → Connectors
+            </Link>
+            .
+          </p>
         )}
 
         {data && (

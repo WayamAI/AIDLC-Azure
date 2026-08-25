@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { api, RepoAnalysisResult, LiveRunStatus, AnalysisJob, PlaywrightTestCase, CommitInfo, WorkspacePlaywrightTest } from "@/lib/api";
 
@@ -305,6 +305,16 @@ export function useLiveTesting() {
   const uploadSpec = useUploadParseSpec();
   const jobQuery = useAnalysisJob(jobId);
   const runStatus = useLiveRunStatus(runId);
+  const [analyzingSlow, setAnalyzingSlow] = useState(false);
+
+  useEffect(() => {
+    if (phase !== "analyzing") {
+      setAnalyzingSlow(false);
+      return;
+    }
+    const timer = window.setTimeout(() => setAnalyzingSlow(true), 180_000);
+    return () => window.clearTimeout(timer);
+  }, [phase]);
 
   // Watch job completion
   const prevJobStatus = useRef<string | null>(null);
@@ -510,5 +520,6 @@ export function useLiveTesting() {
     isExecuting: executeTests.isPending || executeDirect.isPending,
     isExecutingDirect: executeDirect.isPending,
     isParsingSpec: uploadSpec.isPending,
+    analyzingSlow,
   };
 }

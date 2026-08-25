@@ -17,6 +17,7 @@ async def analyze_coverage(req: CoverageAnalyzeRequest, org: OrganizationOut = D
             workspace_id=req.workspace_id,
             file_path=req.file_path,
             content=req.content,
+            org_id=org.id,
         )
         return result
     except KeyError:

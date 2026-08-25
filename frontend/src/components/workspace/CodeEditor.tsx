@@ -1,6 +1,6 @@
-import { useRef } from "react";
 import Editor, { DiffEditor } from "@monaco-editor/react";
 import { useWorkspaceContext } from "@/context/WorkspaceContext";
+import { useMonacoTheme } from "@/hooks/use-editor-theme";
 
 interface CodeEditorProps {
   isDiffMode?: boolean;
@@ -9,6 +9,7 @@ interface CodeEditorProps {
 export function CodeEditor({ isDiffMode = false }: CodeEditorProps) {
   const { openTabs, activeTab, diffState, updateTabContent } = useWorkspaceContext();
   const tab = openTabs.find((t) => t.path === activeTab);
+  const monacoTheme = useMonacoTheme();
 
   // In diff mode, show the currently selected file's diff
   if (isDiffMode && diffState?.isOpen) {
@@ -22,7 +23,7 @@ export function CodeEditor({ isDiffMode = false }: CodeEditorProps) {
         original={currentDiff.original}
         modified={currentDiff.modified}
         language={currentDiff.language}
-        theme="light"
+        theme={monacoTheme}
         options={{
           readOnly: false,
           minimap: { enabled: false },
@@ -53,7 +54,7 @@ export function CodeEditor({ isDiffMode = false }: CodeEditorProps) {
       height="100%"
       language={tab.language}
       value={tab.content}
-      theme="light"
+      theme={monacoTheme}
       onChange={(value) => {
         if (value !== undefined) updateTabContent(tab.path, value);
       }}

@@ -1,8 +1,17 @@
+import re
+
 import certifi
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from app.config import settings
 
 _client: AsyncIOMotorClient | None = None
+
+
+def redact_mongo_uri(uri: str) -> str:
+    """Strip credentials from a Mongo URI for logs."""
+    if not uri:
+        return ""
+    return re.sub(r"(://[^:/@]+:)[^@]+@", r"\1***@", uri)
 
 
 def _make_client() -> AsyncIOMotorClient:
@@ -19,7 +28,7 @@ async def connect_db() -> None:
     try:
         _client = _make_client()
         await _client.admin.command("ping")
-        print(f"[DB] Connected to MongoDB at {settings.MONGODB_URI}")
+        print(f"[DB] Connected to MongoDB at {redact_mongo_uri(settings.MONGODB_URI)}")
     except Exception as exc:
         print(f"[DB] WARNING: MongoDB connection failed ({exc}). "
               "Server will start anyway DB calls will fail until the connection is available.")

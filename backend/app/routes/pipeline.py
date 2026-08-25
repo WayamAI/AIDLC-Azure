@@ -2,7 +2,10 @@
 Pipeline report route.
 Aggregates CI + live test results + code review verdict into a single GO/NO-GO.
 """
+import logging
 import uuid
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, HTTPException, Body, Depends
 from app.auth.dependencies import get_current_org
 from app.models.organization import OrganizationOut
@@ -11,6 +14,7 @@ from app.services.ai_service import analyze_release_readiness, AIQuotaError
 from app.database import get_db
 
 router = APIRouter(prefix="/pipeline", tags=["Pipeline"])
+log = logging.getLogger("pipeline")
 
 
 def _pipeline_score(
@@ -169,9 +173,11 @@ async def generate_pipeline_report(
             "verdict": verdict_data.get("verdict"),
             "signals": signals,
             "errors": errors,
+            "created_at": datetime.now(timezone.utc).isoformat(),
         })
-    except Exception:
-        pass  # non-fatal
+    except Exception as exc:
+        log.exception("Failed to persist pipeline run %s", pipeline_run_id)
+        errors.append(f"Failed to persist pipeline report: {exc}")
 
     return {
         "pipeline_run_id": pipeline_run_id,
@@ -193,7 +199,10 @@ async def list_pipeline_runs(
     try:
         cursor = db["pipeline_runs"].find(
             {"org_id": org.id},
-            {"_id": 1, "owner": 1, "repo": 1, "version": 1, "score": 1, "verdict": 1},
+            {
+                "_id": 1, "owner": 1, "repo": 1, "version": 1, "score": 1,
+                "verdict": 1, "commit_sha": 1, "created_at": 1,
+            },
         ).sort("_id", -1).limit(20)
         runs = []
         async for doc in cursor:

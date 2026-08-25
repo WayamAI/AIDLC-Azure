@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 from typing import Optional
 
-from app.services.workspace_service import get_workspace, _walk_tree
+from app.services.workspace_service import require_workspace, _walk_tree
 
 
 class _FunctionVisitor(ast.NodeVisitor):
@@ -67,9 +67,9 @@ def _is_called_in_tests(func_name: str, test_contents: list[str]) -> bool:
     return False
 
 
-def analyze_python_coverage(workspace_id: str, file_path: str, content: str) -> dict:
+def analyze_python_coverage(org_id: str, workspace_id: str, file_path: str, content: str) -> dict:
     """Parse Python file with AST and check which functions appear in test files."""
-    ws = get_workspace(workspace_id)
+    ws = require_workspace(org_id, workspace_id)
     test_contents = _find_test_files(ws["clone_dir"])
 
     try:
@@ -113,9 +113,9 @@ def analyze_python_coverage(workspace_id: str, file_path: str, content: str) -> 
     }
 
 
-def analyze_ts_coverage(workspace_id: str, file_path: str, content: str) -> dict:
+def analyze_ts_coverage(org_id: str, workspace_id: str, file_path: str, content: str) -> dict:
     """Lightweight regex-based coverage analysis for TypeScript/JavaScript."""
-    ws = get_workspace(workspace_id)
+    ws = require_workspace(org_id, workspace_id)
     test_contents = _find_test_files(ws["clone_dir"])
 
     # Match: function foo(, const foo = (, async foo(, export function foo(
@@ -153,13 +153,13 @@ def analyze_ts_coverage(workspace_id: str, file_path: str, content: str) -> dict
     }
 
 
-def analyze_coverage(workspace_id: str, file_path: str, content: str) -> dict:
+def analyze_coverage(workspace_id: str, file_path: str, content: str, *, org_id: str) -> dict:
     """Dispatch to the right analyzer based on file extension."""
     ext = Path(file_path).suffix.lower()
     if ext == ".py":
-        return analyze_python_coverage(workspace_id, file_path, content)
+        return analyze_python_coverage(org_id, workspace_id, file_path, content)
     elif ext in {".ts", ".tsx", ".js", ".jsx"}:
-        return analyze_ts_coverage(workspace_id, file_path, content)
+        return analyze_ts_coverage(org_id, workspace_id, file_path, content)
     else:
         # Return empty analysis for unsupported types
         return {

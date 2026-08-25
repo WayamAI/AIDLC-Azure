@@ -24,19 +24,21 @@ from app.services import ai_service, healing_service, root_cause_service
 
 router = APIRouter(prefix="/testing/healing", tags=["Self-Healing Tests"])
 
-_SELECTOR_RE = re.compile(
-    r"""(?:selector\s+[\"']([^\"']+)[\"']|locator\([\"']([^\"']+)[\"']\)|([#.\[][^\s\"']+))""",
-    re.I,
-)
+_LOCATOR_RE = re.compile(r"""locator\(\s*[\"']([^\"']+)[\"']""", re.I)
+_WAITING_SELECTOR_RE = re.compile(r"""waiting for selector\s+[\"']([^\"']+)[\"']""", re.I)
+_QUOTED_SELECTOR_RE = re.compile(r"""selector\s+[\"']([^\"']+)[\"']""", re.I)
+_CSS_ID_RE = re.compile(r"(#[A-Za-z][\w-]*)")
+_CSS_ATTR_RE = re.compile(r"(\[[^\]]+\])")
 
 
 def _extract_selector(error: str | None, step_description: str | None) -> str | None:
     for text in (error, step_description):
         if not text:
             continue
-        m = _SELECTOR_RE.search(text)
-        if m:
-            return next(g for g in m.groups() if g)
+        for pattern in (_LOCATOR_RE, _WAITING_SELECTOR_RE, _QUOTED_SELECTOR_RE, _CSS_ID_RE, _CSS_ATTR_RE):
+            m = pattern.search(text)
+            if m:
+                return m.group(1)
     return None
 
 
@@ -113,6 +115,12 @@ async def analyze_healing(
     step_number = failed_step.step_number if failed_step else 1
     step_description = failed_step.step_description if failed_step else None
     original_selector = _extract_selector(error_message, step_description)
+    test_doc = await db.playwright_tests.find_one({"_id": test_id, "org_id": org.id})
+    if test_doc:
+        stored_steps = test_doc.get("steps") or []
+        idx = step_number - 1
+        if 0 <= idx < len(stored_steps) and stored_steps[idx].get("selector"):
+            original_selector = stored_steps[idx]["selector"]
 
     attempt_id = str(uuid.uuid4())
     now = datetime.utcnow()

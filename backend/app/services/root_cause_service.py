@@ -21,7 +21,10 @@ log = logging.getLogger("root_cause_service")
 
 COLLECTION = "root_cause_analyses"
 
-_SELECTOR_RE = re.compile(r"waiting for selector|element.*not found|no element", re.I)
+_SELECTOR_RE = re.compile(
+    r"waiting for selector|waiting for locator|element.*not found|no element|locator\(",
+    re.I,
+)
 _TIMEOUT_RE = re.compile(r"timeout \d+ms exceeded|timed out", re.I)
 _NETWORK_RE = re.compile(r"net::err|econnrefused|network error|failed to fetch", re.I)
 _NAV_RE = re.compile(r"navigation failed|err_name_not_resolved|goto.*failed", re.I)
@@ -106,6 +109,12 @@ async def build_evidence(test_result: dict[str, Any], repo_doc: Optional[dict]) 
 async def collect_evidence(db, org_id: str, run_id: str, test_id: str) -> tuple[Optional[dict], Optional[dict]]:
     """Returns (run_doc, test_result) or (None, None) if not found."""
     run_doc = await db.playwright_runs.find_one({"_id": run_id, "org_id": org_id})
+    if not run_doc:
+        from app.services import playwright_service
+
+        mem = playwright_service.get_run(run_id, org_id)
+        if mem:
+            run_doc = mem
     if not run_doc:
         return None, None
     test_result = next((r for r in run_doc.get("results", []) if r.get("test_id") == test_id), None)

@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
-import { mockTestResults, mockPrioritizedTests, mockTestCases, mockSyntheticData } from "@/lib/mockData";
+
 import {
   Area,
   AreaChart,
@@ -80,57 +80,37 @@ function CategoryTooltip({ active, payload }: TooltipProps<number, string>) {
   );
 }
 
+const EMPTY_WEEK = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => ({
+  day,
+  passed: 0,
+  failed: 0,
+}));
+
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { data: stats, isError } = useDashboardStats();
+  const { data: stats, isError, isLoading } = useDashboardStats();
 
-  const mockPassed = mockTestResults.filter((t) => t.status === "PASS").length;
-  const mockFailed = mockTestResults.filter((t) => t.status === "FAIL").length;
-  const mockTotal = mockTestResults.length;
-  const mockTotalTests = Object.values(mockTestCases).flat().length;
-
-  const useMock = isError || !stats || (stats.total_tests ?? 0) === 0;
-
-  const totalTests = useMock ? mockTotalTests : stats!.total_tests;
-  const passed = useMock ? mockPassed : stats!.latest_run.passed;
-  const failed = useMock ? mockFailed : stats!.latest_run.failed;
-  const successRate = useMock ? Math.round((mockPassed / mockTotal) * 100) : stats!.latest_run.success_rate;
-  const avgDuration = (useMock
-    ? mockTestResults.reduce((s, t) => s + t.duration, 0) / mockTotal
-    : stats!.latest_run.avg_duration
-  ).toFixed(1);
-  const knownFailures = useMock ? mockPrioritizedTests.filter((t) => t.knownFailure).length : stats!.known_failures;
-  const highPriority = useMock ? mockPrioritizedTests.filter((t) => t.priority >= 80).length : stats!.high_priority;
-  const activeVehicles = useMock ? mockSyntheticData.filter((d) => d.status === "Active").length : stats!.active_vehicles;
+  const totalTests = stats?.total_tests ?? 0;
+  const passed = stats?.latest_run?.passed ?? 0;
+  const failed = stats?.latest_run?.failed ?? 0;
+  const successRate = stats?.latest_run?.success_rate ?? 0;
+  const avgDuration = (stats?.latest_run?.avg_duration ?? 0).toFixed(1);
+  const knownFailures = stats?.known_failures ?? 0;
+  const highPriority = stats?.high_priority ?? 0;
+  const syntheticCount = Object.values(stats?.test_case_counts ?? {}).reduce((a, b) => a + b, 0);
 
   const kpis = [
-    { label: "Total Test Cases", value: totalTests, icon: TestTubes, change: "+12%", up: true, accent: "primary" as const },
-    { label: "Pass Rate", value: `${successRate}%`, icon: TrendingUp, change: "+3.2%", up: true, accent: "success" as const },
-    { label: "Failed Executions", value: failed, icon: XCircle, change: "-2", up: false, accent: "destructive" as const },
-    { label: "Avg. Execution Time", value: `${avgDuration}s`, icon: Clock, change: "-0.4s", up: true, accent: "warning" as const },
-    { label: "Known Failures", value: knownFailures, icon: AlertTriangle, change: "0", up: false, accent: "destructive" as const },
-    { label: "High Priority Items", value: highPriority, icon: Target, change: "+1", up: true, accent: "warning" as const },
+    { label: "Total Test Cases", value: totalTests, icon: TestTubes, accent: "primary" as const },
+    { label: "Pass Rate", value: `${successRate}%`, icon: TrendingUp, accent: "success" as const },
+    { label: "Failed Executions", value: failed, icon: XCircle, accent: "destructive" as const },
+    { label: "Avg. Execution Time", value: `${avgDuration}s`, icon: Clock, accent: "warning" as const },
+    { label: "Known Failures", value: knownFailures, icon: AlertTriangle, accent: "destructive" as const },
+    { label: "High Priority Items", value: highPriority, icon: Target, accent: "warning" as const },
   ];
 
-  const mockWeekly = [
-    { day: "Mon", passed: 18, failed: 3 },
-    { day: "Tue", passed: 22, failed: 2 },
-    { day: "Wed", passed: 19, failed: 5 },
-    { day: "Thu", passed: 25, failed: 1 },
-    { day: "Fri", passed: 20, failed: 4 },
-    { day: "Sat", passed: 15, failed: 2 },
-    { day: "Sun", passed: mockPassed, failed: mockFailed },
-  ];
-  const weeklyTrend = !useMock && stats?.weekly_trend?.length ? stats.weekly_trend : mockWeekly;
+  const weeklyTrend = stats?.weekly_trend?.length ? stats.weekly_trend : EMPTY_WEEK;
 
-  const mockCounts = {
-    functional: mockTestCases.functional.length,
-    edge: mockTestCases.edge.length,
-    api: mockTestCases.api.length,
-    failure: mockTestCases.failure.length,
-    regression: mockTestCases.regression.length,
-  };
-  const counts = !useMock && stats?.test_case_counts ? stats.test_case_counts : mockCounts;
+  const counts = stats?.test_case_counts ?? {};
   const categoryData = Object.entries(counts).map(([name, value]) => ({
     name: name.charAt(0).toUpperCase() + name.slice(1),
     value,
@@ -138,36 +118,38 @@ const Dashboard = () => {
   }));
   const categoryTotal = categoryData.reduce((s, c) => s + c.value, 0);
 
-  const coverageData = [
-    { name: "Functional", value: 85, fill: CHART_PALETTE_HSL[0] },
-    { name: "Edge Cases", value: 60, fill: CHART_PALETTE_HSL[1] },
-    { name: "API", value: 75, fill: CHART_PALETTE_HSL[2] },
-    { name: "Regression", value: 50, fill: CHART_PALETTE_HSL[4] },
-  ];
+  const coverageData = categoryData.map((c) => ({
+    name: c.name,
+    value: categoryTotal ? Math.round((c.value / categoryTotal) * 100) : 0,
+    fill: c.fill,
+  }));
 
-  const severityBreakdown = [
-    { severity: "Critical", count: 5 },
-    { severity: "High", count: 7 },
-    { severity: "Medium", count: 2 },
-    { severity: "Low", count: 1 },
-  ];
+  const severityBreakdown = stats?.severity_breakdown?.length
+    ? stats.severity_breakdown
+    : [
+        { severity: "Critical", count: 0 },
+        { severity: "High", count: 0 },
+        { severity: "Medium", count: 0 },
+        { severity: "Low", count: 0 },
+      ];
   const totalSeverity = severityBreakdown.reduce((s, b) => s + b.count, 0);
 
-  const recentActivity = mockTestResults.slice(0, 5).map((t) => ({
-    ...t,
-    timeAgo: `${Math.floor(Math.random() * 30) + 1}m ago`,
-  }));
+  const recentActivity = stats?.recent_activity ?? [];
 
   const platformMetrics = [
     { icon: Zap, label: "Test Cases Generated", value: totalTests },
-    { icon: Activity, label: "Active Monitored Assets", value: activeVehicles },
-    {
-      icon: BarChart3,
-      label: "Synthetic Data Records",
-      value: useMock ? mockSyntheticData.length : Object.values(stats!.test_case_counts).reduce((a, b) => a + b, 0),
-    },
+    { icon: Activity, label: "Active Monitored Assets", value: stats?.active_vehicles ?? 0 },
+    { icon: BarChart3, label: "Synthetic Data Records", value: syntheticCount },
     { icon: Target, label: "High-Priority Alerts", value: highPriority },
   ];
+
+  if (isLoading) {
+    return (
+      <PageShell size="full" className="flex min-h-[50vh] items-center justify-center">
+        <p className="text-sm text-muted-foreground">Loading dashboard…</p>
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell size="full" className="space-y-6">
@@ -182,8 +164,10 @@ const Dashboard = () => {
           title="Intelligence Dashboard"
           description={
             isError
-              ? "Live data unavailable displaying cached reference data"
-              : "Real-time overview of your quality assurance intelligence platform"
+              ? "Could not load dashboard stats. Start the backend and refresh."
+              : totalTests === 0
+                ? "No test data yet. Start with a requirement to generate a suite."
+                : "Live overview of generated tests, executions, and risk signals"
           }
         />
 
@@ -379,7 +363,7 @@ const Dashboard = () => {
                       className="dash-severity-fill"
                       style={{ background: SEVERITY_GRADIENT[s.severity] }}
                       initial={{ width: 0 }}
-                      animate={{ width: `${(s.count / totalSeverity) * 100}%` }}
+                      animate={{ width: `${totalSeverity ? (s.count / totalSeverity) * 100 : 0}%` }}
                       transition={{ duration: 0.9, delay: 0.15 + i * 0.08, ease: [0.22, 1, 0.36, 1] }}
                     />
                   </div>
@@ -414,7 +398,7 @@ const Dashboard = () => {
             </div>
             <div className="mt-5 grid grid-cols-2 gap-2">
               {coverageData.map((c) => (
-                <div key={c.name} className="rounded-xl border border-black/[0.04] bg-white/50 px-3 py-2 text-center">
+                <div key={c.name} className="rounded-xl border border-border bg-raised px-3 py-2 text-center">
                   <p className="font-mono text-lg font-semibold tabular-nums" style={{ color: c.fill.replace("hsl", "hsl") }}>
                     {c.value}%
                   </p>
@@ -425,6 +409,11 @@ const Dashboard = () => {
           </DashboardPanel>
 
           <DashboardPanel title="Live Activity" subtitle="Latest test executions" icon={Zap}>
+            {recentActivity.length === 0 && (
+              <p className="py-8 text-center text-xs text-muted-foreground">
+                No executions yet. Run a suite from Test Execution to see activity here.
+              </p>
+            )}
             <ol className="activity-timeline">
               {recentActivity.map((t, i) => (
                 <motion.li
@@ -432,7 +421,8 @@ const Dashboard = () => {
                   initial={{ opacity: 0, x: -8 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.25 + i * 0.06 }}
-                  className="activity-timeline-item"
+                  className="activity-timeline-item cursor-pointer"
+                  onClick={() => navigate("/test-execution")}
                 >
                   <span
                     className={cn(
@@ -450,11 +440,11 @@ const Dashboard = () => {
                   <div className="min-w-0 flex-1 py-0.5">
                     <p className="truncate text-xs font-semibold text-[var(--color-primary)]">{t.name}</p>
                     <p className="text-[10px] text-[var(--color-tertiary)]">
-                      {t.id} · {t.duration}s
+                      {t.id}
                     </p>
                   </div>
                   <span className="shrink-0 rounded-full bg-[var(--color-action)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-tertiary)]">
-                    {t.timeAgo}
+                    {t.time_ago}
                   </span>
                 </motion.li>
               ))}

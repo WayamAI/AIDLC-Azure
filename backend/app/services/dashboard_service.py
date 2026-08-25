@@ -1,6 +1,45 @@
 """
 Dashboard aggregation service.
 """
+from datetime import datetime, timezone
+
+_SEVERITY_ORDER = ("Critical", "High", "Medium", "Low")
+
+
+def _time_ago(ts) -> str:
+    if ts is None:
+        return ""
+    if isinstance(ts, str):
+        try:
+            ts = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+        except ValueError:
+            return ""
+    if getattr(ts, "tzinfo", None) is None:
+        ts = ts.replace(tzinfo=timezone.utc)
+    delta = datetime.now(timezone.utc) - ts
+    secs = max(0, int(delta.total_seconds()))
+    if secs < 60:
+        return "just now"
+    if secs < 3600:
+        return f"{secs // 60}m ago"
+    if secs < 86400:
+        return f"{secs // 3600}h ago"
+    return f"{secs // 86400}d ago"
+
+
+def _day_label(iso_date: str) -> str:
+    try:
+        return datetime.strptime(iso_date, "%Y-%m-%d").strftime("%a")
+    except ValueError:
+        return iso_date
+
+
+def _iso_timestamp(ts) -> str:
+    if ts is None:
+        return ""
+    if hasattr(ts, "isoformat"):
+        return ts.isoformat()
+    return str(ts)
 
 
 async def get_stats(db, org_id: str) -> dict:
@@ -63,12 +102,40 @@ async def get_stats(db, org_id: str) -> dict:
     weekly_raw = await db.test_results.aggregate(weekly_pipeline).to_list(length=7)
     weekly_trend = [
         {
-            "day": r["_id"],
+            "day": _day_label(r["_id"]),
             "passed": r["passed"],
             "failed": r["failed"],
             "total": r["total"],
         }
         for r in weekly_raw
+    ]
+
+    sev_pipeline = [
+        {"$match": {"org_id": org_id}},
+        {"$group": {"_id": "$severity", "count": {"$sum": 1}}},
+    ]
+    sev_agg = await db.test_cases.aggregate(sev_pipeline).to_list(length=20)
+    sev_counts = {name: 0 for name in _SEVERITY_ORDER}
+    for row in sev_agg:
+        label = str(row.get("_id") or "Medium").strip().title()
+        if label in sev_counts:
+            sev_counts[label] += int(row.get("count") or 0)
+    severity_breakdown = [
+        {"severity": name, "count": sev_counts[name]} for name in _SEVERITY_ORDER
+    ]
+
+    recent_docs = await (
+        db.test_results.find({"org_id": org_id}).sort("timestamp", -1).limit(12)
+    ).to_list(length=12)
+    recent_activity = [
+        {
+            "id": d.get("tc_id") or str(d.get("_id", "")),
+            "name": d.get("name") or d.get("tc_id") or "Test",
+            "status": d.get("status") or "FAIL",
+            "timestamp": _iso_timestamp(d.get("timestamp")),
+            "time_ago": _time_ago(d.get("timestamp")),
+        }
+        for d in recent_docs
     ]
 
     return {
@@ -87,4 +154,6 @@ async def get_stats(db, org_id: str) -> dict:
         "known_failures": known_failures,
         "active_vehicles": active_vehicles,
         "weekly_trend": weekly_trend,
+        "severity_breakdown": severity_breakdown,
+        "recent_activity": recent_activity,
     }

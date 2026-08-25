@@ -13,6 +13,14 @@ from app.services.ai_service import review_pull_request, explain_ci_failure, AIQ
 router = APIRouter(prefix="/github", tags=["GitHub"])
 
 
+class ReviewCommitRequest(BaseModel):
+    custom_rules: Optional[str] = None
+
+
+class ReviewPRRequest(BaseModel):
+    custom_rules: Optional[str] = None
+
+
 def _require_repo(owner: str, repo: str) -> None:
     if not owner.strip() or not repo.strip():
         raise HTTPException(status_code=422, detail="owner and repo are required")
@@ -45,15 +53,23 @@ async def pr_files(owner: str, repo: str, pr_number: int, org: OrganizationOut =
 
 
 @router.post("/pr/{pr_number}/review")
-async def ai_review_pr(owner: str, repo: str, pr_number: int, org: OrganizationOut = Depends(get_current_org)):
+async def ai_review_pr(
+    owner: str,
+    repo: str,
+    pr_number: int,
+    req: Optional[ReviewPRRequest] = None,
+    org: OrganizationOut = Depends(get_current_org),
+):
     """Fetch PR files and run AI code review."""
     try:
         detail = await github_service.get_pr_detail(owner, repo, pr_number)
         files = await github_service.get_pr_files(owner, repo, pr_number)
+        custom_rules = req.custom_rules if req else None
         review = await review_pull_request(
             detail.get("title", ""),
             detail.get("body") or "",
             files,
+            custom_rules=custom_rules,
         )
         return {
             "pr_number": pr_number,
@@ -82,9 +98,6 @@ async def list_commits(
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
-
-class ReviewCommitRequest(BaseModel):
-    custom_rules: Optional[str] = None
 
 @router.post("/commits/{sha}/review")
 async def review_commit(

@@ -99,7 +99,11 @@ def _is_quota_error(exc: Exception) -> bool:
     return isinstance(exc, RateLimitError) or "429" in str(exc) or "quota" in str(exc).lower()
 
 
-def _call_openai_sync(prompt: str, json_mode: bool = True) -> tuple[str, int, int]:
+def _call_openai_sync(
+    prompt: str,
+    json_mode: bool = True,
+    timeout: float | None = None,
+) -> tuple[str, int, int]:
     """Synchronous Ollama chat completion. Returns (content, prompt_tokens, completion_tokens)."""
     delays = [5, 15, 30]
     _, _, model = _ollama_cfg()
@@ -107,13 +111,18 @@ def _call_openai_sync(prompt: str, json_mode: bool = True) -> tuple[str, int, in
     kwargs: dict = {
         "model": model,
         "messages": [{"role": "user", "content": prompt}],
+        "timeout": timeout or 600.0,
     }
     if json_mode:
         kwargs["response_format"] = {"type": "json_object"}
+        # Thinking models (kimi-k3, gpt-oss) otherwise spend the whole timeout
+        # in reasoning and return empty/truncated JSON.
+        kwargs["extra_body"] = {"reasoning_effort": "low"}
     for attempt, delay in enumerate(delays, 1):
         try:
             response = client.chat.completions.create(**kwargs)
-            content = response.choices[0].message.content or ""
+            msg = response.choices[0].message
+            content = _message_text(msg)
             usage = response.usage
             prompt_tokens = usage.prompt_tokens if usage else 0
             completion_tokens = usage.completion_tokens if usage else 0
@@ -156,14 +165,21 @@ async def _log_cost(task_name: str, prompt_tokens: int, completion_tokens: int) 
         pass  # Never break the main AI call due to cost logging failure
 
 
-async def _call_openai(prompt: str, json_mode: bool = True, task_name: str | None = None) -> str:
+async def _call_openai(
+    prompt: str,
+    json_mode: bool = True,
+    task_name: str | None = None,
+    timeout: float | None = None,
+) -> str:
     """Async wrapper runs the sync call in a thread so the event loop isn't blocked."""
     if task_name is None:
         frame = inspect.currentframe()
         caller = frame.f_back.f_code.co_name if (frame and frame.f_back) else "unknown"
         task_name = _TASK_LABELS.get(caller, caller.replace("_", " ").title())
 
-    content, prompt_tokens, completion_tokens = await asyncio.to_thread(_call_openai_sync, prompt, json_mode)
+    content, prompt_tokens, completion_tokens = await asyncio.to_thread(
+        _call_openai_sync, prompt, json_mode, timeout
+    )
     asyncio.create_task(_log_cost(task_name, prompt_tokens, completion_tokens))
     return content
 
@@ -176,12 +192,65 @@ async def call_ai(prompt: str, max_tokens: int = 2000, task_name: str | None = N
 # --------------------------------------------------------------------------
 
 
+def _message_text(msg: Any) -> str:
+    """Prefer content; fall back to reasoning/thinking when the model left content empty."""
+    content = getattr(msg, "content", None) or ""
+    if isinstance(content, str) and content.strip():
+        return content
+    dump: dict[str, Any] = {}
+    if hasattr(msg, "model_dump"):
+        try:
+            dump = msg.model_dump() or {}
+        except Exception:
+            dump = {}
+    for key in ("reasoning", "thinking"):
+        value = dump.get(key) if dump else getattr(msg, key, None)
+        if isinstance(value, str) and value.strip():
+            return value
+    return content if isinstance(content, str) else ""
+
+
 def _clean_json(raw: str) -> str:
-    """Strip markdown code fences the model sometimes adds."""
-    raw = raw.strip()
-    raw = re.sub(r"^```(?:json)?\s*", "", raw)
+    """Strip markdown fences and extract a JSON object if the model added prose."""
+    raw = (raw or "").strip()
+    raw = re.sub(r"^```(?:json)?\s*", "", raw, flags=re.IGNORECASE)
     raw = re.sub(r"\s*```$", "", raw)
-    return raw.strip()
+    raw = raw.strip()
+    try:
+        json.loads(raw)
+        return raw
+    except Exception:
+        pass
+    fenced = re.search(r"```(?:json)?\s*([\s\S]*?)```", raw, flags=re.IGNORECASE)
+    if fenced:
+        inner = fenced.group(1).strip()
+        try:
+            json.loads(inner)
+            return inner
+        except Exception:
+            pass
+    match = re.search(r"(\{.*\}|\[.*\])", raw, flags=re.DOTALL)
+    if match:
+        return match.group(1).strip()
+    return raw
+
+
+async def _call_openai_json(
+    prompt: str,
+    timeout: float | None = None,
+    task_name: str | None = None,
+) -> Any:
+    """JSON-mode call with a non-JSON retry if the model wraps or truncates output."""
+    if task_name is None:
+        frame = inspect.currentframe()
+        caller = frame.f_back.f_code.co_name if (frame and frame.f_back) else "unknown"
+        task_name = _TASK_LABELS.get(caller, caller.replace("_", " ").title())
+    raw = await _call_openai(prompt, json_mode=True, timeout=timeout, task_name=task_name)
+    try:
+        return json.loads(_clean_json(raw))
+    except (json.JSONDecodeError, TypeError, ValueError):
+        raw = await _call_openai(prompt, json_mode=False, timeout=timeout, task_name=task_name)
+        return json.loads(_clean_json(raw))
 
 
 async def generate_test_cases(requirement: str, instructions: str = None) -> dict[str, list[dict[str, str]]]:
@@ -216,9 +285,7 @@ Rules:
 - severity must be exactly one of: Critical, High, Medium, Low
 - tc_id must be unique across all categories, starting TC-001
 """
-    raw = await _call_openai(prompt)
-    text = _clean_json(raw)
-    data: dict[str, Any] = json.loads(text)
+    data: dict[str, Any] = await _call_openai_json(prompt)
     return data
 
 
@@ -358,9 +425,7 @@ Rules:
 - key_elements must name the actual UI text/labels visible in the code (e.g. "Sign In button" not "button").
 - path must be the actual route path as defined in the router.
 """
-    raw = await _call_openai(prompt)
-    text = _clean_json(raw)
-    return json.loads(text)
+    return await _call_openai_json(prompt)
 
 
 async def generate_playwright_tests(
@@ -400,137 +465,32 @@ TEST CREDENTIALS: Not provided.
 Use placeholder values but add a comment in the description that real credentials are needed.
 """
 
-    pref_string = f"USER TEST PREFERENCES:\n{test_preferences}\n\nPrioritize generating tests that match the preferences above.\n" if test_preferences else ""
+    pref_string = f"USER TEST PREFERENCES:\n{test_preferences}\n" if test_preferences else ""
+    compact = {
+        "pages": (analysis.get("pages") or [])[:6],
+        "user_flows": (analysis.get("user_flows") or [])[:6],
+        "tech_stack": analysis.get("tech_stack"),
+        "summary": (analysis.get("summary") or "")[:800],
+    }
 
-    prompt = f"""You are a senior Playwright test automation engineer with deep expertise in React, Radix UI, and modern component libraries.
+    prompt = f"""You are a Playwright engineer. Generate EXACTLY {num_tests} test(s) for this app.
 
 TARGET URL: {target_url}
-{cred_section}
-APPLICATION ANALYSIS:
-{json.dumps(analysis, indent=2)}
+{cred_section}{pref_string}
+ANALYSIS:
+{json.dumps(compact, indent=2)}
 
-Generate comprehensive Playwright test cases that cover the pages and user flows above.
+Return ONLY JSON:
+{{"tests":[{{"name":str,"description":str,"page_name":str,"severity":"Critical|High|Medium|Low","steps":[{{"action":str,"selector":str|null,"value":str|null,"description":str}}]}}]}}
 
-{pref_string}
-Return ONLY valid JSON (no markdown) with exactly this shape:
-{{
-  "tests": [
-    {{
-      "name": "Descriptive test name",
-      "description": "What this test verifies",
-      "page_name": "Name of the page being tested",
-      "severity": "Critical|High|Medium|Low",
-      "steps": [
-        {{
-          "action": "navigate",
-          "selector": null,
-          "value": "/route-path",
-          "description": "Navigate to the page"
-        }},
-        {{
-          "action": "screenshot",
-          "selector": null,
-          "value": null,
-          "description": "Capture page load state"
-        }},
-        {{
-          "action": "fill",
-          "selector": "input[type=\\"email\\"]",
-          "value": "{test_email or 'user@example.com'}",
-          "description": "Enter email address"
-        }},
-        {{
-          "action": "fill",
-          "selector": "input[type=\\"password\\"]",
-          "value": "{test_password or 'yourpassword'}",
-          "description": "Enter password"
-        }},
-        {{
-          "action": "click",
-          "selector": "button:has-text(\\"Sign In\\")",
-          "value": null,
-          "description": "Click the Sign In button"
-        }},
-        {{
-          "action": "wait",
-          "selector": null,
-          "value": "4",
-          "description": "Wait for redirect to complete"
-        }},
-        {{
-          "action": "assert_text",
-          "selector": null,
-          "value": "Text expected to be visible after action",
-          "description": "Verify the expected result"
-        }},
-        {{
-          "action": "screenshot",
-          "selector": null,
-          "value": null,
-          "description": "Capture final state"
-        }}
-      ]
-    }}
-  ]
-}}
-
-STRICT RULES follow every rule or tests will fail:
-
-GENERAL:
-- Generate EXACTLY {num_tests} test case(s). No more, no fewer.
-- ALWAYS start each test with a "navigate" step.
-- Include at least 2 "screenshot" steps per test (beginning and end).
-- For login fill steps, use EXACTLY the credentials provided above (not placeholders).
-- After clicking a submit/login button, add a "wait" step of "4" seconds before asserting.
-
-SELECTOR RULES (critical):
-- For button clicks: ALWAYS use button:has-text("Label") NEVER use text=Label.
-- For link clicks: use a:has-text("Label") or [role="link"]:has-text("Label").
-- For standard inputs: input[type="email"], input[type="password"].
-- For dialog/modal inputs: use selector '[role="dialog"] input' (NOT input[type="text"] since type may be absent).
-- For inputs with placeholder: ALWAYS quote: input[placeholder="Search tasks..."] NOT input[placeholder=Search tasks...].
-- CSS attribute values with spaces or special chars MUST use double quotes.
-- For role-based elements: [role="dialog"], [role="checkbox"], button[type="submit"].
-
-RADIX UI / CUSTOM COMPONENTS (CRITICAL read carefully):
-- Checkboxes in Radix UI are NOT native inputs. Use [role="checkbox"] or [data-state="unchecked"] NOT input[type="checkbox"].
-- Radix UI <Select> triggers render with role="combobox", NOT as plain <button> elements.
-  To click a Radix Select trigger:
-    • Inside a dialog: use '[role="dialog"] [role="combobox"]'   ← NOT '[role="dialog"] button:has-text("Priority")'
-    • On the page: use '[role="combobox"]' or '[role="combobox"]:has-text("placeholder text")'
-  After clicking the combobox trigger, click the option: [role="option"]:has-text("Value")
-- NEVER write 'button:has-text("Priority")' or 'button:has-text("Sort")' for Radix Select triggers they will ALWAYS timeout.
-- For plain filter chips (All/Active/Completed toggle buttons that are real buttons): button:has-text("Completed") is fine.
-
-LIST ITEMS (CRITICAL):
-- Do NOT assume task/todo/item list entries are <li> elements. Modern React apps often use <div> or <article>.
-- For hover_and_click containers, use: '[class*="item"]', '[class*="task"]', '[class*="card"]', 'article', '[role="listitem"]'
-- Do NOT use bare 'li:has-text("...")' for task list items use '[class*="item"]:has-text("...")', 'article:has-text("...")', or '[role="listitem"]:has-text("...")'
-
-HIDDEN ELEMENTS (hover-to-reveal):
-- If a button only appears on hover (e.g. Delete, Edit on list items), use "hover_and_click" action:
-  selector = a broad container selector to hover (e.g. "[class*='item']:has-text('Task Name')", "article:has-text('Task Name')")
-  value = the button selector to click after hovering (e.g. "button:has-text(\\"Edit\\")")
-- Alternative: use "hover" action first, then "click" action for the revealed button.
-
-SUPPORTED ACTIONS:
-navigate, click, fill, assert_text, screenshot, wait, hover, hover_and_click, press, check, uncheck, select_option, drag_and_drop, dblclick, type_into, scroll, clear
-
-- "hover_and_click": selector=element to hover over, value=element to click after hover reveals it
-- "press": value=key name e.g. "Enter", "Tab", "Escape"
-- "check"/"uncheck": for native checkboxes only
-- "select_option": for native <select> only; for custom selects use click+click pattern
-- "drag_and_drop": selector=source, value=target
-- "wait": value=seconds as string e.g. "4"
-- "scroll": selector=element to scroll into view
-- "clear": selector=input to clear
-
-SEVERITY: Critical=auth/core, High=main feature, Medium=secondary, Low=cosmetic.
+Rules:
+- Start each test with action "navigate" (value = full URL or path).
+- Include a screenshot at start and end.
+- Buttons: button:has-text("Label"). Inputs: input[type="email"] etc. Quote attribute values.
+- Actions: navigate, click, fill, assert_text, screenshot, wait, hover, hover_and_click, press.
 """
-    raw = await _call_openai(prompt)
-    text = _clean_json(raw)
-    parsed = json.loads(text)
-    tests: list[dict[str, Any]] = parsed.get("tests", [])
+    parsed = await _call_openai_json(prompt, timeout=70.0)
+    tests: list[dict[str, Any]] = parsed.get("tests", []) if isinstance(parsed, dict) else []
     return tests
 
 
@@ -1449,8 +1409,9 @@ Rules:
 - "wait" value is seconds as a string e.g. "2"
 - "hover_and_click": selector=element to hover, value=element to click after hover"""
 
-    raw = await _call_openai(prompt, json_mode=True)
-    data = json.loads(_clean_json(raw))
+    data = await _call_openai_json(prompt)
+    if not isinstance(data, dict):
+        data = {}
     tests: list[dict[str, Any]] = data.get("tests", [])
 
     for test in tests:

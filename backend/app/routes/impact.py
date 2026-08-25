@@ -7,6 +7,7 @@ Test Generation page (Flow 2).
 from __future__ import annotations
 
 import asyncio
+import logging
 import random
 import uuid
 from pathlib import PurePosixPath
@@ -48,6 +49,8 @@ class WorkspaceGraphResponse(BaseModel):
 
 from app.services import impact_service
 
+log = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/impact", tags=["Code Impact"])
 
 # ── Flow 1 Code-Driven ──────────────────────────────────────────────────────
@@ -70,7 +73,17 @@ async def build_graph(req: GraphRequest, org: OrganizationOut = Depends(get_curr
             )
 
         if not changed_files:
-            raise HTTPException(status_code=404, detail="No relevant changed files found in this PR/commit")
+            return DependencyGraphResponse(
+                nodes=[],
+                edges=[],
+                tree={},
+                changed_files=[],
+                impacted_files=[],
+                pr_title=meta.get("title"),
+                pr_url=meta.get("url"),
+                commit_message=meta.get("title"),
+                message="This commit/PR has no source files to graph (.ts/.tsx/.js/.py).",
+            )
 
         ref = changed_files[0].get("ref") or req.commit_sha or "HEAD"
         nodes, edges, tree = await impact_service.build_dependency_graph(
@@ -275,10 +288,15 @@ async def build_workspace_graph(req: WorkspaceGraphRequest, org: OrganizationOut
     """
     try:
         nodes, edges = impact_service.build_workspace_dependency_graph(
-            req.workspace_id, req.file_paths
+            req.workspace_id,
+            req.file_paths,
+            org_id=org.id,
         )
         return WorkspaceGraphResponse(nodes=nodes, edges=edges)
-    except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except (ValueError, KeyError) as exc:
+        # require_workspace raises KeyError for unknown/other-org workspaces;
+        # that is a 404, not a server error.
+        raise HTTPException(status_code=404, detail="Workspace not found") from exc
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        log.exception("Failed to build workspace graph for %s", req.workspace_id)
+        raise HTTPException(status_code=500, detail=f"Failed to build dependency graph: {exc}") from exc

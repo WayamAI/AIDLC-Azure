@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { User } from "lucide-react";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PageHeader } from "@/components/PageHeader";
 import { PageShell } from "@/components/PageShell";
 import { PageCard } from "@/components/PageCard";
+import { useAuth } from "@/context/AuthContext";
+import { api } from "@/lib/api";
 
 interface ProfileSettings {
   name: string;
@@ -16,12 +19,14 @@ interface ProfileSettings {
   newsletter: boolean;
 }
 
-const STORAGE_KEYS = {
-  avatar: "user_profile_avatar_dataurl",
-  settings: "user_profile_settings",
-};
+const AVATAR_MAX_BYTES = 750_000;
+
+function avatarKey(userId: string | undefined) {
+  return userId ? `user_profile_avatar_${userId}` : "user_profile_avatar_dataurl";
+}
 
 export default function UserProfile() {
+  const { user, refresh } = useAuth();
   const [settings, setSettings] = useState<ProfileSettings>({
     name: "",
     email: "",
@@ -36,24 +41,30 @@ export default function UserProfile() {
   }, [settings.name]);
 
   useEffect(() => {
+    if (!user) return;
+    setSettings({
+      name: user.name || "",
+      email: user.email || "",
+      notifications: user.notifications !== false,
+      newsletter: Boolean(user.newsletter),
+    });
     try {
-      const raw = localStorage.getItem(STORAGE_KEYS.settings);
-      if (raw) {
-        const parsed: ProfileSettings = JSON.parse(raw);
-        setSettings((prev) => ({ ...prev, ...parsed }));
-      }
+      const savedAvatar = localStorage.getItem(avatarKey(user.user_id));
+      setAvatarDataUrl(savedAvatar);
     } catch {
-      /* ignore */
+      setAvatarDataUrl(null);
     }
-    const savedAvatar = localStorage.getItem(STORAGE_KEYS.avatar);
-    if (savedAvatar) setAvatarDataUrl(savedAvatar);
-  }, []);
+  }, [user]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      alert("Please upload an image file (PNG/JPEG).");
+      toast.error("Please upload an image file (PNG/JPEG).");
+      return;
+    }
+    if (file.size > AVATAR_MAX_BYTES) {
+      toast.error("Avatar must be under 750 KB.");
       return;
     }
 
@@ -69,21 +80,29 @@ export default function UserProfile() {
     e.preventDefault();
     setSaving(true);
     try {
-      localStorage.setItem(STORAGE_KEYS.settings, JSON.stringify(settings));
-      if (avatarDataUrl) localStorage.setItem(STORAGE_KEYS.avatar, avatarDataUrl);
-      setTimeout(() => {
-        setSaving(false);
-        alert("Profile saved successfully.");
-      }, 400);
-    } catch {
+      await api.updateMe({
+        name: settings.name.trim(),
+        notifications: settings.notifications,
+        newsletter: settings.newsletter,
+      });
+      await refresh();
+      if (avatarDataUrl) {
+        localStorage.setItem(avatarKey(user?.user_id), avatarDataUrl);
+      }
+      toast.success("Profile saved");
+    } catch (err: unknown) {
+      const detail =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
+        "Failed to save profile.";
+      toast.error(String(detail));
+    } finally {
       setSaving(false);
-      alert("Failed to save settings.");
     }
   };
 
   const resetAvatar = () => {
     setAvatarDataUrl(null);
-    localStorage.removeItem(STORAGE_KEYS.avatar);
+    localStorage.removeItem(avatarKey(user?.user_id));
   };
 
   return (
@@ -134,9 +153,10 @@ export default function UserProfile() {
                 type="email"
                 placeholder="ada@example.com"
                 value={settings.email}
-                onChange={(e) => setSettings({ ...settings, email: e.target.value })}
-                required
+                disabled
+                readOnly
               />
+              <p className="text-xs text-muted-foreground">Email is tied to your sign-in account.</p>
             </div>
           </div>
           <div className="mt-6 flex justify-end border-t border-border/40 pt-4">

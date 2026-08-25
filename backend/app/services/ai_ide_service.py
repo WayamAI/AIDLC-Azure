@@ -4,6 +4,7 @@ import json
 import os
 import re
 import shutil
+import tempfile
 import uuid
 from pathlib import Path
 from typing import Any, Dict
@@ -16,7 +17,8 @@ from app.services.template_service import get_template
 _workspaces: Dict[str, Dict[str, str]] = {}
 _workspace_meta: Dict[str, Dict[str, Any]] = {}
 _template_cache: Dict[str, str] | None = None
-_ai_ide_root = Path(os.getenv("AI_IDE_WORKSPACE_DIR", "/tmp/ai-ide-workspaces"))
+_ai_ide_root = Path(os.getenv("AI_IDE_WORKSPACE_DIR") or str(Path(tempfile.gettempdir()) / "ai-ide-workspaces"))
+_SKIP_DISK_DIRS = {".git", "node_modules", "__pycache__", ".venv", "dist", "build"}
 
 
 async def _get_template_cached() -> Dict[str, str]:
@@ -144,7 +146,71 @@ def _update_package_json_generated_files(workspace_id: str, path: str) -> None:
             abs_path.write_text(rendered, encoding="utf-8")
 
 
-async def create_workspace() -> str:
+def _meta_path(root_dir: str) -> Path:
+    return Path(root_dir) / "_meta.json"
+
+
+def _write_meta(workspace_id: str) -> None:
+    meta = _workspace_meta.get(workspace_id)
+    if not meta:
+        return
+    root = Path(meta["root_dir"])
+    root.mkdir(parents=True, exist_ok=True)
+    safe = {k: v for k, v in meta.items() if k != "github_token"}
+    _meta_path(str(root)).write_text(json.dumps(safe, indent=2), encoding="utf-8")
+
+
+def _load_workspace_from_disk(workspace_id: str) -> Dict[str, str] | None:
+    root = _ai_ide_root / workspace_id
+    if not root.is_dir():
+        return None
+    files: Dict[str, str] = {}
+    for path in root.rglob("*"):
+        if not path.is_file():
+            continue
+        rel = path.relative_to(root)
+        if any(part in _SKIP_DISK_DIRS for part in rel.parts[:-1]):
+            continue
+        if path.name in {"_meta.json"}:
+            continue
+        try:
+            files[str(rel).replace("\\", "/")] = path.read_text(encoding="utf-8", errors="replace")
+        except Exception:
+            continue
+    return files or None
+
+
+def _hydrate_workspace(workspace_id: str) -> None:
+    if workspace_id in _workspaces and workspace_id in _workspace_meta:
+        return
+    files = _load_workspace_from_disk(workspace_id)
+    if not files:
+        raise KeyError(f"Workspace {workspace_id} not found")
+    root_dir = str(_ai_ide_root / workspace_id)
+    meta: Dict[str, Any] = {
+        "workspace_id": workspace_id,
+        "org_id": None,
+        "root_dir": root_dir,
+        "repo_url": None,
+        "repo_owner": None,
+        "repo_name": None,
+        "default_branch": "main",
+        "github_token": None,
+    }
+    meta_file = _meta_path(root_dir)
+    if meta_file.is_file():
+        try:
+            loaded = json.loads(meta_file.read_text(encoding="utf-8"))
+            if isinstance(loaded, dict):
+                meta.update({k: v for k, v in loaded.items() if k != "github_token"})
+                meta["root_dir"] = root_dir
+        except Exception:
+            pass
+    _workspaces[workspace_id] = files
+    _workspace_meta[workspace_id] = meta
+
+
+async def create_workspace(org_id: str) -> str:
     _ensure_workspace_root()
     workspace_id = str(uuid.uuid4())
     template = await _get_template_cached()
@@ -152,6 +218,7 @@ async def create_workspace() -> str:
     root_dir = str(_ai_ide_root / workspace_id)
     _workspace_meta[workspace_id] = {
         "workspace_id": workspace_id,
+        "org_id": org_id,
         "root_dir": root_dir,
         "repo_url": None,
         "repo_owner": None,
@@ -160,24 +227,31 @@ async def create_workspace() -> str:
         "github_token": None,
     }
     await asyncio.to_thread(_write_workspace_files_to_disk, workspace_id)
+    _write_meta(workspace_id)
     return workspace_id
 
 
-def get_workspace_files(workspace_id: str) -> Dict[str, str]:
-    if workspace_id not in _workspaces:
+def require_org_workspace(org_id: str, workspace_id: str) -> Dict[str, Any]:
+    """Hydrate and return workspace meta if it belongs to org_id, else KeyError."""
+    _hydrate_workspace(workspace_id)
+    meta = _workspace_meta.get(workspace_id)
+    if not meta or meta.get("org_id") != org_id:
         raise KeyError(f"Workspace {workspace_id} not found")
+    return meta
+
+
+def get_workspace_files(workspace_id: str) -> Dict[str, str]:
+    _hydrate_workspace(workspace_id)
     return dict(_workspaces[workspace_id])
 
 
 def get_workspace_meta(workspace_id: str) -> Dict[str, Any]:
-    if workspace_id not in _workspace_meta:
-        raise KeyError(f"Workspace {workspace_id} not found")
+    _hydrate_workspace(workspace_id)
     return dict(_workspace_meta[workspace_id])
 
 
 def save_file(workspace_id: str, path: str, content: str) -> None:
-    if workspace_id not in _workspaces:
-        raise KeyError(f"Workspace {workspace_id} not found")
+    _hydrate_workspace(workspace_id)
     is_new_path = path not in _workspaces[workspace_id]
     _workspaces[workspace_id][path] = content
     meta = _workspace_meta[workspace_id]
@@ -190,8 +264,7 @@ def save_file(workspace_id: str, path: str, content: str) -> None:
 
 
 def create_file(workspace_id: str, path: str, content: str = "") -> None:
-    if workspace_id not in _workspaces:
-        raise KeyError(f"Workspace {workspace_id} not found")
+    _hydrate_workspace(workspace_id)
     if not content.strip():
         content = default_content_for_path(path)
     _workspaces[workspace_id][path] = content
@@ -204,8 +277,7 @@ def create_file(workspace_id: str, path: str, content: str = "") -> None:
 
 
 def read_file(workspace_id: str, path: str) -> str:
-    if workspace_id not in _workspaces:
-        raise KeyError(f"Workspace {workspace_id} not found")
+    _hydrate_workspace(workspace_id)
     files = _workspaces[workspace_id]
     if path not in files:
         raise FileNotFoundError(f"{path} not found in workspace")
@@ -213,14 +285,12 @@ def read_file(workspace_id: str, path: str) -> str:
 
 
 def list_file_paths(workspace_id: str) -> list[str]:
-    if workspace_id not in _workspaces:
-        raise KeyError(f"Workspace {workspace_id} not found")
+    _hydrate_workspace(workspace_id)
     return list(_workspaces[workspace_id].keys())
 
 
 def delete_path(workspace_id: str, path: str) -> list[str]:
-    if workspace_id not in _workspaces:
-        raise KeyError(f"Workspace {workspace_id} not found")
+    _hydrate_workspace(workspace_id)
 
     files = _workspaces[workspace_id]
     meta = _workspace_meta[workspace_id]
@@ -247,8 +317,7 @@ def delete_path(workspace_id: str, path: str) -> list[str]:
 
 
 def rename_or_move_path(workspace_id: str, from_path: str, to_path: str) -> list[str]:
-    if workspace_id not in _workspaces:
-        raise KeyError(f"Workspace {workspace_id} not found")
+    _hydrate_workspace(workspace_id)
 
     files = _workspaces[workspace_id]
     meta = _workspace_meta[workspace_id]
@@ -292,8 +361,7 @@ async def init_git_and_create_repo(
     description: str = "",
     branch: str = "main",
 ) -> dict[str, Any]:
-    if workspace_id not in _workspaces or workspace_id not in _workspace_meta:
-        raise KeyError(f"Workspace {workspace_id} not found")
+    _hydrate_workspace(workspace_id)
     if not _repo_name_valid(repo_name):
         raise ValueError("Invalid repository name")
 
@@ -364,6 +432,7 @@ async def init_git_and_create_repo(
             "github_token": github_token,
         }
     )
+    _write_meta(workspace_id)
 
     return {
         "workspace_id": workspace_id,
@@ -377,8 +446,7 @@ async def init_git_and_create_repo(
 
 
 async def commit_and_push_workspace(workspace_id: str, message: str, branch: str | None = None) -> dict[str, Any]:
-    if workspace_id not in _workspaces or workspace_id not in _workspace_meta:
-        raise KeyError(f"Workspace {workspace_id} not found")
+    _hydrate_workspace(workspace_id)
 
     meta = _workspace_meta[workspace_id]
     if not meta.get("repo_url"):

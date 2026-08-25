@@ -11,12 +11,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { usePipelineContext } from "@/context/PipelineContext";
 import { api } from "@/lib/api";
 import type { CommitInfo, PipelineReview } from "@/lib/api";
+import { toast } from "sonner";
 
 const SEVERITY_CONFIG: Record<string, { textColor: string; bg: string; border: string; icon: React.ElementType; label: string }> = {
-  critical: { textColor: "text-red-700",    bg: "bg-red-50",    border: "border-red-200",    icon: XCircle,       label: "Critical" },
+  critical: { textColor: "text-destructive", bg: "bg-destructive/10", border: "border-destructive/30", icon: XCircle, label: "Critical" },
   high:     { textColor: "text-[var(--color-warning)]", bg: "bg-[var(--color-warning-bg)]", border: "border-[var(--color-status-warning)]/30", icon: AlertTriangle, label: "High" },
-  medium:   { textColor: "text-amber-700", bg: "bg-amber-50", border: "border-amber-200", icon: Info,          label: "Medium" },
-  low:      { textColor: "text-sky-700",   bg: "bg-sky-50",   border: "border-sky-200",   icon: Info,          label: "Low" },
+  medium:   { textColor: "text-warning", bg: "bg-warning/10", border: "border-warning/30", icon: Info, label: "Medium" },
+  low:      { textColor: "text-info", bg: "bg-info/10", border: "border-info/30", icon: Info, label: "Low" },
 };
 
 const RECOMMENDATION_CONFIG: Record<string, { label: string; description: string; color: string }> = {
@@ -57,6 +58,11 @@ function CommitCard({
     onSuccess: (data) => {
       onReviewDone(data);
       setExpanded(true);
+    },
+    onError: (err: unknown) => {
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+        || "AI review failed";
+      toast.error(String(detail));
     },
   });
 

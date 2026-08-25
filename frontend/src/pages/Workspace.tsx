@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Github,
   Loader2,
@@ -24,6 +24,9 @@ import { CommitPanel } from "@/components/workspace/CommitPanel";
 import { StatusBar } from "@/components/workspace/StatusBar";
 import { useConnectWorkspace } from "@/hooks/use-workspace";
 import { toast } from "sonner";
+import { useActiveRepo } from "@/context/RepoContext";
+import { api } from "@/lib/api";
+import { parseGithubRepo } from "@/lib/github-repo";
 
 // ── Connect form ──────────────────────────────────────────────────────────────
 
@@ -36,12 +39,27 @@ function ConnectForm({
   initialBranch?: string;
   onConnected?: (args: { githubUrl: string; branch: string; pat?: string }) => void;
 } = {}) {
-  const [repoUrl, setRepoUrl] = useState(initialRepoUrl ?? "");
-  const [branch, setBranch] = useState(initialBranch ?? "main");
+  const { activeRepo, setActiveRepo } = useActiveRepo();
+  const [repoUrl, setRepoUrl] = useState(initialRepoUrl ?? activeRepo?.repoUrl ?? "");
+  const [branch, setBranch] = useState(initialBranch ?? activeRepo?.branch ?? "main");
   const [pat, setPat] = useState("");
   const [showPat, setShowPat] = useState(false);
+  const branchTouched = useRef(Boolean(initialBranch || activeRepo?.branch));
   const { setWorkspace } = useWorkspaceContext();
   const connectMutation = useConnectWorkspace();
+
+  useEffect(() => {
+    const parsed = parseGithubRepo(repoUrl);
+    if (!parsed || branchTouched.current) return;
+    const timer = window.setTimeout(() => {
+      api.getDefaultBranch(parsed.repoUrl)
+        .then((res) => {
+          if (!branchTouched.current && res.branch) setBranch(res.branch);
+        })
+        .catch(() => undefined);
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [repoUrl]);
 
   const handleConnect = async () => {
     if (!repoUrl.trim()) return;
@@ -54,6 +72,7 @@ function ConnectForm({
         pat: pat || undefined,
       });
       setWorkspace(result);
+      setActiveRepo(url, branch);
       onConnected?.({ githubUrl: url, branch, pat: pat || undefined });
       toast.success("Repository connected");
     } catch (err: any) {
@@ -93,9 +112,12 @@ function ConnectForm({
               <GitBranch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 value={branch}
-                onChange={(e) => setBranch(e.target.value)}
+                onChange={(e) => {
+                  branchTouched.current = true;
+                  setBranch(e.target.value);
+                }}
                 className="pl-9"
-                placeholder="main"
+                placeholder="default branch"
               />
             </div>
           </div>

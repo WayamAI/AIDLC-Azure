@@ -12,3 +12,4 @@ async def test_org_b_cannot_read_org_a_workspace():
 
     result = workspace_service.get_workspace(org_id="org_a", workspace_id="ws_1")
     assert result is not None
+    assert workspace_service.require_workspace("org_a", "ws_1") is result

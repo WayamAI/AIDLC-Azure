@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
 import type { PipelineReview, PipelineReport } from "@/lib/api";
 import type { WorkspacePlaywrightTest } from "@/lib/api";
 
@@ -48,7 +48,7 @@ interface PipelineCtxValue extends PipelineState {
   setLiveTestSummary: (s: LiveTestSummary | null) => void;
   setReportResult: (r: PipelineReport | null) => void;
   goToStage: (n: number) => void;
-  completeStage: (n: number) => void;
+  completeStage: (n: number, next?: number) => void;
   resetPipeline: () => void;
 }
 
@@ -70,8 +70,34 @@ const defaultState: PipelineState = {
 
 const PipelineCtx = createContext<PipelineCtxValue | null>(null);
 
+const PIPELINE_STORAGE_KEY = "aidlc-pipeline-state";
+
+function loadPipelineState(): PipelineState {
+  try {
+    const raw = sessionStorage.getItem(PIPELINE_STORAGE_KEY);
+    if (!raw) return defaultState;
+    const parsed = JSON.parse(raw) as Partial<PipelineState>;
+    return {
+      ...defaultState,
+      ...parsed,
+      githubPat: "",
+    };
+  } catch {
+    return defaultState;
+  }
+}
+
 export function PipelineProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<PipelineState>(defaultState);
+  const [state, setState] = useState<PipelineState>(loadPipelineState);
+
+  useEffect(() => {
+    try {
+      const { githubPat: _omit, ...rest } = state;
+      sessionStorage.setItem(PIPELINE_STORAGE_KEY, JSON.stringify(rest));
+    } catch {
+      /* ignore quota / private mode */
+    }
+  }, [state]);
 
   const update = useCallback((patch: Partial<PipelineState>) => {
     setState((prev) => ({ ...prev, ...patch }));
@@ -117,16 +143,21 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
     update({ activeStage: n });
   }, [update]);
 
-  const completeStage = useCallback((n: number) => {
+  const completeStage = useCallback((n: number, next?: number) => {
     setState((prev) => ({
       ...prev,
       completedStages: prev.completedStages.includes(n) ? prev.completedStages : [...prev.completedStages, n],
-      activeStage: n + 1,
+      activeStage: next ?? n + 1,
     }));
   }, []);
 
   const resetPipeline = useCallback(() => {
     setState(defaultState);
+    try {
+      sessionStorage.removeItem(PIPELINE_STORAGE_KEY);
+    } catch {
+      /* ignore */
+    }
   }, []);
 
   return (
@@ -148,4 +179,9 @@ export function usePipelineContext() {
   const ctx = useContext(PipelineCtx);
   if (!ctx) throw new Error("usePipelineContext must be used inside PipelineProvider");
   return ctx;
+}
+
+/** Safe outside `/pipeline` — Workspace tree view shares this graph UI. */
+export function useOptionalPipelineContext() {
+  return useContext(PipelineCtx);
 }

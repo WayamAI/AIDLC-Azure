@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Github,
@@ -65,8 +65,10 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { UnifiedTestIntelligence } from "@/components/pipeline/UnifiedTestIntelligence";
+import { HealFailedTest } from "@/components/live-testing/HealFailedTest";
 import { useLiveTesting, useFetchCommits, useRunHistory, LiveTestingPhase } from "../hooks/use-live-testing";
 import { usePipelineContext } from "@/context/PipelineContext";
+import { useActiveRepo } from "@/context/RepoContext";
 import { api, baselineApi, PlaywrightTestCase, TestStep, LiveTestResult, StepResult, CommitInfo, RunSummaryItem, RepoAnalysisResult, BaselineTest, WorkspacePlaywrightTest } from "../lib/api";
 import { downloadLiveTestReport, downloadRunSummaryReport } from "../lib/pdf-report";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -171,7 +173,15 @@ function ScreenshotViewer({
 
 // ── Live test result card ─────────────────────────────────────────────────────
 
-function LiveTestCard({ result }: { result: LiveTestResult }) {
+function LiveTestCard({
+  result,
+  runId,
+  targetUrl,
+}: {
+  result: LiveTestResult;
+  runId?: string;
+  targetUrl?: string;
+}) {
   const [open, setOpen] = useState(false);
 
   const statusIcon = {
@@ -256,6 +266,9 @@ function LiveTestCard({ result }: { result: LiveTestResult }) {
                   <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-destructive" />
                   <p className="text-xs leading-relaxed text-destructive/90">{result.error}</p>
                 </div>
+              )}
+              {result.status === "failed" && runId && targetUrl && (
+                <HealFailedTest runId={runId} testId={result.test_id} targetUrl={targetUrl} />
               )}
 
               {/* Step list */}
@@ -848,7 +861,8 @@ function InputPhase({
   }
 
   const [inputMode, setInputMode] = useState<"ai" | "upload">("ai");
-  const [githubUrl, setGithubUrl] = useState(initialGithubUrl ?? "");
+  const { activeRepo, setActiveRepo } = useActiveRepo();
+  const [githubUrl, setGithubUrl] = useState(initialGithubUrl || activeRepo?.repoUrl || "");
   const [targetUrl, setTargetUrl] = useState(initialAppUrl ?? "");
   const [testEmail, setTestEmail] = useState("");
   const [testPassword, setTestPassword] = useState("1234567890");
@@ -1322,6 +1336,7 @@ function InputPhase({
                     const typeObj = TEST_CASE_TYPES.find((t) => t.value === testCaseType);
                     const typePrefix = typeObj ? `TEST CASE TYPE: ${typeObj.label} ${typeObj.prompt}` : "";
                     const combinedPrefs = [typePrefix, testPreferences.trim()].filter(Boolean).join("\n\n");
+                    setActiveRepo(githubUrl.trim());
                     onAnalyze(
                       githubUrl.trim(),
                       targetUrl.trim(),
@@ -1377,8 +1392,10 @@ function stepIndex(step: string): number {
 
 function AnalyzingPhase({
   jobData,
+  slow,
 }: {
   jobData: ReturnType<typeof useLiveTesting>["jobData"];
+  slow?: boolean;
 }) {
   const logs: string[] = jobData?.logs ?? [];
   const currentStep = jobData?.step ?? "pending";
@@ -1412,7 +1429,11 @@ function AnalyzingPhase({
           <Loader2 className="h-5 w-5 text-primary animate-spin" />
         </div>
         <h2 className="font-semibold">Analysing codebase…</h2>
-        <p className="text-xs text-muted-foreground">This takes 30–90 seconds. Do not close the page.</p>
+        <p className="text-xs text-muted-foreground">
+          {slow
+            ? "Still generating. This usually finishes within 2 minutes. You can wait, or cancel and retry with 1 test."
+            : "This takes 30–90 seconds. Do not close the page."}
+        </p>
       </div>
 
       {/* Step progress */}
@@ -1543,6 +1564,11 @@ function ReadyPhase({
              <div>
                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-0.5">Intelligence Status</p>
                <h4 className="text-base font-black uppercase tracking-tight">Active Growth Stream</h4>
+               {analysis.tests_source === "fallback" && (
+                 <p className="mt-1 text-[10px] font-medium text-amber-600">
+                   Template tests (AI generation timed out or returned none)
+                 </p>
+               )}
              </div>
           </div>
           <div className="h-10 w-px bg-border/20" />
@@ -1641,11 +1667,13 @@ function ExecutionPhase({
   onReset,
   phase,
   analysis,
+  targetUrl,
 }: {
   runStatus: ReturnType<typeof useLiveTesting>["runStatus"];
   onReset: () => void;
   phase: LiveTestingPhase;
   analysis?: RepoAnalysisResult | null;
+  targetUrl?: string;
 }) {
   if (!runStatus) {
     return (
@@ -1815,7 +1843,14 @@ function ExecutionPhase({
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {results.map((r) => <LiveTestCard key={r.test_id} result={r} />)}
+          {results.map((r) => (
+            <LiveTestCard
+              key={r.test_id}
+              result={r}
+              runId={runStatus.run_id}
+              targetUrl={targetUrl || analysis?.target_url || undefined}
+            />
+          ))}
         </div>
       </div>
     </motion.div>
@@ -2064,6 +2099,7 @@ function RunHistoryPanel() {
 interface LtrPrefill {
   appUrl?: string;
   githubUrl?: string;
+  generatedTests?: WorkspacePlaywrightTest[];
 }
 
 function readAndClearPrefill(): LtrPrefill | null {
@@ -2121,9 +2157,42 @@ export default function LiveTestRunner({
     setPhase,
     setAnalysis,
     setEditedTests,
+    analyzingSlow,
   } = useLiveTesting();
 
   const activeTargetUrlRef = useRef<string>(effectiveAppUrl || "");
+
+  useEffect(() => {
+    const tests = prefill?.generatedTests;
+    if (!tests?.length) return;
+    const mapped: PlaywrightTestCase[] = tests.map((t) => ({
+      id: t.id,
+      analysis_id: t.analysis_id || "workspace-handoff",
+      name: t.name,
+      description: t.description,
+      page_name: t.page_name,
+      severity: t.severity,
+      steps: t.steps.map((s) => ({
+        action: (s.action as PlaywrightTestCase["steps"][number]["action"]) || "click",
+        selector: s.selector,
+        value: s.value,
+        description: s.description,
+      })),
+    }));
+    const target = effectiveAppUrl || "";
+    setAnalysis({
+      analysis_id: "workspace-handoff",
+      target_url: target,
+      summary: `${mapped.length} test${mapped.length === 1 ? "" : "s"} handed off from Workspace`,
+      tech_stack: "Playwright (workspace generated)",
+      pages: [],
+      user_flows: [],
+      tests: mapped,
+    });
+    setEditedTests(mapped);
+    if (target) setSpecTargetUrl(target);
+    setPhase("ready");
+  }, [prefill, effectiveAppUrl, setAnalysis, setEditedTests, setSpecTargetUrl, setPhase]);
 
   const [showSuiteSelector, setShowSuiteSelector] = useState(false);
   const [suitePayload, setSuitePayload] = useState<any>(null);
@@ -2194,7 +2263,7 @@ export default function LiveTestRunner({
             )}
 
             {phase === "analyzing" && (
-              <AnalyzingPhase key="analyzing" jobData={jobData} />
+              <AnalyzingPhase key="analyzing" jobData={jobData} slow={analyzingSlow} />
             )}
 
             {phase === "ready" && analysis && (
@@ -2234,6 +2303,7 @@ export default function LiveTestRunner({
                 onReset={reset}
                 phase={phase}
                 analysis={analysis}
+                targetUrl={analysis?.target_url || specTargetUrl || activeTargetUrlRef.current}
               />
             )}
           </AnimatePresence>
