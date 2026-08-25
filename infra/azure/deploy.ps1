@@ -35,6 +35,10 @@ az acr create --resource-group $ResourceGroup --name $AcrName --sku Basic --admi
 
 Write-Host "==> ACR build of unified image (frontend + FastAPI + Playwright Chromium)"
 Push-Location $Root
+# The ACR log stream contains U+2713. On a cp1252 Windows console the CLI dies
+# with UnicodeEncodeError *while printing logs* — the server-side build keeps
+# running and succeeds, but az exits 1 and the deploy looks like it failed.
+$env:PYTHONIOENCODING = "utf-8"
 az acr build --registry $AcrName --image "${ImageName}:$ImageTag" --file Dockerfile .
 Pop-Location
 
@@ -57,8 +61,13 @@ if (Test-Path $EnvPath) {
     if ($pair.Length -ne 2) { return }
     $k = $pair[0].Trim()
     $v = $pair[1].Trim().Trim('"')
-    $SecretArgs += "$k=$v"
-    $EnvArgs += "$k=secretref:$k"
+    # Azure Container Apps secret names must match ^[a-z0-9][a-z0-9-]*$ — an
+    # env key like MONGODB_URI is rejected outright, so map it to mongodb-uri.
+    # Empty values are also rejected, so skip unset keys instead of failing.
+    if (-not $v) { return }
+    $secretName = $k.ToLower().Replace("_", "-")
+    $SecretArgs += "$secretName=$v"
+    $EnvArgs += "$k=secretref:$secretName"
   }
 }
 

@@ -80,6 +80,21 @@ RESOURCE_GROUP=vakyam-rg LOCATION=eastasia ACR_NAME=vakyamcr20260820 \
   ACA_ENV=vakyam-env APP_NAME=aidlc IMAGE_NAME=aidlc ./deploy.sh
 ```
 
+## Known gotcha: `az acr build` exits 1 on Windows
+
+The ACR log stream contains `✓`. On a cp1252 console the CLI raises
+`UnicodeEncodeError: 'charmap' codec can't encode character '✓'` **while
+printing the logs** — the server-side build keeps running and succeeds, but
+`az` exits 1, so a healthy build looks like a failure.
+
+The deploy scripts now set `PYTHONIOENCODING=utf-8`. If you hit it running `az`
+by hand, check the real status before assuming failure:
+
+```bash
+az acr task list-runs --registry vakyamcr20260820 --top 3 -o table
+az acr repository show-tags --name vakyamcr20260820 --repository aidlc --orderby time_desc --top 5 -o tsv
+```
+
 ## Probes
 
 - Liveness: `GET /health`

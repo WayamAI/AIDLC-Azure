@@ -27,7 +27,9 @@ echo "==> ACR $ACR"
 az acr create --resource-group "$RG" --name "$ACR" --sku Basic --admin-enabled true >/dev/null
 
 echo "==> ACR build of unified image (frontend + FastAPI + Playwright Chromium)"
-( cd "$ROOT" && az acr build --registry "$ACR" --image "${IMAGE_NAME}:$TAG" --file Dockerfile . )
+# The ACR log stream contains U+2713; on a cp1252 console the CLI dies with
+# UnicodeEncodeError while printing logs even though the build succeeds.
+( cd "$ROOT" && PYTHONIOENCODING=utf-8 az acr build --registry "$ACR" --image "${IMAGE_NAME}:$TAG" --file Dockerfile . )
 
 echo "==> Container Apps environment"
 az containerapp env create --name "$ENV_NAME" --resource-group "$RG" --location "$LOC" 2>/dev/null || true
@@ -47,8 +49,13 @@ if [[ -f "$BACKEND/$ENV_FILE" ]]; then
     val="${val%\"}"
     val="${val#\"}"
     [[ -z "$key" ]] && continue
-    SECRET_ARGS+=("${key}=${val}")
-    ENV_ARGS+=("${key}=secretref:${key}")
+    # Azure Container Apps secret names must match ^[a-z0-9][a-z0-9-]*$ — an
+    # env key like MONGODB_URI is rejected outright, so map it to mongodb-uri.
+    # Empty values are also rejected, so skip unset keys instead of failing.
+    [[ -z "$val" ]] && continue
+    secret_name="$(echo "$key" | tr '[:upper:]_' '[:lower:]-')"
+    SECRET_ARGS+=("${secret_name}=${val}")
+    ENV_ARGS+=("${key}=secretref:${secret_name}")
   done < "$BACKEND/$ENV_FILE"
 fi
 
