@@ -416,7 +416,6 @@ export default function Incidents() {
                 <span className="px-2 py-0.5 rounded bg-muted text-foreground">5. Post-mortem</span>
               </div>
               <p className="mt-1">You can also create incidents directly from the <strong>Monitoring</strong> page when an anomaly is detected.</p>
-              <p className="text-amber-700 mt-1">Requires MongoDB running locally: <code className="bg-muted px-1 rounded text-foreground">docker run -d --name mongodb -p 27017:27017 mongo:7</code></p>
             </div>
           </div>
         </div>

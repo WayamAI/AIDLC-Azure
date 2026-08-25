@@ -101,7 +101,7 @@ uvicorn main:app --host 127.0.0.1 --port 8001 --reload
 ```
 
 and start the frontend with `BACKEND_PORT=8001 npm run dev` `vite.config.ts`
-reads `process.env.BACKEND_PORT` (falls back to `8000`) to set the `/api`
+reads `process.env.BACKEND_PORT` (falls back to `8001`) to set the `/api`
 proxy target. This env-var indirection was added specifically to make the
 backend port swappable without touching Setu.
 
@@ -115,20 +115,22 @@ before). Always target a specific PID or a path-scoped pattern.
 `backend/.env` (already configured):
 - `MONGODB_URI`, `MONGODB_DB=aidlc`
 - `OLLAMA_BASE_URL` (currently set to `https://ollama.com`), `OLLAMA_API_KEY`,
-  `OLLAMA_MODEL` (currently `gpt-oss:120b`)
-- `GITHUB_TOKEN`, `GITHUB_REPO_ID` configured, GitHub features should work
+  `OLLAMA_MODEL` (currently `kimi-k3:cloud`)
+- `GITHUB_TOKEN` is **empty**. GitHub features still work against public
+  repos via unauthenticated calls, but share the 60 requests/hour limit and
+  cannot reach private repos. Set a token to lift this to 5,000/hour.
 - `VERCEL_TOKEN`, `VERCEL_TEAM_ID`, `VERCEL_PROJECT_NAME` configured
-- `JIRA_DOMAIN` / `JIRA_EMAIL` / `JIRA_TOKEN` **not configured**, Jira
-  endpoints will fail (this is expected, not a bug)
+- `JIRA_DOMAIN` / `JIRA_EMAIL` / `JIRA_TOKEN` **not configured**. Jira
+  endpoints return `503` with an actionable message (expected, not a bug);
+  Sprint/Release-Gate/Pipeline degrade gracefully and record it in `errors`.
 - `SLACK_WEBHOOK_URL`, `DATADOG_API_KEY` / `DATADOG_APP_KEY` not configured
 
 `frontend/.env` exists, standard Vite env file.
 
 ## Known quirks / non-bugs
 
-- `frontend/src/pages/SyntheticData.tsx` has a character-encoding issue (non-UTF-8
-  em dash) that renders as `�` in the page description text. Cosmetic only,
-  pre-existing, low priority.
+- (Fixed) `frontend/src/pages/SyntheticData.tsx` previously held 11 stray
+  CP-1252 bytes that rendered as `�`; the file is valid UTF-8 now.
 - Breadcrumbs on some pages (e.g. CI Intelligence, Incidents, Sprint
   Intelligence, Requirements Intelligence) show a generic "AIDLC /" prefix
   instead of a proper category name cosmetic, auto-generated from route.
@@ -136,6 +138,11 @@ before). Always target a specific PID or a path-scoped pattern.
   the workflow has data (e.g. Test Execution / Risk Ranking before any
   requirement exists) this is intentional progressive-disclosure design,
   not a rendering bug.
+- When driving the app through browser automation, Chrome pauses
+  `requestAnimationFrame` in a **hidden/background** tab, which freezes
+  framer-motion entrance animations at `opacity: 0`. Pages then look blank or
+  washed out even though the DOM is complete — an automation artifact, not a
+  bug. Check `document.hidden` before reporting a page as broken.
 - Vite's dev server (`watch: { usePolling: true }`) can crash with an
   `EACCES: permission denied, lstat '.../frontend/.vite/deps'` error when
   restarting after a config/`.env` change, if run inside a sandboxed shell

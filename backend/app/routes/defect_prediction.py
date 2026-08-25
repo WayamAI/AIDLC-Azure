@@ -59,7 +59,9 @@ async def compute_risk_scores(
     })
 
     # Fetch details for up to 50 commits to get file-level data
-    for commit in commits[:50]:
+    # Budget scales with auth: 50 with a token, far fewer without, so one run
+    # cannot burn an unauthenticated 60/hour quota. See github_service.
+    for commit in commits[:github_service.commit_detail_budget()]:
         sha = commit["sha"]
         try:
             detail = await github_service.get_commit_detail(owner, repo, sha)

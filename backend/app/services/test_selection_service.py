@@ -45,7 +45,9 @@ async def compute_file_risk_scores(owner: str, repo: str, since_days: int = 90) 
     })
     bug_keywords = {"fix", "bug", "hotfix", "patch", "defect", "issue", "error", "crash", "regression", "revert"}
 
-    for commit in commits[:50]:
+    # Budget scales with auth: 50 with a token, far fewer without, so one run
+    # cannot burn an unauthenticated 60/hour quota. See github_service.
+    for commit in commits[:github_service.commit_detail_budget()]:
         try:
             detail = await github_service.get_commit_detail(owner, repo, commit["sha"])
             is_bug = any(k in commit["message"].lower() for k in bug_keywords)

@@ -18,6 +18,25 @@ _HEADERS = {
 }
 
 
+def is_authenticated() -> bool:
+    """True when a GitHub token is configured (connector or settings)."""
+    from app.services import connector_settings_service as connectors
+
+    return bool(connectors.active("github").get("token") or settings.GITHUB_TOKEN)
+
+
+def commit_detail_budget() -> int:
+    """
+    How many per-commit detail calls one analysis may make.
+
+    Each call costs one request against the GitHub rate limit: 5,000/hour when
+    authenticated, but only 60/hour unauthenticated. At the old flat 50 a single
+    defect-prediction run nearly exhausted an unauthenticated quota for the whole
+    machine, and every later call in the hour failed with 403.
+    """
+    return 50 if is_authenticated() else 12
+
+
 def _auth_headers(token: str | None = None) -> dict[str, str]:
     h = dict(_HEADERS)
     auth_token = token or connectors.active("github").get("token") or settings.GITHUB_TOKEN

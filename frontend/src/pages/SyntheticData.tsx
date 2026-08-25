@@ -33,7 +33,7 @@ const typeColor: Record<string, string> = {
 };
 
 function formatCell(value: unknown, type: string): string {
-  if (value === null || value === undefined) return "—";
+  if (value === null || value === undefined) return "â€”";
   if (type === "boolean") return value ? "true" : "false";
   if (type === "float" && typeof value === "number") return value.toFixed(2);
   if (type === "datetime" && typeof value === "string") {
@@ -72,7 +72,7 @@ const SyntheticData = () => {
       <PageHeader
         icon={Database}
         title="Synthetic Test Data"
-        description="Generate realistic, schema-aware datasets from your requirements — no templates required."
+        description="Generate realistic, schema-aware datasets from your requirements â€” no templates required."
       />
 
       <PageCard
@@ -88,7 +88,7 @@ const SyntheticData = () => {
             {generateMutation.isPending ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Generating…
+                Generatingâ€¦
               </>
             ) : (
               <>
@@ -110,11 +110,11 @@ const SyntheticData = () => {
                   className="w-full text-sm bg-muted/30 border border-border/50 rounded-lg px-3 py-2 pr-8 appearance-none focus:outline-none focus:border-primary/50 text-foreground"
                 >
                   <option value="">
-                    {reqLoading ? "Loading requirements…" : "Select a requirement —"}
+                    {reqLoading ? "Loading requirementsâ€¦" : "Select a requirement â€”"}
                   </option>
                   {requirements.map((r) => (
                     <option key={r.id} value={r.id}>
-                      {r.text.slice(0, 90)}{r.text.length > 90 ? "…" : ""}
+                      {r.text.slice(0, 90)}{r.text.length > 90 ? "â€¦" : ""}
                     </option>
                   ))}
                 </select>
@@ -158,7 +158,7 @@ const SyntheticData = () => {
                     : "border-border/40 text-muted-foreground hover:border-primary/30 hover:text-foreground"
                 }`}
               >
-                #{i + 1} · {ds.requirement_text.slice(0, 40)}{ds.requirement_text.length > 40 ? "…" : ""} · {ds.count} rows
+                #{i + 1} Â· {ds.requirement_text.slice(0, 40)}{ds.requirement_text.length > 40 ? "â€¦" : ""} Â· {ds.count} rows
               </button>
             ))}
           </div>
@@ -181,8 +181,8 @@ const SyntheticData = () => {
         {generateMutation.isPending && (
           <div className="floating-card p-10 text-center text-muted-foreground text-sm">
             <AiIcon className="h-8 w-8 mx-auto mb-3 animate-pulse text-primary" />
-            <p className="font-semibold">Designing schema and generating rows…</p>
-            <p className="mt-1 text-xs opacity-60">This usually takes 5–15 seconds.</p>
+            <p className="font-semibold">Designing schema and generating rowsâ€¦</p>
+            <p className="mt-1 text-xs opacity-60">This usually takes 5â€“15 seconds.</p>
           </div>
         )}
 

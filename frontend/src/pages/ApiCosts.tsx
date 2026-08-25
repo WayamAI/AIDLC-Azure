@@ -64,12 +64,15 @@ export default function ApiCosts() {
   const totalCalls = data?.total ?? 0;
   const avgCost = totalCalls > 0 ? grandTotal / totalCalls : 0;
 
+  // The configured Ollama provider is not billed per token, so ai_service
+  // records every cost as 0. Advertising a per-token rate in the header made
+  // the all-zero cost columns look like a broken calculation.
   return (
     <PageShell size="full" className="space-y-6">
       <PageHeader
         icon={DollarSign}
         title="API Cost Tracker"
-        description={`Monitor LLM usage across ${BRAND_NAME} $2.50 / 1M input tokens · $10.00 / 1M output tokens`}
+        description={`Token usage across ${BRAND_NAME} — the configured Ollama provider is not billed per token, so costs read $0.00`}
         actions={
           <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching} className="gap-2">
             <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? "animate-spin" : ""}`} />
