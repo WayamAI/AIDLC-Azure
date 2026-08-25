@@ -147,3 +147,28 @@ def test_is_test_path_does_not_flag_domain_modules():
     assert impact_service._is_test_path("backend/tests/test_calc.py") is True
     assert impact_service._is_test_path("frontend/src/lib/api.test.ts") is True
     assert impact_service._is_test_path("frontend/src/lib/api.ts") is False
+
+
+def test_layering_terminates_on_circular_imports():
+    """A cycle used to either pin every node to the layer cap (collapsing the
+    graph into one column) or loop forever in the PR/commit path."""
+    members = {"a.py", "b.py", "c.py"}
+    adjacency = {"a.py": ["b.py"], "b.py": ["c.py"], "c.py": ["a.py"]}  # a -> b -> c -> a
+    in_degree = {"a.py": 1, "b.py": 1, "c.py": 1}  # no zero-in-degree seed
+
+    layers = impact_service._assign_layers(members, adjacency, in_degree)
+
+    assert set(layers) == members
+    assert max(layers.values()) < len(members)
+
+
+def test_layering_spreads_a_chain_across_layers():
+    members = {"a.py", "b.py", "c.py"}
+    adjacency = {"a.py": ["b.py"], "b.py": ["c.py"]}
+    in_degree = {"a.py": 0, "b.py": 1, "c.py": 1}
+
+    assert impact_service._assign_layers(members, adjacency, in_degree) == {
+        "a.py": 0,
+        "b.py": 1,
+        "c.py": 2,
+    }

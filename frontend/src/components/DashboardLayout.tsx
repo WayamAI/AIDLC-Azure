@@ -37,7 +37,16 @@ export default function DashboardLayout() {
 
   return (
     <SidebarProvider defaultOpen>
-      <div className="flex min-h-svh w-full bg-[var(--color-page)]">
+      {/* Full-bleed pages size their own panes and scroll internally, which only
+          works if the shell has a definite height — with min-h-svh the column
+          grows to its content, so `flex-1 min-h-0` on <main> caps nothing and
+          inner panes (file trees, graph canvases) stretch the whole document. */}
+      <div
+        className={cn(
+          "flex w-full bg-[var(--color-page)]",
+          isFullBleed ? "h-svh overflow-hidden" : "min-h-svh",
+        )}
+      >
         <AppSidebar />
 
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">

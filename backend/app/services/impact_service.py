@@ -799,19 +799,7 @@ async def build_dependency_graph(
             if tgt in in_degree:
                 in_degree[tgt] = in_degree.get(tgt, 0) + 1
 
-    layer: Dict[str, int] = {}
-    roots = [p for p, d in in_degree.items() if d == 0]
-    bfs = [(r, 0) for r in roots]
-    while bfs:
-        node, lyr = bfs.pop(0)
-        layer[node] = max(layer.get(node, 0), lyr)
-        for child in adjacency.get(node, []):
-            if child in visited:
-                bfs.append((child, lyr + 1))
-
-    # Ensure every node has a layer
-    for p in visited:
-        layer.setdefault(p, 0)
+    layer = _assign_layers(visited, adjacency, in_degree)
 
     # Sort nodes per layer
     layers: Dict[int, List[str]] = {}
@@ -873,6 +861,38 @@ async def build_dependency_graph(
 
 # ── Workspace dependency graph (local files) ──────────────────────────────────
 
+def _assign_layers(
+    members: Set[str],
+    adjacency: Dict[str, List[str]],
+    in_degree: Dict[str, int],
+) -> Dict[str, int]:
+    """
+    Shortest-path BFS layering, left to right along import direction.
+
+    Deliberately shortest-path, not longest: taking the max depth diverges on
+    circular imports (common in Python packages). Every node in a cycle keeps
+    getting re-queued one layer deeper — unbounded, so the graph either collapses
+    into a single column at the cap or, without a cap, loops forever.
+    """
+    layer: Dict[str, int] = {}
+    seeds = sorted(p for p in members if in_degree.get(p, 0) == 0) or sorted(members)[:1]
+    queue: List[Tuple[str, int]] = [(p, 0) for p in seeds]
+
+    while queue:
+        node, depth = queue.pop(0)
+        if node in layer:
+            continue
+        layer[node] = depth
+        for child in adjacency.get(node, []):
+            if child in members and child not in layer:
+                queue.append((child, depth + 1))
+
+    # Nodes only reachable through a cycle never dequeue above; give them a layer.
+    for p in sorted(members):
+        layer.setdefault(p, 0)
+    return layer
+
+
 def build_workspace_dependency_graph(
     workspace_id: str,
     focus_paths: Optional[List[str]] = None,
@@ -927,20 +947,7 @@ def build_workspace_dependency_graph(
             if tgt in subgraph:
                 in_deg[tgt] += 1
 
-    layer: Dict[str, int] = {}
-    seeds = sorted(f for f, d in in_deg.items() if d == 0) or sorted(subgraph)
-    queue_bfs: List[Tuple[str, int]] = [(f, 0) for f in seeds]
-    max_layer = 64  # cycles in the import graph must not loop forever
-    while queue_bfs:
-        node, lyr = queue_bfs.pop(0)
-        if layer.get(node, -1) >= lyr or lyr > max_layer:
-            continue
-        layer[node] = lyr
-        for child in adjacency.get(node, []):
-            if child in subgraph:
-                queue_bfs.append((child, lyr + 1))
-    for f in subgraph:
-        layer.setdefault(f, 0)
+    layer = _assign_layers(subgraph, adjacency, in_deg)
 
     # ── Layout positions ────────────────────────────────────────
     layers_map: Dict[int, List[str]] = {}

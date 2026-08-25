@@ -179,17 +179,20 @@ function layoutBranchTree(
   );
   const seeds = roots.length > 0 ? roots.sort() : [focusPath];
 
+  // Shortest-path BFS, deliberately: taking the *longest* path instead diverges
+  // on circular imports (Python packages are full of them) — every node in a
+  // cycle keeps getting pushed one layer deeper until it pins to the cap, and
+  // the whole graph collapses into a single column. First visit wins here, so
+  // cycles terminate and layers stay meaningful.
   const layer = new Map<string, number>();
   const queue: Array<{ path: string; depth: number }> = seeds.map((r) => ({ path: r, depth: 0 }));
   while (queue.length > 0) {
     const current = queue.shift()!;
-    if (current.depth > MAX_LAYERS) continue;
-    const prevDepth = layer.get(current.path);
-    if (prevDepth !== undefined && prevDepth >= current.depth) continue;
+    if (layer.has(current.path)) continue;
 
-    layer.set(current.path, current.depth);
+    layer.set(current.path, Math.min(current.depth, MAX_LAYERS));
     for (const child of children.get(current.path) ?? []) {
-      if (!subset.has(child)) continue;
+      if (!subset.has(child) || layer.has(child)) continue;
       queue.push({ path: child, depth: current.depth + 1 });
     }
   }
