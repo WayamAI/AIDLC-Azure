@@ -1,0 +1,36 @@
+"""
+PRD Generator routes.
+POST /prd/generate  AI-powered PRD generation from product name + description.
+"""
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+
+from app.auth.dependencies import get_current_org
+from app.models.organization import OrganizationOut
+from app.services import prd_service
+
+router = APIRouter(prefix="/prd", tags=["PRD Generator"])
+
+
+class PRDGenerateRequest(BaseModel):
+    product_name: str
+    description: str
+
+
+@router.post("/generate", status_code=200)
+async def generate_prd(body: PRDGenerateRequest, org: OrganizationOut = Depends(get_current_org)):
+    """
+    Generate a structured Product Requirements Document using AI.
+    Returns a full PRD with use cases, user stories, functional requirements,
+    non-functional requirements, out-of-scope items, and success metrics.
+    """
+    if not body.product_name.strip():
+        raise HTTPException(status_code=422, detail="product_name is required")
+    if not body.description.strip():
+        raise HTTPException(status_code=422, detail="description is required")
+
+    result = await prd_service.generate_prd(
+        product_name=body.product_name.strip(),
+        description=body.description.strip(),
+    )
+    return result

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1000" viewBox="0 0 1000 1000" fill="none">
+<title>Chakram</title>
+<defs>
+<linearGradient id="chakram-tile" x1="500" y1="0" x2="500" y2="1000" gradientUnits="userSpaceOnUse">
+<stop stop-color="#FDA40B"/>
+<stop offset="0.4" stop-color="#FC7F06"/>
+<stop offset="1" stop-color="#DF4302"/>
+</linearGradient>
+</defs>
+<rect width="1000" height="1000" rx="312.5" fill="url(#chakram-tile)"/>
+<path d="M577.5 220.55A290 290 0 0 1 773.37 403.2L646.76 402.86A176 176 0 0 0 504.61 324.06ZM789.72 487.35A290 290 0 0 1 676.54 730.07L637.74 609.56A176 176 0 0 0 668.75 450.01ZM601.56 771.63A290 290 0 0 1 335.74 739L438.36 664.85A176 176 0 0 0 599.69 645.05ZM273.04 680.53A290 290 0 0 1 221.94 417.64L324.17 492.32A176 176 0 0 0 392.86 639.63ZM258.17 339.94A290 290 0 0 1 492.41 210.1L452.97 330.4A176 176 0 0 0 334.1 441.25ZM500 434A66 66 0 1 1 500 566A66 66 0 1 1 500 434Z" fill="#FFFFFF"/>
+</svg>

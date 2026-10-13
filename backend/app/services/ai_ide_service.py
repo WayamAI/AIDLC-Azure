@@ -1,0 +1,514 @@
+"""AI IDE workspace service: files on disk, registry in MongoDB, git utilities.
+
+`ai_ide_workspaces` records who owns each workspace and where its files are, so
+a workspace survives a restart and is found by any worker. The in-memory dicts
+are the per-process cache. GitHub tokens are held in memory only.
+"""
+import asyncio
+import json
+import os
+import re
+import shutil
+import tempfile
+import uuid
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Dict
+
+import git
+import httpx
+
+from app.services.template_service import get_template
+from app.services.workspace_service import WorkspaceExpiredError
+
+REGISTRY = "ai_ide_workspaces"
+
+_workspaces: Dict[str, Dict[str, str]] = {}
+_workspace_meta: Dict[str, Dict[str, Any]] = {}
+_template_cache: Dict[str, str] | None = None
+_ai_ide_root = Path(os.getenv("AI_IDE_WORKSPACE_DIR") or str(Path(tempfile.gettempdir()) / "ai-ide-workspaces"))
+_SKIP_DISK_DIRS = {".git", "node_modules", "__pycache__", ".venv", "dist", "build"}
+
+
+async def _get_template_cached() -> Dict[str, str]:
+    global _template_cache
+    if _template_cache is None:
+        _template_cache = await get_template()
+    return _template_cache
+
+
+def _ensure_workspace_root() -> None:
+    _ai_ide_root.mkdir(parents=True, exist_ok=True)
+
+
+def _safe_abs_path(workspace_root: Path, rel_path: str) -> Path:
+    normalized = rel_path.strip().lstrip("/")
+    abs_path = (workspace_root / normalized).resolve()
+    workspace_resolved = workspace_root.resolve()
+    if not str(abs_path).startswith(str(workspace_resolved)):
+        raise PermissionError("Path traversal attempt detected")
+    return abs_path
+
+
+def _write_workspace_files_to_disk(workspace_id: str) -> None:
+    meta = _workspace_meta[workspace_id]
+    root = Path(meta["root_dir"])
+    root.mkdir(parents=True, exist_ok=True)
+    for rel_path, content in _workspaces[workspace_id].items():
+        abs_path = _safe_abs_path(root, rel_path)
+        abs_path.parent.mkdir(parents=True, exist_ok=True)
+        abs_path.write_text(content, encoding="utf-8")
+
+
+def _github_headers(token: str) -> dict[str, str]:
+    return {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+
+
+def _repo_name_valid(name: str) -> bool:
+    return bool(re.match(r"^[A-Za-z0-9._-]{1,100}$", name))
+
+
+def _update_package_json_generated_files(workspace_id: str, path: str) -> None:
+    if path == "package.json":
+        return
+    if workspace_id not in _workspaces:
+        return
+
+    raw = _workspaces[workspace_id].get("package.json")
+    if not raw:
+        return
+
+    try:
+        package_obj = json.loads(raw)
+    except Exception:
+        return
+
+    ai_meta = package_obj.get("aiIde")
+    if not isinstance(ai_meta, dict):
+        ai_meta = {}
+        package_obj["aiIde"] = ai_meta
+
+    generated = ai_meta.get("generatedFiles")
+    if not isinstance(generated, list):
+        generated = []
+
+    if path not in generated:
+        generated.append(path)
+        ai_meta["generatedFiles"] = generated
+        rendered = json.dumps(package_obj, indent=2, ensure_ascii=True) + "\n"
+        _workspaces[workspace_id]["package.json"] = rendered
+
+        meta = _workspace_meta.get(workspace_id)
+        if meta:
+            root = Path(meta["root_dir"])
+            abs_path = _safe_abs_path(root, "package.json")
+            abs_path.parent.mkdir(parents=True, exist_ok=True)
+            abs_path.write_text(rendered, encoding="utf-8")
+
+
+def _meta_path(root_dir: str) -> Path:
+    return Path(root_dir) / "_meta.json"
+
+
+def _write_meta(workspace_id: str) -> None:
+    meta = _workspace_meta.get(workspace_id)
+    if not meta:
+        return
+    root = Path(meta["root_dir"])
+    root.mkdir(parents=True, exist_ok=True)
+    safe = {k: v for k, v in meta.items() if k != "github_token"}
+    _meta_path(str(root)).write_text(json.dumps(safe, indent=2), encoding="utf-8")
+
+
+def _load_workspace_from_disk(workspace_id: str) -> Dict[str, str] | None:
+    root = _ai_ide_root / workspace_id
+    if not root.is_dir():
+        return None
+    files: Dict[str, str] = {}
+    for path in root.rglob("*"):
+        if not path.is_file():
+            continue
+        rel = path.relative_to(root)
+        if any(part in _SKIP_DISK_DIRS for part in rel.parts[:-1]):
+            continue
+        if path.name in {"_meta.json"}:
+            continue
+        try:
+            files[str(rel).replace("\\", "/")] = path.read_text(encoding="utf-8", errors="replace")
+        except Exception:
+            continue
+    return files or None
+
+
+def _hydrate_workspace(workspace_id: str) -> None:
+    if workspace_id in _workspaces and workspace_id in _workspace_meta:
+        return
+    files = _load_workspace_from_disk(workspace_id)
+    if not files:
+        raise KeyError(f"Workspace {workspace_id} not found")
+    root_dir = str(_ai_ide_root / workspace_id)
+    meta: Dict[str, Any] = {
+        "workspace_id": workspace_id,
+        "org_id": None,
+        "root_dir": root_dir,
+        "repo_url": None,
+        "repo_owner": None,
+        "repo_name": None,
+        "default_branch": "main",
+        "github_token": None,
+    }
+    meta_file = _meta_path(root_dir)
+    if meta_file.is_file():
+        try:
+            loaded = json.loads(meta_file.read_text(encoding="utf-8"))
+            if isinstance(loaded, dict):
+                meta.update({k: v for k, v in loaded.items() if k != "github_token"})
+                meta["root_dir"] = root_dir
+        except Exception:
+            pass
+    _workspaces[workspace_id] = files
+    _workspace_meta[workspace_id] = meta
+
+
+async def register(db, workspace_id: str) -> None:
+    """Record the workspace's owner, location and repository in MongoDB (never the GitHub token)."""
+    meta = _workspace_meta[workspace_id]
+    now = datetime.now(timezone.utc)
+    fields = {k: v for k, v in meta.items() if k not in ("github_token", "workspace_id")}
+    await db[REGISTRY].update_one(
+        {"_id": workspace_id},
+        {"$set": {**fields, "updated_at": now}, "$setOnInsert": {"created_at": now}},
+        upsert=True,
+    )
+
+
+async def attach(db, org_id: str, workspace_id: str) -> None:
+    """Make an org's registered workspace usable in this process.
+
+    Loads its files from disk after a restart or on another worker. Raises
+    WorkspaceExpiredError when the registry knows the workspace but its files
+    are gone. An id the registry does not hold for this org is left to
+    require_org_workspace, which still finds workspaces created before the registry.
+    """
+    if workspace_id in _workspaces and workspace_id in _workspace_meta:
+        return
+    doc = await db[REGISTRY].find_one({"_id": workspace_id, "org_id": org_id})
+    if doc is None:
+        return
+    files = _load_workspace_from_disk(workspace_id)
+    if not files:
+        raise WorkspaceExpiredError(workspace_id)
+    _workspaces[workspace_id] = files
+    _workspace_meta[workspace_id] = {
+        "workspace_id": workspace_id,
+        "org_id": org_id,
+        "root_dir": str(_ai_ide_root / workspace_id),
+        "repo_url": doc.get("repo_url"),
+        "repo_owner": doc.get("repo_owner"),
+        "repo_name": doc.get("repo_name"),
+        "default_branch": doc.get("default_branch") or "main",
+        "github_token": None,  # never stored; pushing again needs the repository re-initialised
+    }
+
+
+async def ensure_indexes(db) -> None:
+    await db[REGISTRY].create_index([("org_id", 1), ("updated_at", -1)])
+
+
+async def create_workspace(org_id: str, db=None) -> str:
+    _ensure_workspace_root()
+    workspace_id = str(uuid.uuid4())
+    template = await _get_template_cached()
+    _workspaces[workspace_id] = dict(template)
+    root_dir = str(_ai_ide_root / workspace_id)
+    _workspace_meta[workspace_id] = {
+        "workspace_id": workspace_id,
+        "org_id": org_id,
+        "root_dir": root_dir,
+        "repo_url": None,
+        "repo_owner": None,
+        "repo_name": None,
+        "default_branch": "main",
+        "github_token": None,
+    }
+    await asyncio.to_thread(_write_workspace_files_to_disk, workspace_id)
+    _write_meta(workspace_id)
+    if db is not None:
+        await register(db, workspace_id)
+    return workspace_id
+
+
+def require_org_workspace(org_id: str, workspace_id: str) -> Dict[str, Any]:
+    """Hydrate and return workspace meta if it belongs to org_id, else KeyError."""
+    _hydrate_workspace(workspace_id)
+    meta = _workspace_meta.get(workspace_id)
+    if not meta or meta.get("org_id") != org_id:
+        raise KeyError(f"Workspace {workspace_id} not found")
+    return meta
+
+
+def get_workspace_files(workspace_id: str) -> Dict[str, str]:
+    _hydrate_workspace(workspace_id)
+    return dict(_workspaces[workspace_id])
+
+
+def get_workspace_meta(workspace_id: str) -> Dict[str, Any]:
+    _hydrate_workspace(workspace_id)
+    return dict(_workspace_meta[workspace_id])
+
+
+def save_file(workspace_id: str, path: str, content: str) -> None:
+    _hydrate_workspace(workspace_id)
+    is_new_path = path not in _workspaces[workspace_id]
+    _workspaces[workspace_id][path] = content
+    meta = _workspace_meta[workspace_id]
+    root = Path(meta["root_dir"])
+    abs_path = _safe_abs_path(root, path)
+    abs_path.parent.mkdir(parents=True, exist_ok=True)
+    abs_path.write_text(content, encoding="utf-8")
+    if is_new_path:
+        _update_package_json_generated_files(workspace_id, path)
+
+
+def create_file(workspace_id: str, path: str, content: str = "") -> None:
+    """Create a file the user asked for, with exactly the content given (empty if none)."""
+    _hydrate_workspace(workspace_id)
+    _workspaces[workspace_id][path] = content
+    meta = _workspace_meta[workspace_id]
+    root = Path(meta["root_dir"])
+    abs_path = _safe_abs_path(root, path)
+    abs_path.parent.mkdir(parents=True, exist_ok=True)
+    abs_path.write_text(content, encoding="utf-8")
+
+
+def read_file(workspace_id: str, path: str) -> str:
+    _hydrate_workspace(workspace_id)
+    files = _workspaces[workspace_id]
+    if path not in files:
+        raise FileNotFoundError(f"{path} not found in workspace")
+    return files[path]
+
+
+def list_file_paths(workspace_id: str) -> list[str]:
+    _hydrate_workspace(workspace_id)
+    return list(_workspaces[workspace_id].keys())
+
+
+def delete_path(workspace_id: str, path: str) -> list[str]:
+    _hydrate_workspace(workspace_id)
+
+    files = _workspaces[workspace_id]
+    meta = _workspace_meta[workspace_id]
+    root = Path(meta["root_dir"])
+    deleted: list[str] = []
+    for key in list(files.keys()):
+        if key == path or key.startswith(f"{path}/"):
+            deleted.append(key)
+            del files[key]
+
+            abs_path = _safe_abs_path(root, key)
+            if abs_path.exists() and abs_path.is_file():
+                abs_path.unlink()
+
+    target_dir = _safe_abs_path(root, path)
+    if target_dir.exists() and target_dir.is_dir():
+        for child in sorted(target_dir.rglob("*"), reverse=True):
+            if child.is_file():
+                child.unlink()
+            elif child.is_dir():
+                child.rmdir()
+        target_dir.rmdir()
+    return deleted
+
+
+def rename_or_move_path(workspace_id: str, from_path: str, to_path: str) -> list[str]:
+    _hydrate_workspace(workspace_id)
+
+    files = _workspaces[workspace_id]
+    meta = _workspace_meta[workspace_id]
+    root = Path(meta["root_dir"])
+    touched: list[tuple[str, str]] = []
+    for key in list(files.keys()):
+        if key == from_path or key.startswith(f"{from_path}/"):
+            new_key = f"{to_path}{key[len(from_path):]}"
+            touched.append((key, new_key))
+
+    for old_key, new_key in touched:
+        files[new_key] = files[old_key]
+        del files[old_key]
+
+        old_abs = _safe_abs_path(root, old_key)
+        new_abs = _safe_abs_path(root, new_key)
+        new_abs.parent.mkdir(parents=True, exist_ok=True)
+        if old_abs.exists() and old_abs.is_file():
+            old_abs.rename(new_abs)
+
+    old_dir = _safe_abs_path(root, from_path)
+    new_dir = _safe_abs_path(root, to_path)
+    if old_dir.exists() and old_dir.is_dir() and not new_dir.exists():
+        new_dir.parent.mkdir(parents=True, exist_ok=True)
+        old_dir.rename(new_dir)
+
+    return [new_key for _, new_key in touched]
+
+
+def _reset_git_dir(workspace_root: Path) -> None:
+    git_dir = workspace_root / ".git"
+    if git_dir.exists():
+        shutil.rmtree(git_dir, ignore_errors=True)
+
+
+async def init_git_and_create_repo(
+    workspace_id: str,
+    github_token: str,
+    repo_name: str,
+    private: bool = True,
+    description: str = "",
+    branch: str = "main",
+) -> dict[str, Any]:
+    _hydrate_workspace(workspace_id)
+    if not _repo_name_valid(repo_name):
+        raise ValueError("Invalid repository name")
+
+    meta = _workspace_meta[workspace_id]
+    workspace_root = Path(meta["root_dir"])
+
+    async with httpx.AsyncClient(timeout=30) as client:
+        user_resp = await client.get("https://api.github.com/user", headers=_github_headers(github_token))
+        if user_resp.status_code >= 400:
+            raise ValueError("Invalid GitHub token")
+        owner = user_resp.json().get("login")
+        if not owner:
+            raise ValueError("Unable to resolve GitHub owner from token")
+
+        create_resp = await client.post(
+            "https://api.github.com/user/repos",
+            headers=_github_headers(github_token),
+            json={
+                "name": repo_name,
+                "private": private,
+                "description": description,
+                "auto_init": False,
+            },
+        )
+
+        if create_resp.status_code == 422:
+            repo_resp = await client.get(
+                f"https://api.github.com/repos/{owner}/{repo_name}",
+                headers=_github_headers(github_token),
+            )
+            if repo_resp.status_code >= 400:
+                raise ValueError("Repository already exists and cannot be accessed with this token")
+            repo_data = repo_resp.json()
+        elif create_resp.status_code >= 400:
+            raise ValueError(create_resp.text or "Failed to create repository")
+        else:
+            repo_data = create_resp.json()
+
+    clone_url = repo_data.get("clone_url")
+    html_url = repo_data.get("html_url")
+    if not clone_url:
+        raise ValueError("GitHub did not return repository clone URL")
+
+    def _git_init_push() -> str:
+        _reset_git_dir(workspace_root)
+        repo = git.Repo.init(workspace_root)
+        repo.git.symbolic_ref("HEAD", f"refs/heads/{branch}")
+
+        repo.git.add(A=True)
+        commit = repo.index.commit("chore: initialize AI IDE workspace")
+
+        if "origin" in [remote.name for remote in repo.remotes]:
+            repo.delete_remote("origin")
+
+        push_url = clone_url.replace("https://", f"https://{github_token}@")
+        origin = repo.create_remote("origin", push_url)
+        origin.push(refspec=f"{branch}:{branch}", set_upstream=True)
+        return commit.hexsha
+
+    commit_sha = await asyncio.to_thread(_git_init_push)
+
+    meta.update(
+        {
+            "repo_url": clone_url,
+            "repo_owner": owner,
+            "repo_name": repo_name,
+            "default_branch": branch,
+            "github_token": github_token,
+        }
+    )
+    _write_meta(workspace_id)
+
+    return {
+        "workspace_id": workspace_id,
+        "repo_url": clone_url,
+        "repo_owner": owner,
+        "repo_name": repo_name,
+        "branch": branch,
+        "commit_sha": commit_sha,
+        "html_url": html_url,
+    }
+
+
+async def commit_and_push_workspace(workspace_id: str, message: str, branch: str | None = None) -> dict[str, Any]:
+    _hydrate_workspace(workspace_id)
+
+    meta = _workspace_meta[workspace_id]
+    if not meta.get("repo_url"):
+        raise ValueError("Repository not initialized for this AI IDE workspace")
+
+    workspace_root = Path(meta["root_dir"])
+    token = meta.get("github_token")
+    repo_url = meta.get("repo_url")
+    target_branch = (branch or meta.get("default_branch") or "main").strip() or "main"
+
+    def _git_commit_push() -> dict[str, Any]:
+        repo = git.Repo(workspace_root)
+        try:
+            repo.git.checkout(target_branch)
+        except Exception:
+            repo.git.checkout("-b", target_branch)
+
+        repo.git.add(A=True)
+        if not repo.is_dirty(untracked_files=True):
+            head = repo.head.commit
+            return {
+                "sha": head.hexsha,
+                "branch": target_branch,
+                "message": "No changes to commit",
+                "push_ok": True,
+            }
+
+        commit = repo.index.commit(message or "chore: update AI IDE workspace")
+
+        if "origin" not in [remote.name for remote in repo.remotes]:
+            push_url = repo_url.replace("https://", f"https://{token}@") if token else repo_url
+            repo.create_remote("origin", push_url)
+
+        origin = repo.remotes.origin
+        if token:
+            push_url = repo_url.replace("https://", f"https://{token}@")
+            with origin.config_writer as cw:
+                cw.set("url", push_url)
+
+        push_result = origin.push(refspec=f"{target_branch}:{target_branch}", set_upstream=True)
+        push_ok = all(not (item.flags & item.ERROR) for item in push_result)
+
+        return {
+            "sha": commit.hexsha,
+            "branch": target_branch,
+            "message": commit.message.strip(),
+            "push_ok": push_ok,
+        }
+
+    result = await asyncio.to_thread(_git_commit_push)
+    meta["default_branch"] = target_branch
+    return {
+        "workspace_id": workspace_id,
+        "repo_url": repo_url,
+        **result,
+    }
