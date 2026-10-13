@@ -1,8 +1,9 @@
+import time
 """
 Auth routes: WorkOS SSO (when configured) + local email/password signup & login
 persisted in MongoDB. Dev-login remains as a no-password fallback for local demos.
 """
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Response, Request
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
 
@@ -161,12 +162,39 @@ async def signup(body: SignupBody, db=Depends(get_db)):
     return resp
 
 
+# Failed sign-ins per client address: 10 within 5 minutes, then a short lock-out.
+# Kept in process memory, which is enough for the single instance this app runs as.
+_LOGIN_WINDOW_SECONDS = 300
+_LOGIN_MAX_FAILURES = 10
+_login_failures: dict[str, list[float]] = {}
+
+
+def _client_key(request: Request) -> str:
+    forwarded = request.headers.get("x-forwarded-for", "")
+    return forwarded.split(",")[0].strip() or (request.client.host if request.client else "unknown")
+
+
+def _recent_failures(key: str) -> list[float]:
+    cutoff = time.monotonic() - _LOGIN_WINDOW_SECONDS
+    recent = [t for t in _login_failures.get(key, []) if t > cutoff]
+    if recent:
+        _login_failures[key] = recent
+    else:
+        _login_failures.pop(key, None)
+    return recent
+
+
 @router.post("/login")
-async def password_login(body: PasswordAuthBody, db=Depends(get_db)):
+async def password_login(body: PasswordAuthBody, request: Request, db=Depends(get_db)):
     """Authenticate a local email/password user and set the session cookie."""
+    key = _client_key(request)
+    if len(_recent_failures(key)) >= _LOGIN_MAX_FAILURES:
+        raise HTTPException(status_code=429, detail="Too many sign-in attempts. Wait a few minutes and try again.")
     user = await user_service.authenticate(db, body.email, body.password)
     if user is None:
+        _login_failures.setdefault(key, []).append(time.monotonic())
         raise HTTPException(status_code=401, detail="Invalid email or password")
+    _login_failures.pop(key, None)
 
     resp = Response(content='{"status":"ok"}', media_type="application/json")
     _set_session(resp, user_id=str(user["_id"]), org_id=user["org_id"])

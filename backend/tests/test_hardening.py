@@ -96,3 +96,46 @@ async def test_slow_request_gets_a_readable_504(app_client, monkeypatch):
         route.dependant.call = original
     assert resp.status_code == 504
     assert "took too long" in resp.json()["detail"]
+
+
+def test_list_settings_accept_json_or_commas():
+    from app.config import Settings
+
+    s = Settings(CORS_ORIGINS="https://a.example, https://b.example", PLATFORM_ORG_IDS='["one","two"]', SIGNUP_ALLOWED_DOMAINS="")
+    assert s.CORS_ORIGINS == ["https://a.example", "https://b.example"]
+    assert s.PLATFORM_ORG_IDS == ["one", "two"]
+    assert s.SIGNUP_ALLOWED_DOMAINS == []
+
+
+def test_env_list_settings_accept_commas(monkeypatch):
+    from app.config import Settings
+
+    monkeypatch.setenv("CORS_ORIGINS", "https://a.example,https://b.example")
+    assert Settings(_env_file=None).CORS_ORIGINS == ["https://a.example", "https://b.example"]
+
+
+def test_production_drops_localhost_origins():
+    from app.config import Settings
+
+    s = Settings(APP_ENV="production", SESSION_SECRET="k3Jf9vQ2xT7mZ1pL8sR4wY6uB0nH5cD_aE-gV",
+                 CORS_ORIGINS=["http://localhost:8081", "https://chakram.example"])
+    assert s.CORS_ORIGINS == ["https://chakram.example"]
+
+
+@pytest.mark.anyio
+async def test_readyz_checks_only_the_database(app_client):
+    resp = await app_client.get("/readyz")
+    assert resp.status_code == 200 and resp.json() == {"status": "ready"}
+
+
+@pytest.mark.anyio
+async def test_sign_in_is_rate_limited_after_repeated_failures(app_client, monkeypatch):
+    from app.routes import auth
+
+    monkeypatch.setattr(auth, "_login_failures", {})
+    monkeypatch.setattr(auth, "_LOGIN_MAX_FAILURES", 3)
+    body = {"email": "nobody@example.com", "password": "wrong"}
+    for _ in range(3):
+        assert (await app_client.post("/api/auth/login", json=body)).status_code == 401
+    blocked = await app_client.post("/api/auth/login", json=body)
+    assert blocked.status_code == 429 and "Too many" in blocked.json()["detail"]

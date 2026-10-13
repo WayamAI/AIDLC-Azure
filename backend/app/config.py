@@ -1,8 +1,8 @@
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
 
 from pydantic import field_validator, model_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 # Always load backend/.env regardless of process cwd (avoids picking up repo-root .env).
 _BACKEND_DIR = Path(__file__).resolve().parent.parent
@@ -87,13 +87,13 @@ class Settings(BaseSettings):
 
     # Local email/password signup. Always open in development. In production it is
     # closed unless the email domain is listed here or ALLOW_OPEN_SIGNUP is set.
-    SIGNUP_ALLOWED_DOMAINS: list[str] = []
+    SIGNUP_ALLOWED_DOMAINS: Annotated[list[str], NoDecode] = []
     ALLOW_OPEN_SIGNUP: bool = False
 
     # Orgs (by id or workos_org_id) that may use the GitHub/Jira/Vercel/Slack/Datadog
     # credentials from this server's environment. In production every other org must
     # save its own in Settings -> Connectors. The AI provider key is shared with all orgs.
-    PLATFORM_ORG_IDS: list[str] = []
+    PLATFORM_ORG_IDS: Annotated[list[str], NoDecode] = []
 
     # AI Workspace
     WORKSPACE_TEMP_DIR: str = "/tmp/workspaces"
@@ -105,7 +105,7 @@ class Settings(BaseSettings):
     # App
     APP_ENV: str = "development"
     FRONTEND_URL: str = "http://localhost:8081"
-    CORS_ORIGINS: list[str] = [
+    CORS_ORIGINS: Annotated[list[str], NoDecode] = [
         "http://localhost:8080",
         "http://localhost:8081",
         "http://localhost:5173",
@@ -136,6 +136,13 @@ class Settings(BaseSettings):
                 return [str(x).strip() for x in parsed if str(x).strip()]
             return [part.strip() for part in text.split(",") if part.strip()]
         return value
+
+    @model_validator(mode="after")
+    def _no_local_origins_in_production(self) -> "Settings":
+        """The development defaults must not let localhost pages send credentials in production."""
+        if self.APP_ENV == "production":
+            self.CORS_ORIGINS = [o for o in self.CORS_ORIGINS if "localhost" not in o and "127.0.0.1" not in o]
+        return self
 
     @model_validator(mode="after")
     def _require_real_secret_in_production(self) -> "Settings":

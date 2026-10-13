@@ -144,6 +144,10 @@ app = FastAPI(
     description="AI-powered SDLC & Data Quality platform backend.",
     version="2.0.0",
     lifespan=lifespan,
+    # The interactive API reference is a development aid; it is not published in production.
+    docs_url=None if settings.APP_ENV == "production" else "/docs",
+    redoc_url=None if settings.APP_ENV == "production" else "/redoc",
+    openapi_url=None if settings.APP_ENV == "production" else "/openapi.json",
 )
 
 # CORS – explicit origins only in production (credentialed wildcard regex is unsafe).
@@ -299,6 +303,17 @@ async def _ready_context(request: Request) -> tuple[str, dict | None]:
         return "org", {**raw, connectors._PLATFORM_KEY: connectors.is_platform_org(org)}
     except Exception:
         return "server", None
+
+
+@app.get("/readyz", include_in_schema=False)
+async def readyz():
+    """Readiness for the platform probe: the database answers. No outbound calls."""
+    try:
+        await get_db().command("ping")
+    except Exception as exc:
+        logger.warning("readyz mongo ping failed: %s", exc)
+        return JSONResponse(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, content={"status": "not_ready"})
+    return {"status": "ready"}
 
 
 @app.get("/ready", tags=["Health"])
