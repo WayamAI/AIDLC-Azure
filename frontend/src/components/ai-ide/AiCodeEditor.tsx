@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import Editor from "@monaco-editor/react";
+import Editor, { type OnMount } from "@monaco-editor/react";
 import { useAiIde } from "@/context/AiIdeContext";
 import { useMonacoTheme } from "@/hooks/use-editor-theme";
 import { apiClient } from "@/lib/api";
@@ -18,13 +18,20 @@ function languageFor(path: string | null): string {
   return "typescript";
 }
 
+/** Workspace path of the model the editor is showing, from the model's URI. */
+export function modelPathOf(uriPath: string): string {
+  return uriPath.replace(/^\/+/, "");
+}
+
 export function AiCodeEditor() {
   const { state, dispatch, setActiveFile, closeTab } = useAiIde();
   const { activeFile, files, status, openTabs, fileStatuses, workspaceId } = state;
   const monacoTheme = useMonacoTheme();
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
 
   const content = activeFile ? (files[activeFile] ?? "") : "";
+  const locked = status === "generating" || status === "planning" || status === "creating";
 
   if (!activeFile) {
     return (
@@ -76,13 +83,37 @@ export function AiCodeEditor() {
       <div className="flex-1 min-h-0">
         <Editor
           height="100%"
+          // One model per file: switching tabs swaps models instead of rewriting one
+          // model's text, so a switch can never be mistaken for an edit.
+          path={activeFile}
           language={languageFor(activeFile)}
           value={content}
           theme={monacoTheme}
+          onMount={(editor, monaco) => {
+            editorRef.current = editor;
+            // The workspace's node_modules are not here, so type-level checks would flag every
+            // import as missing; keep syntax errors, drop the semantic ones.
+            const ts = monaco.languages.typescript;
+            for (const defaults of [ts.typescriptDefaults, ts.javascriptDefaults]) {
+              defaults.setDiagnosticsOptions({ noSemanticValidation: true, noSyntaxValidation: false });
+              defaults.setCompilerOptions({
+                ...defaults.getCompilerOptions(),
+                jsx: ts.JsxEmit.ReactJSX,
+                allowNonTsExtensions: true,
+                target: ts.ScriptTarget.ESNext,
+                moduleResolution: ts.ModuleResolutionKind.NodeJs,
+              });
+            }
+          }}
           onChange={(value) => {
             if (value === undefined || !activeFile) return;
+            // Only an edit to the file on screen counts; anything else is the editor
+            // settling a model it was handed, and must not touch another file.
+            const shownPath = editorRef.current?.getModel()?.uri.path;
+            if (shownPath && modelPathOf(shownPath) !== activeFile) return;
+            if (value === (files[activeFile] ?? "")) return;
             dispatch({ type: "UPDATE_FILE", path: activeFile, content: value });
-            if (!workspaceId || status === "generating" || status === "planning" || status === "creating") return;
+            if (!workspaceId || locked) return;
             if (saveTimer.current) clearTimeout(saveTimer.current);
             const path = activeFile;
             const ws = workspaceId;
@@ -99,7 +130,7 @@ export function AiCodeEditor() {
             }, 600);
           }}
           options={{
-            readOnly: status === "generating" || status === "planning" || status === "creating",
+            readOnly: locked,
             minimap: { enabled: true },
             fontSize: 13,
             lineHeight: 20,

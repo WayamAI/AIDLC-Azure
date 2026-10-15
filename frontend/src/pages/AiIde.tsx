@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { StatusBadge, type StatusTone } from "@/components/imcc/StatusBadge";
 import { PageHeader } from "@/components/PageHeader";
 import {
@@ -18,6 +18,12 @@ import {
   Globe,
   ExternalLink,
   ServerCrash,
+  Columns2,
+  Code2,
+  Eye,
+  Download,
+  MessageSquare,
+  Palette,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -28,12 +34,17 @@ import {
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { AiIdeProvider, useAiIde } from "@/context/AiIdeContext";
+import { AiIdeProvider, pendingPreviewFiles, useAiIde } from "@/context/AiIdeContext";
 import { AiFileTree } from "@/components/ai-ide/AiFileTree";
 import { AiCodeEditor } from "@/components/ai-ide/AiCodeEditor";
 import { useAiGenerationWS } from "@/hooks/useAiGenerationWS";
 import { api, apiClient } from "@/lib/api";
 import { AiIdePreview } from "@/components/ai-ide/AiIdePreview";
+import { DesignPanel, type SelectedElement } from "@/components/ai-ide/DesignPanel";
+import type { StyleTarget } from "@/components/ai-ide/ElementInspector";
+import { AppLibrary } from "@/components/ai-ide/AppLibrary";
+import { applyTextEdit, findOpeningTag, readClassName, setClassName } from "@/lib/source-edit";
+import { downloadWorkspaceZip } from "@/lib/ai-ide-download";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { apiErrorMessage } from "@/lib/api-error";
@@ -88,7 +99,15 @@ const STATUS_BADGE: Record<string, { label: string; tone: StatusTone } | null> =
 
 // ── Idea Input (shown before workspace exists) ────────────────────────────────
 
-function IdeaScreen({ onBuild, notice }: { onBuild: (idea: string) => void; notice?: string | null }) {
+function IdeaScreen({
+  onBuild,
+  onOpenApp,
+  notice,
+}: {
+  onBuild: (idea: string) => void;
+  onOpenApp: (app: { workspace_id: string; idea: string | null; name: string | null }) => void;
+  notice?: string | null;
+}) {
   const [idea, setIdea] = useState("");
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -139,7 +158,7 @@ function IdeaScreen({ onBuild, notice }: { onBuild: (idea: string) => void; noti
     <div className="flex-1 overflow-y-auto p-4 sm:p-6">
       <div className="mx-auto w-full max-w-5xl space-y-6">
         <PageHeader
-          title="AI App Builder"
+          title="App Studio"
           description="Describe the app you want, or upload a PRD. A React application is planned and generated from it, and you can then edit, preview, commit and deploy it."
         />
 
@@ -240,6 +259,8 @@ placeholder="Describe the app to build: its pages, main features and data."
             ))}
           </div>
         </div>
+
+        <AppLibrary onOpen={onOpenApp} />
       </div>
     </div>
   );
@@ -302,7 +323,7 @@ function GitChangesPane() {
   const { fileStatuses } = state;
 
   const entries = Object.entries(fileStatuses)
-    .filter(([, s]) => Boolean(s))
+    .filter(([, s]) => Boolean(s) && s !== "P")
     .map(([path, status]) => ({ path, status: status as Exclude<typeof status, null> }))
     .sort((a, b) => a.path.localeCompare(b.path));
 
@@ -386,6 +407,7 @@ function RightRail({
   const [chatInput, setChatInput] = useState("");
   const [manualConversation, setManualConversation] = useState<ChatMessage[]>([]);
   const [isChatBusy, setIsChatBusy] = useState(false);
+  const isChatBusyRef = useRef(false);
   const [repoName, setRepoName] = useState("");
   const [githubToken, setGithubToken] = useState("");
   const branchName = "main";
@@ -401,7 +423,6 @@ function RightRail({
   const pollRef = useRef<number | null>(null);
   const logPollRef = useRef<number | null>(null);
   const FINAL_DEPLOY_STATES = new Set(["READY", "ERROR", "CANCELED"]);
-  const autoDeployedRef = useRef(false);
   const lastRedeployNonceRef = useRef(0);
 
   useEffect(() => {
@@ -423,6 +444,26 @@ function RightRail({
     if (token) setGithubToken(token);
   }, [githubToken]);
 
+  // After a reload the repository this workspace pushes to comes from the server, so
+  // Push & Deploy updates it instead of creating a second one.
+  useEffect(() => {
+    if (!workspaceId) return;
+    let cancelled = false;
+    apiClient
+      .get<{ repo_url?: string | null; repo_name?: string | null }>(`/ai-ide/workspace/${workspaceId}/repo`)
+      .then((res) => {
+        if (cancelled) return;
+        if (res.data?.repo_url) setRepoUrl(res.data.repo_url);
+        if (res.data?.repo_name) setRepoName(res.data.repo_name);
+      })
+      .catch(() => {
+        /* no repository info: Push & Deploy will create one */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [workspaceId]);
+
   const chatMessages = manualConversation;
   const activityEndRef = useRef<HTMLDivElement>(null);
 
@@ -439,7 +480,8 @@ function RightRail({
     onDeploymentUpdate({ deployedUrl, deployStatus, deployLogs, repoUrl, stableDomain, busy });
   }, [deployedUrl, deployStatus, deployLogs, repoUrl, stableDomain, busy, onDeploymentUpdate]);
 
-  const runCommand = async (message: string): Promise<CommandResult> => {
+  /** `targetFile` overrides the active file, for requests that name the file (preview "Fix with AI"). */
+  const runCommand = async (message: string, targetFile?: string): Promise<CommandResult> => {
     const input = message.trim();
     const lower = input.toLowerCase();
     const createFileMatch = input.match(/create\s+file\s+(.+)/i);
@@ -513,28 +555,29 @@ function RightRail({
     if (lower.startsWith("deploy") || lower.startsWith("init git")) {
       return {
         ok: true,
-        reply: "Deployment is not started from chat. It runs once a GitHub token is set; use Update & Redeploy on the Live Preview tab to push and deploy again.",
+        reply: "Deployment is not started from chat. Open the Preview tab and use Push & Deploy: it creates a GitHub repository for the app (a token is asked for once) and deploys it to Vercel.",
       };
     }
 
-    if (workspaceId && activeFile && files[activeFile]) {
-      dispatch({ type: "ADD_LOG", message: `Editing ${activeFile} with AI…` });
+    const editTarget = targetFile ?? activeFile;
+    if (workspaceId && editTarget && files[editTarget]) {
+      dispatch({ type: "ADD_LOG", message: `Editing ${editTarget} with AI…` });
       const suggestion = await api.suggestCode({
         workspace_id: workspaceId,
-        file_path: activeFile,
-        content: files[activeFile],
+        file_path: editTarget,
+        content: files[editTarget],
         instruction: input,
         history: [],
       });
-      dispatch({ type: "UPDATE_FILE", path: activeFile, content: suggestion.modified });
+      dispatch({ type: "UPDATE_FILE", path: editTarget, content: suggestion.modified });
       await apiClient.post("/ai-ide/file/update", {
         workspace_id: workspaceId,
-        path: activeFile,
+        path: editTarget,
         content: suggestion.modified,
       });
       return {
         ok: true,
-        reply: suggestion.diff_summary || suggestion.explanation || `Updated ${activeFile}.`,
+        reply: suggestion.diff_summary || suggestion.explanation || `Updated ${editTarget}.`,
       };
     }
 
@@ -544,22 +587,43 @@ function RightRail({
     };
   };
 
-  const sendChat = async () => {
-    if (!chatInput.trim() || isChatBusy) return;
-    const userMessage = chatInput.trim();
+  const submitChat = async (userMessage: string, targetFile?: string) => {
+    if (!userMessage.trim() || isChatBusyRef.current) return;
+    isChatBusyRef.current = true;
     setManualConversation((prev) => [...prev, { role: "user", message: userMessage }]);
-    setChatInput("");
     setIsChatBusy(true);
     let result: CommandResult;
     try {
-      result = await runCommand(userMessage);
+      result = await runCommand(userMessage, targetFile);
     } catch (error) {
       result = { ok: false, reply: `The request failed: ${errorDetail(error)}` };
     } finally {
+      isChatBusyRef.current = false;
       setIsChatBusy(false);
     }
     setManualConversation((prev) => [...prev, { role: "assistant", message: result.reply, failed: !result.ok }]);
   };
+
+  const sendChat = async () => {
+    const userMessage = chatInput.trim();
+    if (!userMessage || isChatBusy) return;
+    setChatInput("");
+    await submitChat(userMessage);
+  };
+
+  // The preview's "Fix with AI" sends the failing file and the error here.
+  const submitChatRef = useRef(submitChat);
+  submitChatRef.current = submitChat;
+  useEffect(() => {
+    const onRequest = (event: Event) => {
+      const detail = (event as CustomEvent<{ path?: string; instruction?: string }>).detail;
+      if (!detail?.instruction) return;
+      if (detail.path) setActiveFile(detail.path);
+      void submitChatRef.current(detail.instruction, detail.path);
+    };
+    window.addEventListener("ai-ide-chat-request", onRequest);
+    return () => window.removeEventListener("ai-ide-chat-request", onRequest);
+  }, [setActiveFile]);
 
   const computeDefaultRepoName = () => {
     if (!workspaceId) return "";
@@ -601,33 +665,6 @@ function RightRail({
     }
   };
 
-  const autoDeployOnce = async () => {
-    if (!workspaceId) return;
-    if (autoDeployedRef.current) return;
-    // Only a finished, complete generation is deployed automatically. While the app
-    // is still being planned or written there is nothing coherent to push, and a
-    // run that lost files is left for the user to review and deploy by hand.
-    if (status !== "done") return;
-    if (!githubToken.trim()) return; // The preview pane explains that a token is needed.
-
-    autoDeployedRef.current = true;
-    onOpenPreview();
-    const defaultRepo = repoName.trim() ? repoName.trim() : computeDefaultRepoName();
-    if (!repoName.trim() && defaultRepo) setRepoName(defaultRepo);
-    const pushed = await initializeGitAndPush({ repoName: defaultRepo, githubToken: githubToken.trim() });
-    // Deploying builds from the repository, so there is nothing to deploy without it.
-    if (!pushed) {
-      setDeployStatus({ status: "ERROR" });
-      return;
-    }
-    await deployWorkspace();
-  };
-
-  useEffect(() => {
-    void autoDeployOnce();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, workspaceId, githubToken]);
-
   useEffect(() => {
     if (!workspaceId) return;
     if (redeployNonce === lastRedeployNonceRef.current) return;
@@ -647,7 +684,6 @@ function RightRail({
             return;
           }
         }
-        autoDeployedRef.current = true;
         const name = repoName.trim() || computeDefaultRepoName();
         if (!repoName.trim() && name) setRepoName(name);
         const created = await initializeGitAndPush({ repoName: name, githubToken: token });
@@ -659,7 +695,16 @@ function RightRail({
         return;
       }
       // The deployment builds from GitHub, so a failed push means there is nothing new to deploy.
-      const pushed = await commitAndPush();
+      // The server forgets tokens on restart, so the push always carries one.
+      let pushToken = githubToken.trim();
+      if (!pushToken) {
+        pushToken = (await requestToken()) ?? "";
+        if (!pushToken) {
+          toast.error("Pushing needs a GitHub token. Nothing was deployed.");
+          return;
+        }
+      }
+      const pushed = await commitAndPush(pushToken);
       if (!pushed) return;
       await deployWorkspace();
     })();
@@ -667,17 +712,27 @@ function RightRail({
   }, [redeployNonce, workspaceId]);
 
   /** Returns true when the commit reached GitHub. */
-  const commitAndPush = async (): Promise<boolean> => {
+  const commitAndPush = async (token: string): Promise<boolean> => {
     if (!workspaceId) return false;
     setIsGitBusy(true);
     try {
-      const response = await apiClient.post<{ sha?: string }>("/ai-ide/git/commit-and-push", {
-        workspace_id: workspaceId,
-        message: commitMessage,
-        branch: branchName,
-      });
+      const response = await apiClient.post<{ sha?: string; push_ok?: boolean; committed?: boolean }>(
+        "/ai-ide/git/commit-and-push",
+        {
+          workspace_id: workspaceId,
+          message: commitMessage,
+          branch: branchName,
+          github_token: token,
+        },
+      );
+      if (response.data?.push_ok === false) {
+        dispatch({ type: "ADD_LOG", message: "✗ GitHub did not accept the push" });
+        toast.error("GitHub did not accept the push, so nothing was redeployed.");
+        return false;
+      }
       const sha = response.data?.sha || "";
-      dispatch({ type: "ADD_LOG", message: sha ? `✓ Pushed commit ${sha.slice(0, 7)}` : "✓ Pushed" });
+      const what = response.data?.committed === false ? "Up to date on GitHub at" : "Pushed commit";
+      dispatch({ type: "ADD_LOG", message: sha ? `✓ ${what} ${sha.slice(0, 7)}` : "✓ Pushed" });
       return true;
     } catch (error) {
       const detail = errorDetail(error);
@@ -963,14 +1018,238 @@ function RightRail({
   );
 }
 
-function IdeLayout({ idea }: { idea: string }) {
-  const { state } = useAiIde();
+type CenterView = "editor" | "split" | "preview";
+
+function IdeLayout({ idea, restored }: { idea: string; restored: boolean }) {
+  const { state, setActiveFile } = useAiIde();
   const { workspaceId, status, statusMessage, failedFiles, files } = state;
   const [previewMode, setPreviewMode] = useState<"local" | "vercel">("local");
   const isMobile = useIsMobile();
-  const { startGeneration } = useAiGenerationWS(workspaceId);
+  const { startGeneration, attachToRun } = useAiGenerationWS(workspaceId);
   const startedRef = useRef(false);
-  const [centerTab, setCenterTab] = useState<"editor" | "preview">("editor");
+  const attachedRef = useRef(false);
+  // Code and the running app side by side while a run streams in; a restored
+  // workspace opens on the app itself.
+  const [centerView, setCenterView] = useState<CenterView>(() => (status === "done" ? "preview" : "split"));
+  const pendingFiles = useMemo(() => pendingPreviewFiles(state), [state]);
+  const generating = status === "creating" || status === "planning" || status === "generating";
+  // ── Visual editing and design ─────────────────────────────────────────────
+  const { dispatch } = useAiIde();
+  const [rightTab, setRightTab] = useState<"chat" | "design">("chat");
+  const [inspecting, setInspecting] = useState(false);
+  const [selection, setSelection] = useState<SelectedElement | null>(null);
+  const [downloading, setDownloading] = useState(false);
+  const filesRef = useRef(files);
+  filesRef.current = files;
+
+  // Undo/redo for design-tool edits: each entry holds every touched file's before/after text.
+  type HistoryEntry = Record<string, { before: string | undefined; after: string }>;
+  const [history, setHistory] = useState<{ past: HistoryEntry[]; future: HistoryEntry[] }>({ past: [], future: [] });
+
+  /** Write files the user changed through the design tools: state first, then the server. */
+  const writeFiles = useCallback(
+    async (changes: Record<string, string>) => {
+      const entries = Object.entries(changes).filter(([path, content]) => filesRef.current[path] !== content);
+      entries.forEach(([path, content]) => dispatch({ type: "UPDATE_FILE", path, content }));
+      if (!workspaceId) return;
+      await Promise.all(
+        entries.map(([path, content]) =>
+          apiClient.post("/ai-ide/file/update", { workspace_id: workspaceId, path, content }).catch((error) => {
+            toast.error(`Could not save ${path}: ${errorDetail(error)}`, { id: `ai-ide-save-${path}` });
+          }),
+        ),
+      );
+    },
+    [dispatch, workspaceId],
+  );
+
+  const applyFiles = useCallback(
+    async (changes: Record<string, string>) => {
+      const entry: HistoryEntry = {};
+      Object.entries(changes).forEach(([path, after]) => {
+        if (filesRef.current[path] !== after) entry[path] = { before: filesRef.current[path], after };
+      });
+      if (!Object.keys(entry).length) return;
+      setHistory((h) => ({ past: [...h.past.slice(-49), entry], future: [] }));
+      await writeFiles(changes);
+    },
+    [writeFiles],
+  );
+
+  const undo = useCallback(() => {
+    setHistory((h) => {
+      const entry = h.past[h.past.length - 1];
+      if (!entry) return h;
+      const changes: Record<string, string> = {};
+      Object.entries(entry).forEach(([path, { before }]) => {
+        changes[path] = before ?? "";
+      });
+      void writeFiles(changes);
+      return { past: h.past.slice(0, -1), future: [entry, ...h.future] };
+    });
+  }, [writeFiles]);
+
+  const redo = useCallback(() => {
+    setHistory((h) => {
+      const entry = h.future[0];
+      if (!entry) return h;
+      const changes: Record<string, string> = {};
+      Object.entries(entry).forEach(([path, { after }]) => {
+        changes[path] = after;
+      });
+      void writeFiles(changes);
+      return { past: [...h.past, entry], future: h.future.slice(1) };
+    });
+  }, [writeFiles]);
+
+  // Ctrl+Z / Ctrl+Shift+Z undo design edits, except while typing in a field or the code editor.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== "z") return;
+      const el = e.target as HTMLElement | null;
+      if (el && (el.closest("input, textarea, select, [contenteditable], .monaco-editor"))) return;
+      e.preventDefault();
+      if (e.shiftKey) redo();
+      else undo();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [undo, redo]);
+
+  /**
+   * Where style edits for the selection go: the element's own JSX, or, for an element inside a
+   * kit component, the component's use on the page (so a Panel on one page changes, not every Panel).
+   */
+  const styleTarget = useMemo<StyleTarget | null>(() => {
+    if (!selection) return null;
+    const own = selection.file.startsWith("src/chronos/") && selection.usage ? null : selection;
+    const file = own ? own.file : selection.usage!.file;
+    const line = own ? own.line : selection.usage!.line;
+    const tagName = own ? own.tag : selection.usage!.component;
+    const source = files[file];
+    const tag = source ? findOpeningTag(source, line, tagName, own ? own.className : null) : null;
+    if (!tag) return null;
+    const info = readClassName(tag);
+    const className = info.kind === "literal" ? (info as { value: string }).value : info.kind === "none" ? "" : null;
+    return { file, line, tag: tagName, className, isInstance: !own };
+  }, [selection, files]);
+
+  const swapMark = useCallback(
+    (sel: SelectedElement, newId: string) => {
+      const oldId = sel.markId;
+      if (!oldId || oldId === newId) return;
+      // The id is a literal on the page that renders <Mark> (or in its data); edit it there.
+      const file = sel.usage?.file ?? sel.file;
+      const source = filesRef.current[file];
+      const tag = source ? findOpeningTag(source, sel.usage?.line ?? sel.line, sel.usage?.component ?? "Mark", null) : null;
+      const anchor = tag ?? { start: 0, end: 0, tag: "Mark", text: "" };
+      const result = applyTextEdit(filesRef.current, file, anchor, oldId, newId);
+      if (result.ok === false) {
+        toast.error((result as { reason: string }).reason);
+        return;
+      }
+      void applyFiles({ [result.path]: result.content });
+      setSelection((cur) => (cur ? { ...cur, markId: newId } : cur));
+    },
+    [applyFiles],
+  );
+
+  const editText = useCallback(
+    (sel: SelectedElement, oldText: string, newText: string) => {
+      const source = filesRef.current[sel.file];
+      const tag = source ? findOpeningTag(source, sel.line, sel.tag, sel.className) : null;
+      if (!tag) {
+        toast.error("Could not find that element in the code. Ask the AI to change it instead.");
+        return;
+      }
+      const result = applyTextEdit(filesRef.current, sel.file, tag, oldText, newText);
+      if (result.ok === false) {
+        // This project compiles without strictNullChecks, so the union does not narrow on its own.
+        toast.error((result as { reason: string }).reason);
+        return;
+      }
+      void applyFiles({ [result.path]: result.content });
+      setSelection((cur) => (cur && cur.file === sel.file && cur.line === sel.line ? { ...cur, text: newText } : cur));
+    },
+    [applyFiles],
+  );
+
+  const editClass = useCallback(
+    (target: StyleTarget, newClass: string) => {
+      const source = filesRef.current[target.file];
+      const tag = source ? findOpeningTag(source, target.line, target.tag, target.isInstance ? null : target.className) : null;
+      const next = tag && source ? setClassName(source, tag, newClass.trim().replace(/\s+/g, " ")) : null;
+      if (!next) {
+        toast.error("These classes are computed in code. Use Ask AI to restyle this element.");
+        return;
+      }
+      void applyFiles({ [target.file]: next });
+    },
+    [applyFiles],
+  );
+
+  const askAiAboutElement = useCallback((sel: SelectedElement, instruction: string) => {
+    const where = `the <${sel.tag}> element whose JSX starts on line ${sel.line}` +
+      (sel.className ? ` (className "${sel.className.slice(0, 200)}")` : "") +
+      (sel.text ? ` with the text "${sel.text.slice(0, 120)}"` : "");
+    window.dispatchEvent(
+      new CustomEvent("ai-ide-chat-request", {
+        detail: { path: sel.file, instruction: `Change only ${where}: ${instruction}. Keep everything else in the file as it is.` },
+      }),
+    );
+    setRightTab("chat");
+  }, []);
+
+  const download = async () => {
+    if (!workspaceId) return;
+    setDownloading(true);
+    try {
+      await downloadWorkspaceZip(workspaceId);
+    } catch (error) {
+      toast.error(`Download failed: ${errorDetail(error)}`);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const toggleInspect = useCallback((on: boolean) => {
+    setInspecting(on);
+    if (on) {
+      setRightTab("design");
+      setPreviewMode("local");
+      setCenterView((v) => (v === "editor" ? "split" : v));
+    } else {
+      setSelection(null);
+    }
+  }, []);
+
+  // Automatic repair: once a build has finished, a file that fails to compile or render is sent
+  // to the AI fixer once per distinct error (at most 4 per session), so the user rarely sees it.
+  const autoFixedRef = useRef<Set<string>>(new Set());
+  const statusRef = useRef(status);
+  statusRef.current = status;
+  const onBuildError = useCallback(
+    (error: { path: string; message: string; stage: string }) => {
+      if (statusRef.current !== "done") return;
+      if (error.path.startsWith("src/chronos/")) return; // kit files are fixed by kit upgrades, not per app
+      const key = `${error.path}\u0000${error.message.split("\n")[0].slice(0, 200)}`;
+      if (autoFixedRef.current.has(key) || autoFixedRef.current.size >= 4) return;
+      autoFixedRef.current.add(key);
+      dispatch({ type: "ADD_LOG", message: `Auto-fixing ${error.path} (${error.stage} error)…` });
+      toast.message(`Fixing ${error.path.split("/").pop()} automatically…`, { id: `autofix-${error.path}` });
+      const instruction =
+        `The app failed to ${error.stage === "compile" ? "compile" : error.stage === "import" ? "load" : "render"} ` +
+        `because of this file. Fix the error so the page works; keep the rest of the file as it is. ` +
+        `Use only components exported by '../chronos' and data the file already imports.\n\n${error.message.slice(0, 1500)}`;
+      window.dispatchEvent(new CustomEvent("ai-ide-chat-request", { detail: { path: error.path, instruction } }));
+    },
+    [dispatch],
+  );
+
+  const requestFix = useCallback((path: string, message: string) => {
+    const instruction = `Fix this error so the app renders. Keep the rest of the file as it is.\n\n${message.slice(0, 1500)}`;
+    window.dispatchEvent(new CustomEvent("ai-ide-chat-request", { detail: { path, instruction } }));
+  }, []);
   const [redeployNonce, setRedeployNonce] = useState(0);
   const [leftPane, setLeftPane] = useState<LeftPaneKey>("explorer");
   const [deployInfo, setDeployInfo] = useState<DeploymentInfo>({
@@ -986,9 +1265,50 @@ function IdeLayout({ idea }: { idea: string }) {
   useEffect(() => {
     if (workspaceId && !startedRef.current && status === "planning") {
       startedRef.current = true;
+      setCenterView(isMobile ? "preview" : "split");
       startGeneration(idea);
     }
-  }, [workspaceId, status, idea, startGeneration]);
+  }, [workspaceId, status, idea, startGeneration, isMobile]);
+
+  // A restored workspace may still be generating on the server (the page was
+  // reloaded mid-run): follow that run instead of showing a half-built app as done.
+  useEffect(() => {
+    if (!restored || !workspaceId || attachedRef.current) return;
+    attachedRef.current = true;
+    attachToRun();
+  }, [restored, workspaceId, attachToRun]);
+
+  useEffect(() => {
+    if (restored && status === "generating" && !isMobile) setCenterView("split");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
+
+  const previewPane = (
+    <div className="relative h-full min-h-0 flex-1">
+      <AiIdePreview
+        files={files}
+        pending={pendingFiles}
+        generating={generating}
+        onOpenFile={(path) => {
+          setActiveFile(path);
+          if (centerView === "preview") setCenterView("split");
+        }}
+        onFixRequest={requestFix}
+        inspecting={inspecting}
+        onInspectChange={toggleInspect}
+        selection={selection}
+        onSelect={(sel) => {
+          setSelection(sel);
+          if (sel) {
+            setRightTab("design");
+            setActiveFile(sel.file);
+          }
+        }}
+        onTextEdit={editText}
+        onBuildError={onBuildError}
+      />
+    </div>
+  );
 
   // Some files failed but the rest were written: the workspace is usable, the run is not complete.
   const partialFailure = status === "error" && failedFiles.length > 0;
@@ -1001,12 +1321,12 @@ function IdeLayout({ idea }: { idea: string }) {
   const deployFailed = deployState === "ERROR" || deployState === "CANCELED" || deployState === "UNKNOWN";
 
   return (
-    <div 
+    <div
       className="flex flex-col h-full bg-container"
     >
       <div className="h-11 border-b border-stroke-muted flex items-center px-4 gap-3 flex-shrink-0">
         <span className="font-sans text-[11px] font-medium uppercase tracking-[0.08em] text-ink-quaternary">
-          App builder
+          App Studio
         </span>
         <div className="ml-auto flex min-w-0 items-center gap-3">
           <span className="truncate max-w-[320px] text-xs text-ink-tertiary" title={idea}>{idea}</span>
@@ -1017,6 +1337,17 @@ function IdeLayout({ idea }: { idea: string }) {
             </span>
           )}
           {badge && <StatusBadge tone={badge.tone}>{badge.label}</StatusBadge>}
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 gap-1.5 text-xs"
+            onClick={() => void download()}
+            disabled={!workspaceId || downloading || inProgress}
+            title={inProgress ? "Available once generation has finished" : "Download the project as a .zip"}
+          >
+            {downloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+            Download
+          </Button>
         </div>
       </div>
 
@@ -1068,27 +1399,32 @@ function IdeLayout({ idea }: { idea: string }) {
             <div className="h-full">
               <div className="h-full flex flex-col">
                 <div className="h-9 border-b border-stroke-muted bg-raised flex items-center px-2 gap-2 flex-shrink-0">
-                  <div className="rounded-md border border-stroke-muted bg-container p-0.5">
-                    <button
-                      className={cn(
-                        "h-7 px-3 text-xs rounded transition-colors",
-                        centerTab === "editor" ? "bg-raised text-ink" : "text-muted-foreground hover:text-ink"
-                      )}
-                      onClick={() => setCenterTab("editor")}
-                    >
-                      Editor
-                    </button>
-                    <button
-                      className={cn(
-                        "h-7 px-3 text-xs rounded transition-colors",
-                        centerTab === "preview" ? "bg-raised text-ink" : "text-muted-foreground hover:text-ink"
-                      )}
-                      onClick={() => setCenterTab("preview")}
-                    >
-                      Live Preview
-                    </button>
+                  <div className="rounded-md border border-stroke-muted bg-container p-0.5 flex" role="tablist" aria-label="Center view">
+                    {(
+                      [
+                        ["editor", Code2, "Code"],
+                        ["split", Columns2, "Split"],
+                        ["preview", Eye, "Preview"],
+                      ] as Array<[CenterView, typeof Code2, string]>
+                    )
+                      .filter(([key]) => !(isMobile && key === "split"))
+                      .map(([key, Icon, label]) => (
+                        <button
+                          key={key}
+                          role="tab"
+                          aria-selected={centerView === key}
+                          className={cn(
+                            "h-7 px-2.5 text-xs rounded transition-colors inline-flex items-center gap-1.5",
+                            centerView === key ? "bg-raised text-ink" : "text-muted-foreground hover:text-ink"
+                          )}
+                          onClick={() => setCenterView(key)}
+                        >
+                          <Icon className="h-3.5 w-3.5" />
+                          {label}
+                        </button>
+                      ))}
                   </div>
-                  {centerTab === "preview" && (
+                  {centerView !== "editor" && (
                     <div className="rounded-md border border-stroke-muted bg-container p-0.5">
                       <button
                         className={cn(
@@ -1096,8 +1432,9 @@ function IdeLayout({ idea }: { idea: string }) {
                           previewMode === "local" ? "bg-raised text-ink" : "text-muted-foreground hover:text-ink"
                         )}
                         onClick={() => setPreviewMode("local")}
+                        title="Runs the workspace in the browser and updates as the code changes"
                       >
-                        In-app
+                        Live
                       </button>
                       <button
                         className={cn(
@@ -1105,13 +1442,14 @@ function IdeLayout({ idea }: { idea: string }) {
                           previewMode === "vercel" ? "bg-raised text-ink" : "text-muted-foreground hover:text-ink"
                         )}
                         onClick={() => setPreviewMode("vercel")}
+                        title="The app as deployed to Vercel from its GitHub repository"
                       >
-                        Vercel
+                        Deployed
                       </button>
                     </div>
                   )}
 
-                  {centerTab === "preview" && (
+                  {centerView !== "editor" && previewMode === "vercel" && (
                     <div className="ml-auto flex items-center gap-2">
                       <Button
                         size="sm"
@@ -1124,7 +1462,9 @@ function IdeLayout({ idea }: { idea: string }) {
                             ? "A push or deployment is already running"
                             : !canRedeploy
                               ? "Available once generation has finished"
-                              : "Push the latest changes and deploy them"
+                              : deployInfo.repoUrl
+                                ? "Commit the latest changes to the GitHub repository and deploy them"
+                                : "Create a GitHub repository for this app, push it and deploy it to Vercel"
                         }
                       >
                         {deployInfo.busy ? (
@@ -1132,7 +1472,7 @@ function IdeLayout({ idea }: { idea: string }) {
                         ) : (
                           <Rocket className="h-3.5 w-3.5 mr-1.5" />
                         )}
-                        {deployInfo.busy ? "Working…" : "Update & Redeploy"}
+                        {deployInfo.busy ? "Working…" : deployInfo.repoUrl ? "Push & Redeploy" : "Push & Deploy"}
                       </Button>
                       {(deployInfo.stableDomain ?? normalizeDeploymentUrl(deployInfo.deployedUrl)) && (
                         <a
@@ -1150,24 +1490,32 @@ function IdeLayout({ idea }: { idea: string }) {
                   )}
                 </div>
 
-                {centerTab === "editor" ? (
+                {centerView === "editor" ? (
                   <div className="flex-1 min-h-0">
                     <AiCodeEditor />
                   </div>
+                ) : centerView === "split" && previewMode === "local" ? (
+                  <div className="flex-1 min-h-0">
+                    <ResizablePanelGroup direction="horizontal" className="h-full">
+                      <ResizablePanel defaultSize={50} minSize={25}>
+                        <div className="h-full min-h-0">
+                          <AiCodeEditor />
+                        </div>
+                      </ResizablePanel>
+                      <ResizableHandle />
+                      <ResizablePanel defaultSize={50} minSize={25}>
+                        <div className="h-full min-h-0 flex flex-col border-l border-stroke-muted">{previewPane}</div>
+                      </ResizablePanel>
+                    </ResizablePanelGroup>
+                  </div>
+                ) : previewMode === "local" ? (
+                  <div className="flex-1 min-h-0 flex flex-col">{previewPane}</div>
                 ) : (
                   <div className="flex-1 min-h-0 flex flex-col">
                     {/* Use stableDomain (domains[0] stable production alias) for iframe.
                         The deployment-specific URL (url field) blocks iframes; the alias allows it. */}
                     <div className="flex-1 relative min-h-0">
-                      {previewMode === "local" ? (
-                        (status === "generating" || status === "planning" || status === "creating") ? (
-                          <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
-                            Waiting for generation to finish…
-                          </div>
-                        ) : (
-                          <AiIdePreview files={files} />
-                        )
-                      ) : deployInfo.deployStatus?.status === "READY" && deployInfo.stableDomain ? (
+                      {deployInfo.deployStatus?.status === "READY" && deployInfo.stableDomain ? (
                         <iframe
                           key={deployInfo.stableDomain}
                           title="Live Preview"
@@ -1200,8 +1548,8 @@ function IdeLayout({ idea }: { idea: string }) {
                             </p>
                             {!deployState && !deployInfo.busy && (
                               <p className="max-w-xs text-xs text-ink-tertiary">
-                                Deployment needs a GitHub token (Set Token, in the chat panel). Once generation has
-                                finished, use Update &amp; Redeploy.
+                                The Live view runs the app right here. Push &amp; Deploy creates a GitHub repository
+                                for it (you will be asked for a token once) and deploys it to Vercel.
                               </p>
                             )}
                             {deployFailed && (
@@ -1293,13 +1641,68 @@ function IdeLayout({ idea }: { idea: string }) {
 
           {/* Right: telemetry + chat */}
           <ResizablePanel defaultSize={isMobile ? 30 : 26} minSize={20} maxSize={isMobile ? 45 : 40}>
-            <div className="h-full border-l border-stroke-muted">
-              <RightRail
-                idea={idea}
-                onDeploymentUpdate={setDeployInfo}
-                onOpenPreview={() => setCenterTab("preview")}
-                redeployNonce={redeployNonce}
-              />
+            <div className="flex h-full flex-col border-l border-stroke-muted">
+              <div className="flex h-9 flex-shrink-0 items-center gap-1 border-b border-stroke-muted bg-raised px-2" role="tablist" aria-label="Side panel">
+                {(
+                  [
+                    ["chat", MessageSquare, "Chat"],
+                    ["design", Palette, "Design"],
+                  ] as const
+                ).map(([key, Icon, label]) => (
+                  <button
+                    key={key}
+                    role="tab"
+                    aria-selected={rightTab === key}
+                    onClick={() => setRightTab(key)}
+                    className={cn(
+                      "inline-flex h-7 items-center gap-1.5 rounded px-2.5 text-xs transition-colors",
+                      rightTab === key ? "bg-container text-ink" : "text-muted-foreground hover:text-ink",
+                    )}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {/* The chat stays mounted: it owns the push/deploy state and the AI edit queue. */}
+              <div className={cn("min-h-0 flex-1", rightTab !== "chat" && "hidden")}>
+                <RightRail
+                  idea={idea}
+                  onDeploymentUpdate={setDeployInfo}
+                  onOpenPreview={() => {
+                    setPreviewMode("vercel");
+                    setCenterView("preview");
+                  }}
+                  redeployNonce={redeployNonce}
+                />
+              </div>
+              {rightTab === "design" && (
+                <div className="min-h-0 flex-1 bg-container">
+                  <DesignPanel
+                    files={files}
+                    selection={selection}
+                    styleTarget={styleTarget}
+                    inspecting={inspecting}
+                    onToggleInspect={() => toggleInspect(!inspecting)}
+                    onClearSelection={() => {
+                      setSelection(null);
+                      window.dispatchEvent(new CustomEvent("ai-ide-preview-command", { detail: { type: "select-clear" } }));
+                    }}
+                    onSelectParent={() =>
+                      window.dispatchEvent(new CustomEvent("ai-ide-preview-command", { detail: { type: "select-parent" } }))
+                    }
+                    onApplyFiles={(changes) => void applyFiles(changes)}
+                    onEditText={(sel, newText) => editText(sel, sel.text ?? "", newText)}
+                    onEditClass={editClass}
+                    onSwapMark={swapMark}
+                    onAskAi={askAiAboutElement}
+                    canUndo={history.past.length > 0}
+                    canRedo={history.future.length > 0}
+                    onUndo={undo}
+                    onRedo={redo}
+                  />
+                </div>
+              )}
             </div>
           </ResizablePanel>
         </ResizablePanelGroup>
@@ -1330,6 +1733,7 @@ function IdeLayout({ idea }: { idea: string }) {
 function AiIdeInner() {
   const { state, dispatch } = useAiIde();
   const [currentIdea, setCurrentIdea] = useState<string | null>(null);
+  const [restored, setRestored] = useState(false);
   const [restoring, setRestoring] = useState(true);
   const [restoreNotice, setRestoreNotice] = useState<string | null>(null);
 
@@ -1348,6 +1752,7 @@ function AiIdeInner() {
         dispatch({ type: "SET_WORKSPACE", workspaceId: parsed.workspaceId, initialFiles: filesRes.data });
         dispatch({ type: "SET_STATUS", status: "done", message: "Restored previous workspace" });
         setCurrentIdea(parsed.idea || "Restored workspace");
+        setRestored(true);
       } catch (err) {
         if (!cancelled) {
           setRestoreNotice(`The previous workspace could not be restored (${errorDetail(err)}). Start a new build below.`);
@@ -1369,6 +1774,7 @@ function AiIdeInner() {
   const handleBuild = async (idea: string) => {
     dispatch({ type: "SET_STATUS", status: "creating", message: "Creating workspace…" });
     setRestoreNotice(null);
+    setRestored(false);
     setCurrentIdea(idea);
     try {
       const res = await apiClient.post<{ workspace_id: string; file_paths: string[] }>(
@@ -1403,11 +1809,28 @@ function AiIdeInner() {
     );
   }
 
+  const openApp = async (app: { workspace_id: string; idea: string | null; name: string | null }) => {
+    setRestoreNotice(null);
+    try {
+      const filesRes = await apiClient.get<Record<string, string>>(`/ai-ide/workspace/${app.workspace_id}/files`);
+      const idea = app.idea || app.name || "Saved app";
+      dispatch({ type: "RESET" });
+      dispatch({ type: "SET_WORKSPACE", workspaceId: app.workspace_id, initialFiles: filesRes.data });
+      dispatch({ type: "SET_STATUS", status: "done", message: "Opened saved app" });
+      persistAiIdeSession(app.workspace_id, idea);
+      setCurrentIdea(idea);
+      // A build that is still running reconnects (IdeLayout attaches when restored is set).
+      setRestored(true);
+    } catch (err) {
+      setRestoreNotice(`That app could not be opened (${errorDetail(err)}).`);
+    }
+  };
+
   if (!currentIdea || state.status === "idle" || state.status === "creating") {
-    return <IdeaScreen onBuild={handleBuild} notice={restoreNotice} />;
+    return <IdeaScreen onBuild={handleBuild} onOpenApp={(app) => void openApp(app)} notice={restoreNotice} />;
   }
 
-  return <IdeLayout idea={currentIdea} />;
+  return <IdeLayout idea={currentIdea} restored={restored} />;
 }
 
 // ── Export ────────────────────────────────────────────────────────────────────

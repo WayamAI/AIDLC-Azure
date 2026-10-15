@@ -170,8 +170,9 @@ _login_failures: dict[str, list[float]] = {}
 
 
 def _client_key(request: Request) -> str:
-    forwarded = request.headers.get("x-forwarded-for", "")
-    return forwarded.split(",")[0].strip() or (request.client.host if request.client else "unknown")
+    # The socket peer only. A client-sent X-Forwarded-For is trivially rotated; behind a
+    # proxy, uvicorn --proxy-headers rewrites request.client from trusted hops.
+    return request.client.host if request.client else "unknown"
 
 
 def _recent_failures(key: str) -> list[float]:

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Query, Depends
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 from app.auth.dependencies import get_current_org
 from app.models.synthetic_data import GenerateSyntheticRequest, SyntheticDatasetOut, SchemaField
 from app.models.organization import OrganizationOut
@@ -65,6 +65,9 @@ async def generate_synthetic_data(
             count=body.count,
         )
         return dataset
+    except ValidationError as exc:
+        # pydantic's ValidationError is a ValueError, so it must be caught before the 404 branch.
+        raise HTTPException(status_code=502, detail="The model returned malformed data") from exc
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 

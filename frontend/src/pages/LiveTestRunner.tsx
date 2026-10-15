@@ -1754,7 +1754,7 @@ export default function LiveTestRunner({
     <Shell>
       {!embedded && (
         <PageHeader
-          title="Live Test Runner"
+          title="Live Test Run"
           description="Generate Playwright tests from a repository, or upload a spec file, and run them in a real browser against a running build."
         />
       )}

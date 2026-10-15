@@ -70,7 +70,7 @@ export default function SelfHealingTests() {
   return (
     <PageShell>
       <PageHeader
-        title="Self-Healing Tests"
+        title="Test Repair"
         description="When a selector breaks, Chakram scans the live page, proposes a replacement, and waits for your approval before writing anything back to the stored test."
       />
 

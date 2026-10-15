@@ -493,7 +493,7 @@ export default function Monitoring() {
   return (
     <PageShell>
       <PageHeader
-        title="Anomaly Sandbox"
+        title="Metric Anomalies"
         description="Analyses a built-in demo series or daily quality scores you paste. It is not connected to production telemetry."
         actions={
           <>

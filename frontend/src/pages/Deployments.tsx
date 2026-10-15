@@ -163,6 +163,7 @@ export default function Deployments() {
   const [status, setStatus] = useState<DeploymentStatusResponse | null>(null);
   const [logs, setLogs] = useState<DeploymentLogEvent[]>([]);
   const [logsError, setLogsError] = useState<string | null>(null);
+  const [statusError, setStatusError] = useState<string | null>(null);
   const [previewViewport, setPreviewViewport] = useState<PreviewViewport>("desktop");
 
   const healthQuery = useQuery({
@@ -220,12 +221,20 @@ export default function Deployments() {
     if (!deploymentId) return;
     if (status && FINAL_STATES.has(status.status)) return;
 
+    let failures = 0;
     const timer = window.setInterval(async () => {
       try {
         const latest = await api.getDeploymentStatus(deploymentId);
+        failures = 0;
+        setStatusError(null);
         setStatus(latest);
       } catch {
-        // Keep polling; transient API errors should not terminate the UI loop.
+        // A single failed poll is transient; stop and say so once it keeps failing.
+        failures += 1;
+        if (failures >= 3) {
+          window.clearInterval(timer);
+          setStatusError("Cannot read the deployment status right now. The status shown may be out of date.");
+        }
       }
     }, 5000);
 
@@ -601,6 +610,7 @@ export default function Deployments() {
           {!status && !triggerMutation.isError && "Waiting for the deployment to be created."}
           {!status && triggerMutation.isError && "No deployment was created."}
         </p>
+        {statusError && <p className="border-t border-border/60 px-4 py-2.5 text-sm text-destructive">{statusError}</p>}
       </Panel>
 
       <div className="grid gap-4 lg:grid-cols-3">

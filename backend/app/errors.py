@@ -87,7 +87,14 @@ async def _upstream_unreachable(request: Request, exc: httpx.RequestError) -> JS
     return _detail(502, f"{host} could not be reached: {type(exc).__name__}")
 
 
+async def _workspace_path(request: Request, exc: Exception) -> JSONResponse:
+    return _detail(400, str(exc))
+
+
 def register_exception_handlers(app: FastAPI) -> None:
+    from app.services.ai_ide_service import WorkspacePathError
+
+    app.add_exception_handler(WorkspacePathError, _workspace_path)
     app.add_exception_handler(AIQuotaError, _ai_quota)
     app.add_exception_handler(AIResponseError, _ai_failure)
     app.add_exception_handler(AIGenerationError, _ai_failure)

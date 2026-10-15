@@ -387,7 +387,7 @@ export default function PRDGenerator() {
     <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-stroke-muted bg-container">
       <div className="px-4 pt-4">
         <PageHeader
-          title="PRD Generator"
+          title="Product Specs"
           description="Enter a product name and description to generate a structured product requirements document, then review, edit and download it as Markdown."
           className="border-b-0 pb-3"
           actions={

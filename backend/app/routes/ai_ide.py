@@ -1,19 +1,23 @@
 """AI IDE routes workspace creation (REST) + streaming generation (WebSocket)."""
 import asyncio
+import io
+import json
+import re
+import zipfile
 
 from fastapi import APIRouter, Depends, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi.responses import Response
 from pydantic import BaseModel
 
 from app.config import settings
 from app.auth.dependencies import get_current_org
 from app.database import get_db
-from app.engines.injector import inject_routes
-from app.engines.planner import plan_files
-from app.engines.generator import stream_file
 from app.models.organization import OrganizationOut
+from app.services import ai_ide_generation
 from app.services import ai_ide_service
 from app.services import ai_service
 from app.services import connector_settings_service as connectors
+from app.services import marks_service
 from app.services import organization_service
 from app.services import vercel_service
 from app.services.workspace_service import WorkspaceExpiredError
@@ -87,6 +91,8 @@ class GitCommitPushRequest(BaseModel):
     workspace_id: str
     message: str = "chore: update AI IDE workspace"
     branch: str | None = None
+    # The server keeps tokens in memory only; the client sends it again after a restart.
+    github_token: str | None = None
 
 
 class DeployWorkspaceRequest(BaseModel):
@@ -97,6 +103,38 @@ class DeployWorkspaceRequest(BaseModel):
 
 # ── REST ─────────────────────────────────────────────────────────────────────
 
+@router.get("/marks")
+async def list_marks(q: str = "", limit: int = 60, org: OrganizationOut = Depends(get_current_org)):
+    """3D icons for the icon picker: the best matches for `q`, or a general selection."""
+    limit = max(1, min(limit, 200))
+    rows = marks_service.relevant_marks(q, limit) if q.strip() else marks_service.manifest()[:limit]
+    return {
+        "marks": [
+            {"id": r.get("id"), "hint": r.get("hint", ""), "category": r.get("category", "")}
+            for r in rows
+            if isinstance(r, dict) and r.get("id")
+        ],
+        "total": len(marks_service.manifest()),
+    }
+
+
+@router.get("/workspaces")
+async def list_workspaces(org: OrganizationOut = Depends(get_current_org), db=Depends(get_db)):
+    """Every app this organisation has built, newest first."""
+    return {"apps": await ai_ide_service.list_apps(db, org.id)}
+
+
+@router.delete("/workspace/{workspace_id}")
+async def delete_workspace(workspace_id: str, org: OrganizationOut = Depends(get_current_org), db=Depends(get_db)):
+    """Delete an app: its stored files, disk copy and registry entry. Its GitHub repository is kept."""
+    run = ai_ide_generation.get(workspace_id)
+    if run is not None and not run.finished:
+        raise HTTPException(status_code=409, detail="This app is still being generated. Delete it once the build ends.")
+    if not await ai_ide_service.delete_app(db, org.id, workspace_id):
+        raise HTTPException(status_code=404, detail="Workspace not found")
+    return {"ok": True}
+
+
 @router.post("/workspace/create")
 async def create_workspace(org: OrganizationOut = Depends(get_current_org), db=Depends(get_db)):
     workspace_id = await ai_ide_service.create_workspace(org.id, db=db)
@@ -105,8 +143,12 @@ async def create_workspace(org: OrganizationOut = Depends(get_current_org), db=D
 
 
 @router.get("/workspace/{workspace_id}/files", dependencies=[Depends(_attach_workspace)])
-async def get_files(workspace_id: str, org: OrganizationOut = Depends(get_current_org)):
+async def get_files(workspace_id: str, org: OrganizationOut = Depends(get_current_org), db=Depends(get_db)):
     _require_org_workspace(org, workspace_id)
+    # Apps from before files were stored in the database are saved on first open.
+    await ai_ide_service.ensure_stored(db, workspace_id)
+    # Opening an app built with an older kit picks up the kit's fixes.
+    ai_ide_service.upgrade_kit(workspace_id)
     return ai_ide_service.get_workspace_files(workspace_id)
 
 
@@ -188,6 +230,7 @@ async def ai_ide_git_commit_and_push(
             workspace_id=payload.workspace_id,
             message=payload.message,
             branch=payload.branch,
+            github_token=payload.github_token,
         )
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
@@ -209,22 +252,81 @@ async def ai_ide_deploy(payload: DeployWorkspaceRequest, org: OrganizationOut = 
         repo_url=repo_url,
         commit_sha=None,
         target=payload.target,
+        # Known from repository creation, so a private repo needs no second GitHub lookup.
+        repo_id=meta.get("repo_id"),
+    )
+
+
+@router.get("/workspace/{workspace_id}/repo", dependencies=[Depends(_attach_workspace)])
+async def get_workspace_repo(workspace_id: str, org: OrganizationOut = Depends(get_current_org)):
+    """The GitHub repository this workspace pushes to, if any (never the token)."""
+    _require_org_workspace(org, workspace_id)
+    meta = ai_ide_service.get_workspace_meta(workspace_id)
+    return {
+        "repo_url": meta.get("repo_url"),
+        "html_url": meta.get("repo_html_url"),
+        "repo_name": meta.get("repo_name"),
+        "branch": meta.get("default_branch") or "main",
+        "can_push": bool(meta.get("github_token")),
+    }
+
+
+_ZIP_SKIP_FILES = {"_meta.json"}
+_ZIP_SKIP_DIRS = {".git", "node_modules", "dist"}
+
+
+def _app_slug(files: dict[str, str]) -> str:
+    """Slug of package.json's name, or 'chakram-app' when there is none."""
+    try:
+        name = json.loads(files.get("package.json", "")).get("name")
+    except (ValueError, AttributeError):
+        name = None
+    if isinstance(name, str):
+        slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+        if slug:
+            return slug
+    return "chakram-app"
+
+
+def _build_workspace_zip(files: dict[str, str]) -> tuple[str, bytes]:
+    slug = _app_slug(files)
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for rel, content in files.items():
+            rel = rel.replace("\\", "/").lstrip("/")
+            parts = rel.split("/")
+            if not rel or rel in _ZIP_SKIP_FILES or ".." in parts or _ZIP_SKIP_DIRS.intersection(parts):
+                continue
+            zf.writestr(f"{slug}/{rel}", content)
+        for mark_id in marks_service.used_marks(files):
+            data = marks_service.mark_bytes(mark_id)
+            if data is not None:
+                zf.writestr(f"{slug}/public/marks/{mark_id}.png", data)
+        if not any(k.lower() == "readme.md" for k in files):
+            zf.writestr(
+                f"{slug}/README.md",
+                f"# {slug}\n"
+                "Install dependencies: npm install\n"
+                "Start the dev server: npm run dev\n"
+                "Build for production: npm run build\n",
+            )
+    return slug, buf.getvalue()
+
+
+@router.get("/workspace/{workspace_id}/download", dependencies=[Depends(_attach_workspace)])
+async def download_workspace(workspace_id: str, org: OrganizationOut = Depends(get_current_org)):
+    """The workspace's generated project as a zip, under a folder named after the app."""
+    _require_org_workspace(org, workspace_id)
+    files = ai_ide_service.get_workspace_files(workspace_id)
+    slug, data = await asyncio.to_thread(_build_workspace_zip, files)
+    return Response(
+        content=data,
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{slug}.zip"'},
     )
 
 
 # ── WebSocket ─────────────────────────────────────────────────────────────────
-
-def _route_module(path: str) -> str:
-    """'src/pages/Home.tsx' and './pages/Home' both become 'pages/Home'."""
-    module = path.replace("\\", "/").strip()
-    for prefix in ("./", "src/"):
-        if module.startswith(prefix):
-            module = module[len(prefix):]
-    for suffix in (".tsx", ".ts", ".jsx", ".js"):
-        if module.endswith(suffix):
-            module = module[: -len(suffix)]
-    return module
-
 
 def _ws_session_payload(ws: WebSocket) -> dict | None:
     """Read and verify the session cookie. Does not touch the socket state."""
@@ -262,11 +364,15 @@ def _ws_origin_allowed(ws: WebSocket) -> bool:
 async def generate(ws: WebSocket, workspace_id: str):
     """
     Protocol:
-      client → server : plain text idea  (first message)
+      client → server : first message is either
+                        - the plain text idea: starts a generation run, or
+                        - {"attach": true}: re-attaches to the workspace's run
       server → client : typed JSON events (see WSEvent schema below)
 
     Events:
       {"type": "STATUS",         "message": str}
+      {"type": "PLAN",           "app_name": str, "description": str,
+                                  "files": [str], "routes": [{"path", "component", "importPath"}]}
       {"type": "FILE_CREATE",    "path": str}
       {"type": "STREAM_TOKEN",   "path": str, "token": str}
       {"type": "FILE_DONE",      "path": str}
@@ -274,10 +380,17 @@ async def generate(ws: WebSocket, workspace_id: str):
       {"type": "FILE_UPDATE",    "path": str, "content": str}
       {"type": "GENERATION_DONE", "files_total": int, "files_generated": int,
                                   "files_failed": int, "failed_files": [{"path", "message"}]}
+      {"type": "NO_RUN"}         (attach only: there is nothing to attach to)
       {"type": "ERROR",          "message": str}
 
     FILE_ERROR means that file was not generated and nothing was written for
     it; generation continues with the next file. ERROR ends the generation.
+
+    The run itself is a server-side task (ai_ide_generation): closing this
+    socket does not stop it, and a client that attaches later first receives
+    the plan, the files written so far and the file streaming now. PLAN lists
+    every file that will be written, so the client can show them as pending.
+    App.tsx is re-wired (FILE_UPDATE) each time a routed page finishes.
     """
     # Accept first (ASGI-safe), then enforce session via cookie.
     await ws.accept()
@@ -293,9 +406,11 @@ async def generate(ws: WebSocket, workspace_id: str):
         return
 
     # Same per-org context get_current_org sets for HTTP requests, so the org's
-    # own model/key is used and usage is attributed to it.
+    # own model/key is used and usage is attributed to it. The run task inherits it.
     org_token = None
     conn_token = None
+    queue = None
+    run = None
     try:
         db = get_db()
         org = await organization_service.get_by_id(db, org_id)
@@ -321,102 +436,36 @@ async def generate(ws: WebSocket, workspace_id: str):
             await ws.close(code=4004)
             return
 
-        # Step 1: receive idea
-        idea = await ws.receive_text()
-        if not idea.strip():
-            await ws.send_json({"type": "ERROR", "message": "Empty idea"})
-            return
-
-        # Step 2: plan
-        await ws.send_json({"type": "STATUS", "message": "Planning your app…"})
+        first = await ws.receive_text()
+        attach_request = False
         try:
-            plan = await asyncio.wait_for(plan_files(idea), timeout=90.0)
-        except asyncio.TimeoutError:
-            await ws.send_json({"type": "ERROR", "message": "Planner timed out after 90s. Try a shorter idea."})
-            return
-        except Exception as exc:
-            await ws.send_json({"type": "ERROR", "message": f"Planner error: {exc}"})
-            return
+            parsed = json.loads(first)
+            attach_request = isinstance(parsed, dict) and bool(parsed.get("attach"))
+        except ValueError:
+            parsed = None
 
-        files_list = plan.get("files", [])
-        routes_list = plan.get("routes", [])
+        run = ai_ide_generation.get(workspace_id)
+        if attach_request:
+            if run is None:
+                await ws.send_json({"type": "NO_RUN"})
+                return
+        else:
+            idea = first.strip()
+            if not idea:
+                await ws.send_json({"type": "ERROR", "message": "Empty idea"})
+                return
+            if run is not None and not run.finished:
+                # A reload while the app was being built: follow the run already going.
+                await ws.send_json({"type": "STATUS", "message": "Reconnected to the generation already running"})
+            else:
+                run = ai_ide_generation.start(workspace_id, org_id, idea)
 
-        if not files_list:
-            await ws.send_json({"type": "ERROR", "message": "Planner returned no files"})
-            return
-
-        await ws.send_json({
-            "type": "STATUS",
-            "message": f"Plan ready generating {len(files_list)} file(s)…",
-        })
-
-        # Step 3: generate each file with streaming
-        failed_files: list[dict] = []
-        for file_spec in files_list:
-            path = file_spec.get("path", "src/pages/Page.tsx")
-
-            await ws.send_json({"type": "FILE_CREATE", "path": path})
-
-            async def _collect_file() -> str:
-                parts: list[str] = []
-                async for token in stream_file(file_spec, org_id=org_id):
-                    parts.append(token)
-                    await ws.send_json({"type": "STREAM_TOKEN", "path": path, "token": token})
-                return "".join(parts)
-
-            error: str | None = None
-            content = ""
-            try:
-                content = await asyncio.wait_for(_collect_file(), timeout=90.0)
-            except asyncio.TimeoutError:
-                error = "Generation timed out after 90s"
-            except WebSocketDisconnect:
-                raise
-            except Exception as exc:
-                error = f"Generation failed: {exc}"
-            if error is None and not content.strip():
-                error = "The model returned no content"
-
-            if error is not None:
-                # Nothing is written for a failed file: no placeholder is saved as generated code.
-                failed_files.append({"path": path, "message": error})
-                await ws.send_json({"type": "FILE_ERROR", "path": path, "message": error})
-                await ws.send_json({"type": "STATUS", "message": f"Failed to generate {path}: {error}"})
-                continue
-
-            ai_ide_service.save_file(workspace_id, path, content)
-            await ws.send_json({"type": "FILE_DONE", "path": path})
-
-        # Step 4: inject routes into App.tsx, leaving out routes to files that were not generated
-        failed_modules = {_route_module(f["path"]) for f in failed_files}
-        routes_list = [
-            r for r in routes_list
-            if isinstance(r, dict) and _route_module(str(r.get("importPath", ""))) not in failed_modules
-        ]
-        if routes_list:
-            try:
-                app_tsx = ai_ide_service.read_file(workspace_id, "src/App.tsx")
-                updated_app = inject_routes(app_tsx, routes_list)
-                ai_ide_service.save_file(workspace_id, "src/App.tsx", updated_app)
-                await ws.send_json({
-                    "type": "FILE_UPDATE",
-                    "path": "src/App.tsx",
-                    "content": updated_app,
-                })
-            except Exception as exc:
-                # Non-fatal: generation still completed, just routes not injected
-                await ws.send_json({
-                    "type": "STATUS",
-                    "message": f"Warning: route injection failed {exc}",
-                })
-
-        await ws.send_json({
-            "type": "GENERATION_DONE",
-            "files_total": len(files_list),
-            "files_generated": len(files_list) - len(failed_files),
-            "files_failed": len(failed_files),
-            "failed_files": failed_files,
-        })
+        queue = run.subscribe()
+        while True:
+            event = await queue.get()
+            await ws.send_json(event)
+            if event.get("type") in ("GENERATION_DONE", "ERROR"):
+                break
 
     except WebSocketDisconnect:
         pass
@@ -426,6 +475,8 @@ async def generate(ws: WebSocket, workspace_id: str):
         except Exception:
             pass
     finally:
+        if run is not None and queue is not None:
+            run.unsubscribe(queue)
         if conn_token is not None:
             connectors.reset_current_org_connectors(conn_token)
         if org_token is not None:

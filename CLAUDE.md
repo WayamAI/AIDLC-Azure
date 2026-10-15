@@ -66,8 +66,8 @@ AIDLC-main/
 `/ci-intelligence`, `/defect-prediction`, `/generated-tests`, `/incidents`,
 `/monitoring`, `/release-gate`, `/requirements-intelligence`,
 `/sprint-intelligence`, `/workspace`, `/pipeline`, `/deployments`,
-`/code-impact`, `/doc-tests`, `/prd`, `/profile`, `/cost-tracker` (AI Usage), `/ai-ide`
-(AI App Builder), `/repo-baseline`, `/root-cause`, `/test-selection`, `/self-healing`,
+`/code-impact`, `/doc-tests`, `/prd`, `/profile`, `/cost-tracker` (Usage & Cost), `/ai-ide`
+(App Studio), `/repo-baseline`, `/root-cause`, `/test-selection`, `/self-healing`,
 `/settings/connectors`, `/login`.
 
 Guided 4-step core workflow (sidebar "Beta / In Progress" group):
@@ -134,6 +134,43 @@ PID only. Do not touch Docker containers other than `aidlc-mongo`.
   raise an error rather than substituting generated placeholder content when the LLM
   or an integration fails.
 
+## AI App Builder (`/ai-ide`)
+
+- A build is a server-side run (`backend/app/services/ai_ide_generation.py`): the
+  WebSocket only streams it. A reload or dropped socket does not stop the run; the
+  page re-attaches with `{"attach": true}` and gets a snapshot (plan, files so far,
+  the file streaming now) before live events. Runs live in the process (one instance).
+- The run announces a `PLAN` first, strips stray markdown fences before saving, and
+  re-wires `src/App.tsx` routes each time a page finishes, so the preview shows pages
+  as they land. Failed files get `FILE_ERROR` and nothing is written for them.
+- The Live preview (`frontend/src/components/ai-ide/preview-runtime.js`, inlined by
+  `AiIdePreview.tsx`) compiles the workspace in a sandboxed iframe (no
+  `allow-same-origin`): Sucrase + es-module-lexer from esm.sh, packages pinned to the
+  versions in `template_service.TEMPLATE_DEPENDENCIES`, one React instance via
+  `?deps=`. `react-router-dom` is shimmed so Browser/HashRouter become a MemoryRouter
+  (a sandboxed document cannot change its own URL). Planned-but-unwritten files are
+  stood in for with placeholders. It needs the browser to reach esm.sh and
+  cdn.tailwindcss.com.
+- Pushing to GitHub and deploying to Vercel is explicit (Push & Deploy on the
+  Deployed view); nothing is pushed automatically.
+- Generated apps ship the **Chronos kit** (`backend/app/templates/chronos_kit/`, ported from
+  the Chronos project): AppShell, PageHeader, Panel, KpiTile, DataTable, Chart, Mark… Pages
+  compose it instead of hand-writing UI, so the model writes far less code. `KIT_API.md` is
+  the reference fed to the model. Bump `src/chronos/VERSION` on any kit change: opening an
+  app with an older kit replaces its `src/chronos/*` (`kit.outdated_kit_files`).
+- **3D icon library**: `frontend/public/marks/*.png` (≈920, built by
+  `backend/scripts/build_icon_library.py` from the Wayam icon library, Manthan, Setu,
+  WayamEye and Chronos) described by `backend/app/templates/marks_manifest.json`. Prompts get
+  only the icons relevant to the app/page (`marks_service.relevant_marks`). Used icons are
+  copied into an app on download and push.
+- **Storage**: every App Builder file is mirrored to MongoDB (`ai_ide_files`, one doc per
+  file) and restored from there when the disk copy is gone (Azure container restarts).
+  `ai_ide_workspaces` holds name/idea/status for the "Your apps" list.
+- **Design tab**: visual edit (click-to-select, text/class/icon edits written back to source
+  via `source-edit.ts`; kit-internal clicks map to the page that used the component; undo/redo)
+  and the theme editor (`theme-engine.ts`: brand, surfaces, mode, status/chart colours →
+  `src/design.css` overriding the kit's CSS variables, plus fonts/radius in `design.json`).
+
 ## UI conventions
 
 The UI follows the Chronos design system (grey page, white containers, 1px muted
@@ -192,7 +229,7 @@ palette colours or gradients. Light is the default theme; dark is a toggle.
 ## Checks
 
 ```bash
-cd backend && .venv/Scripts/python.exe -m pytest -q          # 226 tests
+cd backend && .venv/Scripts/python.exe -m pytest -q          # ~580 tests
 cd frontend && npx tsc --noEmit -p tsconfig.app.json && npm run test && npm run build
 ```
 

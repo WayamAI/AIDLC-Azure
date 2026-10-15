@@ -583,7 +583,7 @@ export default function Incidents() {
         <Panel>
           <div className="py-8 text-center">
             <p className="text-sm text-ink-tertiary">
-              No incidents yet. Create one here, or from an anomaly on the Anomaly Sandbox page.
+              No incidents yet. Create one here, or from an anomaly on the Metric Anomalies page.
             </p>
             <Button size="sm" className="mt-4 gap-2" onClick={() => setShowNewModal(true)}>
               <Plus className="h-4 w-4" />

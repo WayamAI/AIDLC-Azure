@@ -10,7 +10,8 @@ import React, {
 
 export type GenerationStatus = "idle" | "creating" | "planning" | "generating" | "done" | "error";
 
-export type FileStatus = "M" | "U" | "A" | null;
+/** M modified, U updated by a run, A added, P planned (announced by the run, not written yet). */
+export type FileStatus = "M" | "U" | "A" | "P" | null;
 
 export interface AiIdeState {
   workspaceId: string | null;
@@ -25,6 +26,14 @@ export interface AiIdeState {
   generationLog: string[];
   /** Files the last generation run could not produce, with the server's reason. */
   failedFiles: FailedFile[];
+  /** Every file the current run announced it will write, in generation order. */
+  plannedFiles: string[];
+  /** The file whose content is streaming in right now. */
+  streamingFile: string | null;
+  /** Files the current run has finished writing. */
+  generatedFiles: string[];
+  /** The app's name and summary from the plan. */
+  plan: { appName: string; description: string } | null;
 }
 
 export interface FailedFile {
@@ -40,11 +49,16 @@ type Action =
   | { type: "ADD_FAILED_FILE"; file: FailedFile }
   /** The server's final, authoritative list from GENERATION_DONE. */
   | { type: "SET_FAILED_FILES"; files: FailedFile[] }
+  /** The run's plan: paths it will write, shown as pending until they land. */
+  | { type: "SET_PLAN"; files: string[]; appName?: string; description?: string }
+  /** The server wrote the streamed file. */
+  | { type: "FILE_STREAM_DONE"; path: string }
   | { type: "ADD_FILE"; path: string; content?: string; markAs?: FileStatus; makeActive?: boolean }
   | { type: "ADD_DIR"; path: string }
   | { type: "APPEND_TOKEN"; path: string; token: string }
   | { type: "START_FILE_STREAM"; path: string }
-  | { type: "UPDATE_FILE"; path: string; content: string }
+  /** `origin: "server"` is the run rewriting a file (App.tsx routes, cleaned output): marked U, not M. */
+  | { type: "UPDATE_FILE"; path: string; content: string; origin?: "editor" | "server" }
   | { type: "DELETE_PATH"; path: string }
   | { type: "RENAME_PATH"; fromPath: string; toPath: string }
   | { type: "MOVE_PATH"; fromPath: string; toPath: string }
@@ -120,13 +134,50 @@ function reducer(state: AiIdeState, action: Action): AiIdeState {
         };
       }
 
-    case "SET_STATUS":
+    case "SET_STATUS": {
+      const newRun = action.status === "creating" || action.status === "planning";
       return {
         ...state,
         status: action.status,
         statusMessage: action.message ?? state.statusMessage,
-        // A new run starts with a clean failure list.
-        failedFiles: action.status === "creating" || action.status === "planning" ? [] : state.failedFiles,
+        // A new run starts with a clean failure list and no plan.
+        failedFiles: newRun ? [] : state.failedFiles,
+        plannedFiles: newRun ? [] : state.plannedFiles,
+        generatedFiles: newRun ? [] : state.generatedFiles,
+        streamingFile: newRun || action.status === "done" || action.status === "error" ? null : state.streamingFile,
+        plan: newRun ? null : state.plan,
+      };
+    }
+
+    case "SET_PLAN": {
+      // Planned files that do not exist yet appear in the tree as pending, with no content.
+      const newPaths = action.files.filter((p) => !state.filePaths.includes(p));
+      const nextFiles = { ...state.files };
+      const nextStatuses = { ...state.fileStatuses };
+      newPaths.forEach((p) => {
+        nextFiles[p] = "";
+        nextStatuses[p] = "P";
+      });
+      const nextFilePaths = sortedUnique([...state.filePaths, ...newPaths]);
+      return {
+        ...state,
+        files: nextFiles,
+        fileStatuses: nextStatuses,
+        filePaths: nextFilePaths,
+        dirPaths: deriveDirs(nextFilePaths),
+        plannedFiles: action.files,
+        generatedFiles: [],
+        plan: { appName: action.appName ?? "", description: action.description ?? "" },
+      };
+    }
+
+    case "FILE_STREAM_DONE":
+      return {
+        ...state,
+        streamingFile: state.streamingFile === action.path ? null : state.streamingFile,
+        generatedFiles: state.generatedFiles.includes(action.path)
+          ? state.generatedFiles
+          : [...state.generatedFiles, action.path],
       };
 
     case "ADD_LOG":
@@ -179,7 +230,10 @@ function reducer(state: AiIdeState, action: Action): AiIdeState {
 
     case "START_FILE_STREAM":
       {
-        const isExisting = state.filePaths.includes(action.path);
+        // A planned file is being written for the first time; anything else that
+        // already had content is being regenerated.
+        const isExisting =
+          state.filePaths.includes(action.path) && state.fileStatuses[action.path] !== "P";
       return {
         ...state,
         files: { ...state.files, [action.path]: "" },
@@ -188,6 +242,7 @@ function reducer(state: AiIdeState, action: Action): AiIdeState {
           : sortedUnique([...state.filePaths, action.path]),
         dirPaths: sortedUnique([...state.dirPaths, ...parentDirsOf(action.path)]),
         fileStatuses: { ...state.fileStatuses, [action.path]: isExisting ? "U" : "A" },
+        streamingFile: action.path,
         activeFile: action.path,
         openTabs: sortedUnique([...state.openTabs, action.path]),
       };
@@ -210,21 +265,23 @@ function reducer(state: AiIdeState, action: Action): AiIdeState {
       };
       }
 
-    case "UPDATE_FILE":
-      // Manual update means modified
+    case "UPDATE_FILE": {
+      const previous = state.fileStatuses[action.path];
+      const next: FileStatus =
+        previous === "A" || previous === "P"
+          ? "A"
+          : previous === "U" || action.origin === "server"
+            ? "U"
+            : "M";
       return {
         ...state,
         files: { ...state.files, [action.path]: action.content },
-        fileStatuses: { 
-          ...state.fileStatuses, 
-          [action.path]:
-            state.fileStatuses[action.path] === "U"
-              ? "U"
-              : state.fileStatuses[action.path] === "A"
-                ? "A"
-                : "M"
-        },
+        filePaths: state.filePaths.includes(action.path)
+          ? state.filePaths
+          : sortedUnique([...state.filePaths, action.path]),
+        fileStatuses: { ...state.fileStatuses, [action.path]: next },
       };
+    }
 
     case "DELETE_PATH":
       {
@@ -257,6 +314,8 @@ function reducer(state: AiIdeState, action: Action): AiIdeState {
           fileStatuses: nextFileStatuses,
           openTabs: nextOpenTabs,
           activeFile: nextActiveFile,
+          streamingFile: state.streamingFile && shouldDelete(state.streamingFile) ? null : state.streamingFile,
+          generatedFiles: state.generatedFiles.filter((p) => !shouldDelete(p)),
         };
       }
 
@@ -356,6 +415,10 @@ const initialState: AiIdeState = {
   statusMessage: "",
   generationLog: [],
   failedFiles: [],
+  plannedFiles: [],
+  streamingFile: null,
+  generatedFiles: [],
+  plan: null,
 };
 
 interface AiIdeContextValue {
@@ -395,6 +458,19 @@ export function AiIdeProvider({ children }: { children: ReactNode }) {
       {children}
     </AiIdeContext.Provider>
   );
+}
+
+/** Planned files the run has not written yet, plus the one streaming now: the preview stands in for these. */
+export function pendingPreviewFiles(state: AiIdeState): string[] {
+  const pending = new Set<string>();
+  state.plannedFiles.forEach((p) => {
+    if (!state.generatedFiles.includes(p) && !state.failedFiles.some((f) => f.path === p)) pending.add(p);
+  });
+  if (state.streamingFile) pending.add(state.streamingFile);
+  Object.entries(state.fileStatuses).forEach(([p, s]) => {
+    if (s === "P") pending.add(p);
+  });
+  return [...pending].sort();
 }
 
 export function useAiIde() {

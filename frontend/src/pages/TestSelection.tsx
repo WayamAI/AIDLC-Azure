@@ -137,7 +137,7 @@ export default function TestSelection() {
             {baseline.status === "missing" && (
               <p className="text-destructive">
                 No test baseline exists for this repository yet. Scan it on the{" "}
-                <Link to="/repo-baseline" className="underline underline-offset-2">Repo Test Baseline</Link> page, then analyse again.
+                <Link to="/repo-baseline" className="underline underline-offset-2">Test Baseline</Link> page, then analyse again.
               </p>
             )}
             {baseline.status === "error" && (
@@ -198,7 +198,7 @@ export default function TestSelection() {
             {executeMutation.isSuccess && (
               <p className="border-b border-border/60 px-4 py-2.5 text-xs text-ink-secondary">
                 Execution started ({executeMutation.data.test_count} tests, run{" "}
-                <span className="font-mono">{executeMutation.data.run_id.slice(0, 8)}</span>). Check Live Test Runner for progress.
+                <span className="font-mono">{executeMutation.data.run_id.slice(0, 8)}</span>). Check Live Test Run for progress.
               </p>
             )}
             {executeMutation.isError && (

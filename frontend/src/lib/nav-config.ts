@@ -68,11 +68,11 @@ export const platformSections: NavSection[] = [
     label: "Build & Code",
     icon: Layers,
     items: [
-      { title: "AI App Builder", url: "/ai-ide", icon: Sparkles, hint: "Generate React apps from prompts" },
-      { title: "AI Workspace", url: "/workspace", icon: FolderCode, hint: "Editor + Copilot + Git" },
-      { title: "Code Reviewer", url: "/code-review", icon: GitCompare, hint: "AI inline PR review" },
-      { title: "Code Impact", url: "/code-impact", icon: Network, hint: "Dependency graph + tests" },
-      { title: "PRD Generator", url: "/prd", icon: FileText, hint: "AI requirements doc" },
+      { title: "App Studio", url: "/ai-ide", icon: Sparkles, hint: "Build an app from a description" },
+      { title: "Code Workspace", url: "/workspace", icon: FolderCode, hint: "Editor, Git and assistant" },
+      { title: "Code Review", url: "/code-review", icon: GitCompare, hint: "Inline pull request review" },
+      { title: "Code Impact", url: "/code-impact", icon: Network, hint: "Dependency graph and affected tests" },
+      { title: "Product Specs", url: "/prd", icon: FileText, hint: "Write a product requirements document" },
     ],
   },
   {
@@ -82,18 +82,18 @@ export const platformSections: NavSection[] = [
     items: [
       { title: "Requirements", url: "/requirements", icon: ClipboardCheck, hint: "Capture and analyze requirements" },
       {
-        title: "Requirements Intelligence",
+        title: "Requirement Insights",
         url: "/requirements-intelligence",
         icon: LineChart,
         hint: "Story quality and coverage insights",
       },
       {
-        title: "Sprint Intelligence",
+        title: "Sprint Health",
         url: "/sprint-intelligence",
         icon: CalendarCheck,
         hint: "Sprint risk and delivery signals",
       },
-      { title: "Synthetic Data", url: "/synthetic-data", icon: Database, hint: "Generate test datasets" },
+      { title: "Test Data", url: "/synthetic-data", icon: Database, hint: "Generate test datasets" },
     ],
   },
   {
@@ -101,11 +101,11 @@ export const platformSections: NavSection[] = [
     label: "Testing & Quality",
     icon: FlaskConical,
     items: [
-      { title: "Repo Test Baseline", url: "/repo-baseline", icon: ScanSearch, hint: "Playwright test scan" },
-      { title: "Doc-Driven Tests", url: "/doc-tests", icon: FileSearch, hint: "Docs → test scenarios" },
+      { title: "Test Baseline", url: "/repo-baseline", icon: ScanSearch, hint: "Playwright test scan" },
+      { title: "Tests from Docs", url: "/doc-tests", icon: FileSearch, hint: "Docs → test scenarios" },
       { title: "Test Suite", url: "/generated-tests", icon: TestTube, hint: "Generated and managed test cases" },
       { title: "Test Execution", url: "/test-execution", icon: TestTubes, hint: "Run test cases in a real browser" },
-      { title: "Live Test Runner", url: "/live-testing", icon: AppWindow, hint: "AI browser execution" },
+      { title: "Live Test Run", url: "/live-testing", icon: AppWindow, hint: "Watch a test run in a real browser" },
       { title: "Risk Ranking", url: "/prioritization", icon: ArrowUpDown, hint: "Ranked by failure history and severity" },
       { title: "Change Hotspots", url: "/defect-prediction", icon: Bug, hint: "Files ranked by churn and bug fixes" },
       { title: "Root Cause Analysis", url: "/root-cause", icon: BrainCircuit, hint: "Failure diagnosis" },
@@ -116,7 +116,7 @@ export const platformSections: NavSection[] = [
         hint: "Change-based test selection",
       },
       {
-        title: "Self-Healing Tests",
+        title: "Test Repair",
         url: "/self-healing",
         icon: Wrench,
         hint: "Live selector repair with approval",
@@ -130,8 +130,8 @@ export const platformSections: NavSection[] = [
     items: [
       { title: "Deployments", url: "/deployments", icon: Rocket, hint: "Vercel deploy tracking" },
       { title: "Release Gate", url: "/release-gate", icon: ShieldCheck, hint: "Go / no-go decision" },
-      { title: "CI Intelligence", url: "/ci-intelligence", icon: Server, hint: "Workflow run health" },
-      { title: "Anomaly Sandbox", url: "/monitoring", icon: Activity, hint: "Analyse a demo or pasted series" },
+      { title: "CI Health", url: "/ci-intelligence", icon: Server, hint: "Workflow run health" },
+      { title: "Metric Anomalies", url: "/monitoring", icon: Activity, hint: "Analyse a demo or pasted series" },
       { title: "Incidents", url: "/incidents", icon: TriangleAlert, hint: "Incident response and postmortems" },
       { title: "Connectors", url: "/settings/connectors", icon: Settings, hint: "GitHub, Vercel, Ollama, Jira keys" },
     ],
@@ -160,7 +160,7 @@ export function findNavItemForPath(pathname: string): NavItem | null {
 const extraPageMeta: Record<string, { title: string; section: string }> = {
   "/profile": { title: "Profile", section: "Account" },
   "/settings/connectors": { title: "Connectors", section: "Settings" },
-  "/cost-tracker": { title: "AI Usage", section: "Admin" },
+  "/cost-tracker": { title: "Usage & Cost", section: "Admin" },
 };
 
 export function getBreadcrumbForPath(pathname: string): { section: string; page: string } {

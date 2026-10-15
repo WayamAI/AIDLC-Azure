@@ -1,4 +1,6 @@
 """Commit routes impact tree for root-to-leaf dependency view."""
+import asyncio
+
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.auth.dependencies import get_current_org
@@ -20,7 +22,8 @@ async def get_commit_impact_tree(
     and children follow import/dependency direction.
     """
     try:
-        return impact_service.build_workspace_commit_impact_tree(
+        return await asyncio.to_thread(
+            impact_service.build_workspace_commit_impact_tree,
             workspace_id=workspace_id,
             max_depth=max_depth,
             org_id=org.id,

@@ -236,7 +236,7 @@ export default function CIIntelligence() {
   return (
     <PageShell>
       <PageHeader
-        title="CI Intelligence"
+        title="CI Health"
         description="Outcomes of the most recent GitHub Actions workflow runs for a repository, with an on-demand explanation for failed runs."
       />
 

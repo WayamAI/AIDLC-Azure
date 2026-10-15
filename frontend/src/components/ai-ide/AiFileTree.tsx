@@ -35,7 +35,7 @@ function buildTree(paths: string[], explicitDirs: string[]): TreeNode {
     for (let i = 0; i < parts.length; i++) {
       const part = parts[i];
       if (!part) continue;
-      
+
       const isLast = i === parts.length - 1;
       const nodeKind = isLast ? kind : "dir";
       const nodePath = parts.slice(0, i + 1).join("/");
@@ -91,7 +91,7 @@ export function AiFileTree() {
   const { filePaths, dirPaths, activeFile, files, status, fileStatuses, workspaceId } = state;
 
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set(["src", "src/components", "src/pages"]));
-  
+
   const [creating, setCreating] = useState<{ kind: "file" | "dir"; parentPath: string } | null>(null);
   const [createName, setCreateName] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -107,6 +107,7 @@ export function AiFileTree() {
     M: "text-warning",
     U: "text-info",
     A: "text-positive",
+    P: "text-ink-quaternary",
   };
 
   useEffect(() => {
@@ -142,7 +143,7 @@ export function AiFileTree() {
     if (!creating || !createName.trim()) return;
     const parentPath = creating.parentPath ? `${creating.parentPath}/` : "";
     const fullPath = `${parentPath}${createName.trim()}`;
-    
+
     if (creating.kind === "file") {
       let generatedContent: string | undefined;
       if (workspaceId) {
@@ -168,7 +169,7 @@ export function AiFileTree() {
       setExpandedDirs((prev) => new Set([...prev, fullPath, creating.parentPath]));
       dispatch({ type: "ADD_LOG", message: `Created folder ${fullPath}` });
     }
-    
+
     setCreating(null);
     setCreateName("");
   };
@@ -278,13 +279,13 @@ export function AiFileTree() {
 
   const renderTree = (node: TreeNode, depth: number = 0) => {
     const childrenNodes = sortNodes(Object.values(node.children));
-    
+
     return (
       <div key={node.path || "root"} className="w-full">
         {node.path !== "" && node.kind === "dir" && (
           <ContextMenu>
             <ContextMenuTrigger asChild>
-              <div 
+              <div
                 className="flex items-center gap-1.5 w-full px-1 py-0.5 rounded text-xs transition-colors text-left hover:bg-raised text-ink-secondary hover:text-ink cursor-pointer group"
                 style={{ paddingLeft: `${depth * 12 + 6}px` }}
                 onClick={() => toggleDir(node.path)}
@@ -301,7 +302,7 @@ export function AiFileTree() {
                 )}
                 <span className="truncate flex-1 min-w-0">{node.name}</span>
                 <div className="opacity-0 group-hover:opacity-100 flex items-center pr-1 transition-opacity">
-                  <button 
+                  <button
                     onClick={(e) => {
                       e.stopPropagation();
                       createAtPath(node.path, "file");
@@ -310,7 +311,7 @@ export function AiFileTree() {
                   >
                     <FilePlus className="h-3.5 w-3.5" />
                   </button>
-                  <button 
+                  <button
                     onClick={(e) => {
                       e.stopPropagation();
                       createAtPath(node.path, "dir");
@@ -338,7 +339,7 @@ export function AiFileTree() {
             </ContextMenuContent>
           </ContextMenu>
         )}
-        
+
         {node.path !== "" && node.kind === "file" && (
           <ContextMenu>
             <ContextMenuTrigger asChild>
@@ -378,11 +379,11 @@ export function AiFileTree() {
         {(node.path === "" || expandedDirs.has(node.path)) && (
           <div className="w-full relative">
             {childrenNodes.map(child => renderTree(child, depth + (node.path === "" ? 0 : 1)))}
-            
+
             {/* Inline creation input */}
             {creating?.parentPath === node.path && (
-               <div 
-                 className="flex items-center gap-1.5 py-0.5 pr-2 w-full" 
+               <div
+                 className="flex items-center gap-1.5 py-0.5 pr-2 w-full"
                  style={{ paddingLeft: `${(depth + (node.path === "" ? 0 : 1)) * 12 + 6}px` }}
                >
                  {creating.kind === "file" ? (
@@ -390,7 +391,7 @@ export function AiFileTree() {
                  ) : (
                    <FolderIcon size={14} />
                  )}
-                 <input 
+                 <input
                    autoFocus
                    value={createName}
                    onChange={e => setCreateName(e.target.value)}

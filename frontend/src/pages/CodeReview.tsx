@@ -497,7 +497,7 @@ export default function CodeReview() {
   return (
     <PageShell>
       <PageHeader
-        title="Code Reviewer"
+        title="Code Review"
         description="Loads the open pull requests of a GitHub repository and asks the model to review a PR's diff. Coverage shows how many of the PR's files were actually read."
       />
 

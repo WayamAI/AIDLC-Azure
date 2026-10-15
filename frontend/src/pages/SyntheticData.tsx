@@ -117,7 +117,7 @@ const SyntheticData = () => {
   return (
     <PageShell>
       <PageHeader
-        title="Synthetic Data"
+        title="Test Data"
         description="Generates a field schema and sample rows for a requirement using the configured model. The rows are invented test data, not records from any system."
       />
 

@@ -526,8 +526,8 @@ export default function DocTests() {
     <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-stroke-muted bg-container">
       <div className="px-4 pt-4">
         <PageHeader
-          title="Doc-Driven Tests"
-          description="Upload a spec or requirements document, review the test scenarios extracted from it, then generate Playwright test cases in the Live Test Runner format."
+          title="Tests from Docs"
+          description="Upload a spec or requirements document, review the test scenarios extracted from it, then generate Playwright test cases in the Live Test Run format."
           className="border-b-0 pb-3"
         />
       </div>
@@ -599,7 +599,7 @@ export default function DocTests() {
                 title={canRunLive ? undefined : "Enter the URL of the running app the tests should run against"}
               >
                 <Play className="h-4 w-4" />
-                Run in Live Test Runner
+                Run in Live Test Run
               </Button>
             </>
           )}

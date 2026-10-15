@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
+import axios from "axios";
 import { toast } from "sonner";
 import {
   Github,
@@ -508,11 +509,21 @@ function ScanProgressView({
           if (timerRef.current) clearInterval(timerRef.current);
           if (st.status === "done") onDone(repoId, sessionId);
         }
-      } catch {
+      } catch (err) {
+        // A 404 means the server no longer knows this scan session (usually a restart): stop polling.
+        if (axios.isAxiosError(err) && err.response?.status === 404) {
+          if (timerRef.current) clearInterval(timerRef.current);
+          setError("The scan session expired (the server may have restarted). Start a new scan.");
+          return;
+        }
         // One failed poll is a network hiccup; say so once it keeps failing.
         failures += 1;
         if (failures >= 4) {
-          setError("Cannot reach the server to read the scan status. Still retrying; the scan itself may be running.");
+          setError(
+            axios.isAxiosError(err) && !err.response
+              ? "Cannot reach the server to read the scan status. Still retrying; the scan itself may be running."
+              : "Could not read the scan status. Still retrying; the scan itself may be running."
+          );
         }
       }
     }, 3000);
@@ -729,7 +740,7 @@ export default function RepoBaseline() {
     return (
       <PageShell>
         <PageHeader
-          title="Repo Test Baseline"
+          title="Test Baseline"
           description="The repository is being analysed. Tests appear here when the scan finishes."
         />
         <ScanProgressView
@@ -749,7 +760,7 @@ export default function RepoBaseline() {
     return (
       <PageShell>
           <PageHeader
-            title="Repo Test Baseline"
+            title="Test Baseline"
             description={`${repoData.github_url.replace("https://github.com/", "")} · ${repoData.total_tests} tests`}
             actions={
               <>
@@ -966,7 +977,7 @@ export default function RepoBaseline() {
   return (
     <PageShell size="lg">
       <PageHeader
-        title="Repo Test Baseline"
+        title="Test Baseline"
         description="Submit a GitHub repository URL. The codebase is analysed and categorised Playwright tests are generated from it. Submitting the same repository again detects what changed and appends only the new tests."
       />
       <div className="space-y-4">

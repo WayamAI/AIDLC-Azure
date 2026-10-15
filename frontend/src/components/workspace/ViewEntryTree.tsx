@@ -586,11 +586,11 @@ function RunTestWizard({ open, onClose, workspaceId, repoUrl, branch, selectedFi
               )}
               <p className="text-sm text-muted-foreground">
                 {generatedTests.length} test case{generatedTests.length !== 1 ? "s" : ""} ready.
-                Click below to open the Live Test Runner with your deployed URL and generated tests pre-loaded.
+                Click below to open the Live Test Run with your deployed URL and generated tests pre-loaded.
               </p>
               <Button onClick={handleRunTests} className="gap-2">
                 <Play className="h-4 w-4" />
-                Launch Live Test Runner
+                Launch Live Test Run
               </Button>
             </div>
           )}

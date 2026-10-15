@@ -138,7 +138,8 @@ class CommitResponse(BaseModel):
 class BranchRequest(BaseModel):
     workspace_id: str
     branch_name: str
-    from_branch: str = "main"
+    # None: branch from the workspace's current branch (its cloned default branch).
+    from_branch: str | None = None
 
 
 class GitStatusResponse(BaseModel):

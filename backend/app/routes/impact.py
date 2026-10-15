@@ -6,6 +6,7 @@ Test Generation page (Flow 2).
 """
 from __future__ import annotations
 
+import asyncio
 import io
 import logging
 import uuid
@@ -247,11 +248,17 @@ def _extract_docx_text(raw: bytes) -> str:
     return "\n".join(part for part in parts if part.strip())
 
 
+_MAX_DOC_UPLOAD_BYTES = 20 * 1024 * 1024
+
+
 @router.post("/upload-doc", response_model=ParseDocsResponse)
 async def upload_doc(file: UploadFile = File(...), org: OrganizationOut = Depends(get_current_org)):
     """Upload a document (text/PDF/DOCX) and extract testable scenarios with AI."""
-    raw = await file.read()
-    content = extract_document_text(file.filename or "", raw)
+    # Read one byte past the limit so an oversized file is detected without buffering all of it.
+    raw = await file.read(_MAX_DOC_UPLOAD_BYTES + 1)
+    if len(raw) > _MAX_DOC_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="The document is larger than 20 MB. Upload a smaller file.")
+    content = await asyncio.to_thread(extract_document_text, file.filename or "", raw)
 
     scenarios = await impact_service.parse_document_to_scenarios(
         content, file.filename or "document"
@@ -281,7 +288,8 @@ async def build_workspace_graph(req: WorkspaceGraphRequest, org: OrganizationOut
     omit to analyse the entire workspace.
     """
     try:
-        nodes, edges = impact_service.build_workspace_dependency_graph(
+        nodes, edges = await asyncio.to_thread(
+            impact_service.build_workspace_dependency_graph,
             req.workspace_id,
             req.file_paths,
             org_id=org.id,

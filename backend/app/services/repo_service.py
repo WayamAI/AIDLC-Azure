@@ -193,7 +193,14 @@ def get_repo_commits(github_url: str, n: int = 10, pat: str | None = None) -> li
         )
         if result.returncode != 0:
             shutil.rmtree(temp_dir, ignore_errors=True)
-            raise ValueError(f"Git clone failed: {result.stderr[:400]}")
+            # git echoes the clone URL, which carries the PAT. Redact before truncating.
+            # Imported here: workspace_service imports this module, so a top-level import cycles.
+            from app.services.workspace_service import _redact_credentials
+
+            stderr = _redact_credentials(result.stderr)
+            if pat:
+                stderr = stderr.replace(pat, "***")
+            raise ValueError(f"Git clone failed: {stderr[:400]}")
 
         log_result = subprocess.run(
             ["git", "log", f"-{n}", "--pretty=format:%H|||%s|||%an|||%ar|||%ai"],

@@ -62,3 +62,23 @@ async def test_logout_clears_cookie(app_client):
 async def test_me_requires_auth(app_client):
     resp = await app_client.get("/api/auth/me")
     assert resp.status_code == 401
+
+
+@pytest.mark.anyio
+async def test_rotating_forwarded_for_cannot_bypass_login_lockout(app_client, monkeypatch):
+    # Lockout is keyed on the socket peer; a client-sent X-Forwarded-For must not reset it.
+    from app.routes import auth
+
+    monkeypatch.setattr(auth, "_login_failures", {})
+    body = {"email": "nobody@example.com", "password": "wrong-password"}
+
+    for i in range(auth._LOGIN_MAX_FAILURES):
+        resp = await app_client.post(
+            "/api/auth/login", json=body, headers={"X-Forwarded-For": f"198.51.100.{i}"}
+        )
+        assert resp.status_code == 401
+
+    resp = await app_client.post(
+        "/api/auth/login", json=body, headers={"X-Forwarded-For": "203.0.113.200"}
+    )
+    assert resp.status_code == 429

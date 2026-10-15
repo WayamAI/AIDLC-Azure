@@ -1,0 +1,5525 @@
+{
+  "version": 2,
+  "marks": [
+    {
+      "id": "mark-277",
+      "hint": "277 ack ping; returning bolt",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-837",
+      "hint": "837 outbound dart; claim submission",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-accept",
+      "hint": "accepted decision; closed ring",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-activity",
+      "hint": "activity spark-line; live feed",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-agent",
+      "hint": "agent bust; live activity",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-aging-bars",
+      "hint": "aging bars; A/R buckets",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-appeal-scroll",
+      "hint": "appeal letter scroll; blank",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-approved",
+      "hint": "approved seal; authorization granted",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-at-risk",
+      "hint": "stuck cog; revenue at risk",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-attestation-ring",
+      "hint": "coder attestation signet; unsigned",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-audit",
+      "hint": "audit scroll; wax bead",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-auth-key",
+      "hint": "prior-auth portal key",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-bell",
+      "hint": "first-touch bell; patient access",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-benefits",
+      "hint": "benefits booklet; slab",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-cdi",
+      "hint": "CDI magnifier; chart review",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-charge-stack",
+      "hint": "charge ticket stack",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-clean-claim",
+      "hint": "clean claim gem; closed",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-collections",
+      "hint": "collections funnel; outreach",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-command",
+      "hint": "command tower periscope; revenue center",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-confidence",
+      "hint": "confidence gauge; high arc",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-copay",
+      "hint": "copay chip; coin notch",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-coverage",
+      "hint": "coverage card; verifier",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-cpt",
+      "hint": "procedure torus; CPT ring",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-custody",
+      "hint": "chain-of-custody lock; evidence tiles",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-datasource",
+      "hint": "data-source barrel; hoops",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-denial-loop",
+      "hint": "denial loop; seven beads",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-denial-shard",
+      "hint": "denial code shard; broken prism",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-diagnosis",
+      "hint": "diagnosis cube; ICD volume",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-dirty-claim",
+      "hint": "dirty claim gem; cracked",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-donut-chart",
+      "hint": "donut chart; pulled slice",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-embers",
+      "hint": "ember sparks; insight cluster",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-era-check",
+      "hint": "ERA check; remittance strip",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-evidence-binder",
+      "hint": "evidence binder; empty ring",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-evidence-stack",
+      "hint": "evidence check-stack; one missing",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-fields",
+      "hint": "extracted-field tiles; blank",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-filter",
+      "hint": "filter funnel; dashboard scope",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-flowing",
+      "hint": "river of coins; revenue in motion",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-gate",
+      "hint": "confidence gate; toll bar",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-gavel",
+      "hint": "gavel; rules, policy, decisions",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-governor",
+      "hint": "pause-play governor; flywheel brake",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-hex",
+      "hint": "clearinghouse hex node; six ports",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-horn",
+      "hint": "collections outreach horn",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-insight",
+      "hint": "AI insight; faceted ember crystal",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-kpi-slab",
+      "hint": "KPI monolith; numberless slab",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-lamp",
+      "hint": "human-review desk lamp",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-leakage",
+      "hint": "leakage sieve; falling coins",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-lighthouse",
+      "hint": "follow-up beacon; payer wait",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-magnet",
+      "hint": "recovery magnet; lifting coins",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-missed-charge",
+      "hint": "missed-charge net; scooped coin",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-ocr",
+      "hint": "OCR lens; glass disk",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-payer-rook",
+      "hint": "payer chess rook; abstract",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-payment-plan",
+      "hint": "payment-plan ladder; rungs",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-pickaxe",
+      "hint": "root-cause pickaxe; investigation",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-plug",
+      "hint": "plug between blocks; connection",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-posting",
+      "hint": "posting stamp; wet ink",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-prevent",
+      "hint": "prevent-edit wedge; claim rail",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-ranking",
+      "hint": "ranking bars; stair of blocks",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-reject",
+      "hint": "rejected decision stamp; X cut",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-ruler",
+      "hint": "policy threshold ruler",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-scan",
+      "hint": "document scan plane; light bar",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-sparkline",
+      "hint": "activity wire; spark-line",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-split",
+      "hint": "split-view hinge; two panels",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-stale-feed",
+      "hint": "stale feed; hourglass on database",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-star",
+      "hint": "north-star pin; revenue map",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-statement",
+      "hint": "patient statement; unopened envelope",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-studio",
+      "hint": "analytics studio; easel tile",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-timeseries",
+      "hint": "time-series ribbon; frozen wave",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-vault",
+      "hint": "A/R vault door; graphite interior",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "mark-wayam",
+      "hint": "Wayam command mark; chevron W",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "status-done",
+      "hint": "done; sealed archive box",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "status-drag",
+      "hint": "drag handle; move affordance",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "status-due",
+      "hint": "due soon; hourglass",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "status-in-progress",
+      "hint": "in progress; spinning gear",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "status-open",
+      "hint": "open; closed inbox tray",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "status-unassigned",
+      "hint": "unassigned; empty hook",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "status-wip",
+      "hint": "WIP limiter; gate with slots",
+      "category": "chronos",
+      "source": "chronos"
+    },
+    {
+      "id": "icon3d-spark-orbit-rings",
+      "hint": "a four-pointed spark with two thin orbit rings around it",
+      "category": "ai-and-agents",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-agent-core-orb",
+      "hint": "a smooth sphere resting in a three-prong cradle",
+      "category": "ai-and-agents",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-agent-cube-core",
+      "hint": "a rounded cube with a glowing core visible through one",
+      "category": "ai-and-agents",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-agent-capsule",
+      "hint": "an upright pill-shaped capsule pod with a glass window band",
+      "category": "ai-and-agents",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-agent-beacon",
+      "hint": "a short cylindrical beacon with a domed glass top",
+      "category": "ai-and-agents",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-agent-dock",
+      "hint": "a small orb sitting on a round charging dock",
+      "category": "ai-and-agents",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-multi-agent-cluster",
+      "hint": "three small spheres joined by thin rods in a triangle",
+      "category": "ai-and-agents",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-agent-swarm",
+      "hint": "five tiny pods flying in a V formation",
+      "category": "ai-and-agents",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-agent-handoff-baton",
+      "hint": "a relay baton passing between two open ring holders",
+      "category": "ai-and-agents",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-agent-relay-towers",
+      "hint": "two short towers linked by an arching beam",
+      "category": "ai-and-agents",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-orchestrator-hub",
+      "hint": "a central disc with six short spokes ending in small",
+      "category": "ai-and-agents",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-supervisor-prism",
+      "hint": "a tall prism standing above three small cubes",
+      "category": "ai-and-agents",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-neural-net-lattice",
+      "hint": "three layers of small balls connected by thin rods",
+      "category": "ai-and-agents",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-model-chip",
+      "hint": "a square processor chip with rounded pins and a raised",
+      "category": "ai-and-agents",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-model-layers-stack",
+      "hint": "four thin translucent square slabs floating in a stack",
+      "category": "ai-and-agents",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-weights-dial-bank",
+      "hint": "a small panel with three rotary dials in a row",
+      "category": "ai-and-agents",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-tensor-cube-grid",
+      "hint": "a three by three by three grid of small cubes",
+      "category": "ai-and-agents",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-embedding-scatter",
+      "hint": "an open cube frame made of twelve thick rounded matte",
+      "category": "ai-and-agents",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-model-capsule-rack",
+      "hint": "a rack holding three interchangeable cartridges",
+      "category": "ai-and-agents",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-fine-tune-wrench-chip",
+      "hint": "a processor chip with a small adjusting wrench resting on",
+      "category": "ai-and-agents",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-prompt-wand",
+      "hint": "a short wand with a four-pointed star tip",
+      "category": "ai-and-agents",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-prompt-key-cap",
+      "hint": "one large blank keyboard keycap with a small spark on",
+      "category": "ai-and-agents",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-reasoning-gear-chain",
+      "hint": "three interlocking gears stepping up in size",
+      "category": "ai-and-agents",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-thought-bubble-nodes",
+      "hint": "a rounded speech-bubble shape containing three linked beads",
+      "category": "ai-and-agents",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-decision-fork-path",
+      "hint": "a fork in a road on a small rounded base",
+      "category": "ai-and-agents",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-context-window-frame",
+      "hint": "an empty picture frame with a sliding glass pane",
+      "category": "ai-and-agents",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-memory-crystal",
+      "hint": "a faceted crystal standing in a low holder",
+      "category": "ai-and-agents",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-memory-drawer-cube",
+      "hint": "a cube with one small drawer pulled open",
+      "category": "ai-and-agents",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-knowledge-graph-ball",
+      "hint": "a ball-and-stick cluster of seven linked balls",
+      "category": "ai-and-agents",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-vector-compass-needle",
+      "hint": "a round disc with a single raised pointer needle",
+      "category": "ai-and-agents",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-retrieval-magnet",
+      "hint": "a horseshoe magnet pulling three small cubes",
+      "category": "ai-and-agents",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-tool-belt-ring",
+      "hint": "a ring holding a wrench",
+      "category": "ai-and-agents",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-action-trigger-button",
+      "hint": "a large round push button on a square base",
+      "category": "ai-and-agents",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-guardrail-barrier",
+      "hint": "a short curved roadside barrier with two posts",
+      "category": "ai-and-agents",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-eval-test-tube-rack",
+      "hint": "a rack with three test tubes at different fill levels",
+      "category": "ai-and-agents",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-sandbox-box",
+      "hint": "a shallow open tray filled with small blocks",
+      "category": "ai-and-agents",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-human-review-stamp",
+      "hint": "a round rubber stamp with a blank face and a",
+      "category": "ai-and-agents",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-autopilot-toggle",
+      "hint": "a chunky toggle switch",
+      "category": "ai-and-agents",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-vision-lens-module",
+      "hint": "a short camera lens barrel mounted on the front of",
+      "category": "ai-and-agents",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-language-prism",
+      "hint": "a triangular prism splitting one beam into three bands",
+      "category": "ai-and-agents",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-flow-nodes-trio",
+      "hint": "three rounded blocks connected by bent pipes in a row",
+      "category": "automation-and-workflow",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-flow-branch-splitter",
+      "hint": "a pipe that splits into a Y junction",
+      "category": "automation-and-workflow",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-flow-merge-funnel",
+      "hint": "two pipes merging into one wide pipe",
+      "category": "automation-and-workflow",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-flow-start-flagpole",
+      "hint": "a round start pad with a short pole and a",
+      "category": "automation-and-workflow",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-flow-end-target",
+      "hint": "a round pad with three raised concentric rings",
+      "category": "automation-and-workflow",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-flow-canvas-board",
+      "hint": "a tilted board with four magnetic blocks stuck on it",
+      "category": "automation-and-workflow",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-trigger-lightning-switch",
+      "hint": "a wall switch plate with a lightning bolt shaped lever",
+      "category": "automation-and-workflow",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-trigger-tripwire-sensor",
+      "hint": "two small posts with a thin light beam between them",
+      "category": "automation-and-workflow",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-webhook-hook",
+      "hint": "a sturdy crane-style lifting hook hanging by a round swivel",
+      "category": "automation-and-workflow",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-schedule-trigger-plug-timer",
+      "hint": "a plug-in socket timer with a ring of small pins",
+      "category": "automation-and-workflow",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-event-bell-relay",
+      "hint": "a small bell mounted on a relay box",
+      "category": "automation-and-workflow",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-condition-diamond-gate",
+      "hint": "a diamond-shaped block with a path entering and two exiting",
+      "category": "automation-and-workflow",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-loop-ring-arrow",
+      "hint": "a thick ring with a single arrowhead closing the loop",
+      "category": "automation-and-workflow",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-retry-spring-coil",
+      "hint": "a coiled spring standing on a round base",
+      "category": "automation-and-workflow",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-delay-hourglass-valve",
+      "hint": "an hourglass set inside a pipe section",
+      "category": "automation-and-workflow",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-parallel-rails",
+      "hint": "three parallel rails with a small cart on each",
+      "category": "automation-and-workflow",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-switch-track-lever",
+      "hint": "a railway-style points lever on a short track fork",
+      "category": "automation-and-workflow",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-approval-gate-arm",
+      "hint": "a short boom gate with a raised arm",
+      "category": "automation-and-workflow",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-approval-stamp-pad",
+      "hint": "a rubber stamp resting on an ink pad",
+      "category": "automation-and-workflow",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-sign-off-seal",
+      "hint": "a round wax-style seal with an irregular soft edge and",
+      "category": "automation-and-workflow",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-escalation-stairs",
+      "hint": "a three-step staircase with a small ball on the top",
+      "category": "automation-and-workflow",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-queue-conveyor",
+      "hint": "a short conveyor belt carrying three identical boxes",
+      "category": "automation-and-workflow",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-queue-ticket-roll",
+      "hint": "a dispenser with a blank ticket strip curling out",
+      "category": "automation-and-workflow",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-priority-lane-chute",
+      "hint": "two parallel chutes",
+      "category": "automation-and-workflow",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-batch-tray-stack",
+      "hint": "three stacked trays each holding small pucks",
+      "category": "automation-and-workflow",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-robotic-arm-picker",
+      "hint": "a compact desktop robotic arm holding a small cube",
+      "category": "automation-and-workflow",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-gear-pair",
+      "hint": "two meshing gears",
+      "category": "automation-and-workflow",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-piston-press",
+      "hint": "a vertical piston pressing down on a flat block",
+      "category": "automation-and-workflow",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-cam-wheel-follower",
+      "hint": "an egg-shaped cam wheel with a follower rod",
+      "category": "automation-and-workflow",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-domino-run",
+      "hint": "five dominoes mid-fall in a curved line",
+      "category": "automation-and-workflow",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-marble-run-track",
+      "hint": "a spiral track with a marble rolling down",
+      "category": "automation-and-workflow",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-clockwork-key",
+      "hint": "a wind-up key inserted into a small box",
+      "category": "automation-and-workflow",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-task-checklist-board",
+      "hint": "a clipboard with three raised blank bars and tick pegs",
+      "category": "automation-and-workflow",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-task-card-stack",
+      "hint": "three thick cards fanned slightly",
+      "category": "automation-and-workflow",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-kanban-columns",
+      "hint": "a low tray with three columns of small tiles",
+      "category": "automation-and-workflow",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-subtask-nesting-boxes",
+      "hint": "three open boxes nested inside each other",
+      "category": "automation-and-workflow",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-handoff-tray",
+      "hint": "two trays side by side with a puck sliding between",
+      "category": "automation-and-workflow",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-macro-record-reel",
+      "hint": "an open tape reel standing upright on a small base",
+      "category": "automation-and-workflow",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-rule-book-lever",
+      "hint": "a thick closed binder with a lever on its side",
+      "category": "automation-and-workflow",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-runbook-crank",
+      "hint": "a box with a side crank and a blank card",
+      "category": "automation-and-workflow",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-database-cylinder",
+      "hint": "a three-tier database cylinder",
+      "category": "data-and-databases",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-database-twin",
+      "hint": "two three-tier database cylinders standing side by side",
+      "category": "data-and-databases",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-data-warehouse-shed",
+      "hint": "a small warehouse shed with a rolling door half open",
+      "category": "data-and-databases",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-data-lake-basin",
+      "hint": "a round shallow basin filled with still liquid",
+      "category": "data-and-databases",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-data-vault-drum",
+      "hint": "a thick upright drum with a round vault door with",
+      "category": "data-and-databases",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-object-bucket",
+      "hint": "a sturdy bucket with a wire carry handle",
+      "category": "data-and-databases",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-cache-quick-drawer",
+      "hint": "a slim single drawer unit with the drawer popping out",
+      "category": "data-and-databases",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-archive-cold-box",
+      "hint": "an insulated graphite storage chest with thick walls and one",
+      "category": "data-and-databases",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-table-grid-slab",
+      "hint": "a thick slab divided into a grid of raised tiles",
+      "category": "data-and-databases",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-column-lifted-tiles",
+      "hint": "a grid slab with one whole column of tiles lifted",
+      "category": "data-and-databases",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-row-rail-beads",
+      "hint": "a short thick horizontal rail held between two chunky end",
+      "category": "data-and-databases",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-schema-blueprint-roll",
+      "hint": "a partly unrolled blueprint sheet lying flat with exactly three",
+      "category": "data-and-databases",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-index-tab-divider",
+      "hint": "a card box with tabbed dividers standing up",
+      "category": "data-and-databases",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-primary-key-peg",
+      "hint": "a thick board with a grid of identical short round",
+      "category": "data-and-databases",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-tree-branch-blocks",
+      "hint": "a hierarchy tree made of chunky square blocks",
+      "category": "data-and-databases",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-data-pipeline-pipes",
+      "hint": "one straight horizontal run of thick pipe made of short",
+      "category": "data-and-databases",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-etl-funnel-filter",
+      "hint": "a funnel feeding into a filter cartridge",
+      "category": "data-and-databases",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-stream-sluice-channel",
+      "hint": "a short open water channel trough lying flat with wavy",
+      "category": "data-and-databases",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-sync-twin-arrows-drum",
+      "hint": "a thick upright drum encircled by two chunky curved arrows",
+      "category": "data-and-databases",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-replication-mirror-cubes",
+      "hint": "a small cube standing in front of an upright rectangular",
+      "category": "data-and-databases",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-migration-crate-dolly",
+      "hint": "a database cylinder standing upright on a two-wheeled hand truck",
+      "category": "data-and-databases",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-import-chute",
+      "hint": "a short tilted chute sliding three small cubes down into",
+      "category": "data-and-databases",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-export-catapult-tray",
+      "hint": "a small flat tray mounted on a chunky coil spring",
+      "category": "data-and-databases",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-backup-safe-copy",
+      "hint": "a graphite database cylinder standing on a round base under",
+      "category": "data-and-databases",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-restore-rewind-drum",
+      "hint": "a thick drum lying on its side on a cradle",
+      "category": "data-and-databases",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-snapshot-camera-drum",
+      "hint": "a small compact camera on a short tripod pointed at",
+      "category": "data-and-databases",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-data-shredder",
+      "hint": "a paper shredder",
+      "category": "data-and-databases",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-data-mask-veil",
+      "hint": "an opaque matte graphite cube half hidden behind one upright",
+      "category": "data-and-databases",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-query-magnifier-cube",
+      "hint": "a magnifying glass with a thick rim and a short",
+      "category": "data-and-databases",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-filter-sieve",
+      "hint": "a round kitchen sieve with a thick rim and a",
+      "category": "data-and-databases",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-sort-size-pegs",
+      "hint": "five thick round pegs standing in a row on a",
+      "category": "data-and-databases",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-join-puzzle-pieces",
+      "hint": "two chunky jigsaw puzzle pieces locked together side by side",
+      "category": "data-and-databases",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-aggregate-scoop",
+      "hint": "a chunky hand scoop with a short handle heaped full",
+      "category": "data-and-databases",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-sample-pipette",
+      "hint": "a chunky laboratory pipette with a rubber bulb on top",
+      "category": "data-and-databases",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-data-quality-test-strip",
+      "hint": "a small round vial standing upright with one flat test",
+      "category": "data-and-databases",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-dedupe-twin-separator",
+      "hint": "two identical cubes side by side",
+      "category": "data-and-databases",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-data-lineage-chain",
+      "hint": "a short heavy chain of five thick oval links laid",
+      "category": "data-and-databases",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-data-catalog-drawers",
+      "hint": "a small square apothecary cabinet with a three by three",
+      "category": "data-and-databases",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-data-contract-clip",
+      "hint": "two thick slabs stacked face to face and clamped together",
+      "category": "data-and-databases",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-bar-chart-blocks",
+      "hint": "three chunky upright bars of rising height on a base",
+      "category": "analytics-and-charts",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-stacked-bar-tower",
+      "hint": "a single chunky upright tower made of three stacked rounded",
+      "category": "analytics-and-charts",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-pie-wedge-disc",
+      "hint": "a thick round disc lying flat with one wedge slice",
+      "category": "analytics-and-charts",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-donut-ring-segment",
+      "hint": "a thick ring lying flat",
+      "category": "analytics-and-charts",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-line-chart-wire",
+      "hint": "a line graph model on a thick upright back panel",
+      "category": "analytics-and-charts",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-area-chart-hill",
+      "hint": "a thick slab shaped like a smooth hill profile",
+      "category": "analytics-and-charts",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-scatter-pins-board",
+      "hint": "a thick board lying flat with seven chunky round-headed pins",
+      "category": "analytics-and-charts",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-bubble-cluster",
+      "hint": "three opaque spheres of clearly different sizes touching each other",
+      "category": "analytics-and-charts",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-radar-web-disc",
+      "hint": "a flat hexagonal spider-web frame of thick bars with six",
+      "category": "analytics-and-charts",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-funnel-tiers",
+      "hint": "an upright funnel made of four separate stacked rings that",
+      "category": "analytics-and-charts",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-waterfall-steps",
+      "hint": "five chunky blocks floating in a row at different heights",
+      "category": "analytics-and-charts",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-heatmap-tile-tray",
+      "hint": "a square tray holding a four by four grid of",
+      "category": "analytics-and-charts",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-candlestick-row",
+      "hint": "four chunky upright rectangular bars at different heights in a",
+      "category": "analytics-and-charts",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-histogram-comb",
+      "hint": "seven narrow upright rounded bars standing side by side on",
+      "category": "analytics-and-charts",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-sankey-ribbon",
+      "hint": "a flow diagram model lying flat",
+      "category": "analytics-and-charts",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-treemap-blocks",
+      "hint": "a square tray tightly packed with five rectangular blocks of",
+      "category": "analytics-and-charts",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-gauge-dial",
+      "hint": "a half-round gauge standing upright on a small base",
+      "category": "analytics-and-charts",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-speedometer-arc",
+      "hint": "a round dashboard meter standing upright on a small base",
+      "category": "analytics-and-charts",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-thermometer-level",
+      "hint": "a level meter",
+      "category": "analytics-and-charts",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-progress-ring",
+      "hint": "a thick ring standing upright on a small base",
+      "category": "analytics-and-charts",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-battery-level-bars",
+      "hint": "an upright battery cell with a graphite body and cap",
+      "category": "analytics-and-charts",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-scale-balance-bars",
+      "hint": "a seesaw: a thick beam balanced on a triangular fulcrum,",
+      "category": "analytics-and-charts",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-kpi-tile",
+      "hint": "a thick square tile standing upright with one bold raised",
+      "category": "analytics-and-charts",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-dashboard-panel",
+      "hint": "a tilted control panel wedge with one round dial",
+      "category": "analytics-and-charts",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-scorecard-plaque",
+      "hint": "a thick rectangular plaque standing upright on a small foot",
+      "category": "analytics-and-charts",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-report-easel",
+      "hint": "a small three-legged easel holding a board that shows three",
+      "category": "analytics-and-charts",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-trend-up-ramp",
+      "hint": "a chunky wedge ramp rising to the right with one",
+      "category": "analytics-and-charts",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-trend-down-slide",
+      "hint": "one solid chunky wedge block that is high on the",
+      "category": "analytics-and-charts",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-growth-sprout-bars",
+      "hint": "three chunky upright bars of rising height on a base",
+      "category": "analytics-and-charts",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-peak-high-water-mark",
+      "hint": "a short thick post standing in a chunky block with",
+      "category": "analytics-and-charts",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-plateau-table-top",
+      "hint": "a chunky ramp that rises from the left and then",
+      "category": "analytics-and-charts",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-forecast-crystal-ball",
+      "hint": "a fortune-teller ball",
+      "category": "analytics-and-charts",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-insight-lightbulb-chart",
+      "hint": "a light bulb with a chunky graphite screw base and",
+      "category": "analytics-and-charts",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-anomaly-odd-peg",
+      "hint": "a row of five identical short round pegs standing on",
+      "category": "analytics-and-charts",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-benchmark-ruler-bar",
+      "hint": "a thick upright ruler slab with plain raised tick ridges",
+      "category": "analytics-and-charts",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-cohort-ring-groups",
+      "hint": "a thick square base tile with three flat raised circle",
+      "category": "analytics-and-charts",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-correlation-twin-springs",
+      "hint": "two fat coil springs standing upright side by side on",
+      "category": "analytics-and-charts",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-segment-cake-slices",
+      "hint": "a thick round cake-like disc lying flat",
+      "category": "analytics-and-charts",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-abacus-counter",
+      "hint": "a small abacus",
+      "category": "analytics-and-charts",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-tally-counter-clicker",
+      "hint": "a round hand tally counter with a thumb button on",
+      "category": "analytics-and-charts",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-document-checkmark",
+      "hint": "a thick sheet of paper with a folded corner and",
+      "category": "documents-and-files",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-document-blank",
+      "hint": "a thick sheet of paper standing upright with a folded",
+      "category": "documents-and-files",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-document-stack",
+      "hint": "a neat stack of five thick sheets lying flat",
+      "category": "documents-and-files",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-document-scroll",
+      "hint": "a partly unrolled matte graphite paper scroll lying flat with",
+      "category": "documents-and-files",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-document-pen",
+      "hint": "a thick sheet of paper lying flat with a chunky",
+      "category": "documents-and-files",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-document-clip",
+      "hint": "two thick sheets of paper standing upright one behind the",
+      "category": "documents-and-files",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-document-ribbon-seal",
+      "hint": "a thick sheet of paper standing upright with one round",
+      "category": "documents-and-files",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-document-lock",
+      "hint": "a thick sheet of paper standing upright with a chunky",
+      "category": "documents-and-files",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-document-magnifier",
+      "hint": "a thick sheet of paper lying flat",
+      "category": "documents-and-files",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-document-shredded",
+      "hint": "a thick upright sheet of paper",
+      "category": "documents-and-files",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-contract-binder",
+      "hint": "a thick ring binder standing upright",
+      "category": "documents-and-files",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-invoice-tear-off",
+      "hint": "a thick upright sheet of paper",
+      "category": "documents-and-files",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-receipt-curl",
+      "hint": "a long narrow strip of paper standing upright",
+      "category": "documents-and-files",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-form-clipboard",
+      "hint": "a clipboard lying at a tilt with a sheet on",
+      "category": "documents-and-files",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-certificate-frame",
+      "hint": "a thick picture frame standing upright at a three-quarter angle",
+      "category": "documents-and-files",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-blueprint-tube",
+      "hint": "a short sturdy cylindrical drawing tube lying at a slight",
+      "category": "documents-and-files",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-envelope-document",
+      "hint": "a thick envelope standing upright with its pointed flap open",
+      "category": "documents-and-files",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-notarised-emboss-press",
+      "hint": "a compact desktop embossing seal press",
+      "category": "documents-and-files",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-folder-closed",
+      "hint": "a thick closed file folder standing upright at a three-quarter",
+      "category": "documents-and-files",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-folder-open",
+      "hint": "an open file folder with two sheets peeking out",
+      "category": "documents-and-files",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-folder-stack",
+      "hint": "three thick closed file folders lying flat",
+      "category": "documents-and-files",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-folder-zip",
+      "hint": "a thick closed file folder standing upright at a three-quarter",
+      "category": "documents-and-files",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-folder-shared-link",
+      "hint": "a thick closed file folder standing upright at a three-quarter",
+      "category": "documents-and-files",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-filing-cabinet",
+      "hint": "a chunky two-drawer filing cabinet seen at a three-quarter angle",
+      "category": "documents-and-files",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-archive-box",
+      "hint": "a sturdy storage box with a separate lift-off lid",
+      "category": "documents-and-files",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-expanding-file",
+      "hint": "an accordion expanding file standing open",
+      "category": "documents-and-files",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-file-image",
+      "hint": "a thick square tile standing upright at a three-quarter angle",
+      "category": "documents-and-files",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-file-video",
+      "hint": "a thick square tile standing upright at a three-quarter angle",
+      "category": "documents-and-files",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-file-audio",
+      "hint": "a thick square tile standing upright at a three-quarter angle",
+      "category": "documents-and-files",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-file-spreadsheet",
+      "hint": "a thick square tile standing upright at a three-quarter angle",
+      "category": "documents-and-files",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-file-presentation",
+      "hint": "a small presentation board on a short sturdy three-legged stand",
+      "category": "documents-and-files",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-file-code",
+      "hint": "a thick square tile standing upright at a three-quarter angle",
+      "category": "documents-and-files",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-file-archive-crate",
+      "hint": "a small sturdy slatted wooden-style shipping crate seen at a",
+      "category": "documents-and-files",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-file-3d-model",
+      "hint": "a thick square base tile lying flat",
+      "category": "documents-and-files",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-file-fixed-layout",
+      "hint": "a thick upright page tile seen at a three-quarter angle",
+      "category": "documents-and-files",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-paper-plane-file",
+      "hint": "a chunky folded paper plane with a thick body",
+      "category": "documents-and-files",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-scanner-flatbed",
+      "hint": "a low flatbed scanner seen at a three-quarter angle from",
+      "category": "documents-and-files",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-printer-compact",
+      "hint": "a compact desktop printer seen at a three-quarter angle from",
+      "category": "documents-and-files",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-stapler",
+      "hint": "a chunky desk stapler seen at a three-quarter angle",
+      "category": "documents-and-files",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-hole-punch",
+      "hint": "a chunky two-hole paper punch seen at a three-quarter angle",
+      "category": "documents-and-files",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-paper-tray-inbox",
+      "hint": "a two-level stacked desk paper tray seen at a three-quarter",
+      "category": "documents-and-files",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-bookmark-ribbon-page",
+      "hint": "a thick upright page tile seen at a three-quarter angle",
+      "category": "documents-and-files",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-chat-bubble",
+      "hint": "a thick rounded speech bubble standing upright at a three-quarter",
+      "category": "communication-and-messaging",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-chat-bubbles-pair",
+      "hint": "two overlapping speech bubbles facing each other",
+      "category": "communication-and-messaging",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-chat-thread-stack",
+      "hint": "three small thick rounded speech bubbles standing upright",
+      "category": "communication-and-messaging",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-chat-typing-capsule",
+      "hint": "a thick horizontal pill-shaped capsule lying on its side",
+      "category": "communication-and-messaging",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-chat-pin",
+      "hint": "a thick rounded speech bubble standing upright at a three-quarter",
+      "category": "communication-and-messaging",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-chat-reply-hook",
+      "hint": "a thick rounded speech bubble standing upright at a three-quarter",
+      "category": "communication-and-messaging",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-chat-reaction-heart",
+      "hint": "a thick rounded speech bubble standing upright at a three-quarter",
+      "category": "communication-and-messaging",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-chat-broadcast-megaphone",
+      "hint": "a chunky hand megaphone seen at a three-quarter angle",
+      "category": "communication-and-messaging",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-envelope-closed",
+      "hint": "a thick sealed envelope standing upright at a three-quarter angle",
+      "category": "communication-and-messaging",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-envelope-open-letter",
+      "hint": "a thick envelope standing upright at a three-quarter angle with",
+      "category": "communication-and-messaging",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-envelope-stack",
+      "hint": "three thick sealed envelopes standing upright and fanned out like",
+      "category": "communication-and-messaging",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-mailbox-post",
+      "hint": "a rounded dome-top mailbox on a short sturdy post",
+      "category": "communication-and-messaging",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-inbox-tray",
+      "hint": "a deep open-top desk tray seen at a three-quarter angle",
+      "category": "communication-and-messaging",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-outbox-launcher",
+      "hint": "a shallow open desk tray seen at a three-quarter angle",
+      "category": "communication-and-messaging",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-mail-sorting-slots",
+      "hint": "a chunky pigeonhole sorting rack seen at a three-quarter angle",
+      "category": "communication-and-messaging",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-postcard-stamp",
+      "hint": "a thick blank postcard standing upright at a three-quarter angle",
+      "category": "communication-and-messaging",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-notification-bell",
+      "hint": "a classic rounded bell standing upright with a small clapper",
+      "category": "communication-and-messaging",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-notification-bell-muted",
+      "hint": "a classic chunky bell with a small loop on top",
+      "category": "communication-and-messaging",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-notification-badge-dot",
+      "hint": "a thick rounded square tile standing upright at a three-quarter",
+      "category": "communication-and-messaging",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-alert-air-horn",
+      "hint": "a small chunky air horn seen at a three-quarter angle",
+      "category": "communication-and-messaging",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-reminder-string-knot",
+      "hint": "a short sturdy round peg standing on a small round",
+      "category": "communication-and-messaging",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-pager-device",
+      "hint": "a small chunky belt pager lying at a tilt",
+      "category": "communication-and-messaging",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-do-not-disturb-sign",
+      "hint": "a thick door hanger tag standing upright at a three-quarter",
+      "category": "communication-and-messaging",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-announcement-horn",
+      "hint": "a short straight fanfare horn resting on a small sturdy",
+      "category": "communication-and-messaging",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-satellite-dish",
+      "hint": "a chunky satellite dish on a short sturdy mast with",
+      "category": "communication-and-messaging",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-radio-tower",
+      "hint": "a short sturdy lattice radio tower on a square base",
+      "category": "communication-and-messaging",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-walkie-talkie",
+      "hint": "a chunky handheld two-way radio standing upright at a three-quarter",
+      "category": "communication-and-messaging",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-antenna-router",
+      "hint": "a low flat rounded network router seen at a three-quarter",
+      "category": "communication-and-messaging",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-carrier-pigeon-capsule",
+      "hint": "a short thick message capsule tube lying at a slight",
+      "category": "communication-and-messaging",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-message-bottle",
+      "hint": "a short stout bottle lying at a slight diagonal",
+      "category": "communication-and-messaging",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-tin-can-line",
+      "hint": "two short chunky tin cans standing on a thick flat",
+      "category": "communication-and-messaging",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-signal-lamp",
+      "hint": "a chunky hand-held signalling lamp seen at a three-quarter angle",
+      "category": "communication-and-messaging",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-video-call-camera",
+      "hint": "a rounded webcam on a short sturdy clip stand",
+      "category": "communication-and-messaging",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-conference-speaker-puck",
+      "hint": "a round tabletop conference speaker puck lying flat",
+      "category": "communication-and-messaging",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-meeting-table-round",
+      "hint": "a tabletop model of a thick round table on one",
+      "category": "communication-and-messaging",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-presentation-screen",
+      "hint": "a blank pull-down projection screen on a short sturdy tripod",
+      "category": "communication-and-messaging",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-whiteboard-stand",
+      "hint": "a blank whiteboard on a sturdy rolling stand with four",
+      "category": "communication-and-messaging",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-translation-twin-bubbles",
+      "hint": "two thick rounded speech bubbles standing upright side by side",
+      "category": "communication-and-messaging",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-language-globe-bubble",
+      "hint": "a small globe sphere with a few shallow curved meridian",
+      "category": "communication-and-messaging",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-subtitle-bar",
+      "hint": "a thick wide screen slab standing upright at a three-quarter",
+      "category": "communication-and-messaging",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-microphone-soundwave",
+      "hint": "a studio microphone on a short stand with a raised",
+      "category": "voice-and-audio",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-microphone-studio",
+      "hint": "a chunky large-diaphragm studio microphone hanging inside a round shock",
+      "category": "voice-and-audio",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-microphone-lavalier",
+      "hint": "a small clip-on lapel microphone seen close up at a",
+      "category": "voice-and-audio",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-microphone-podium",
+      "hint": "a short sturdy gooseneck microphone on a thick round desk",
+      "category": "voice-and-audio",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-microphone-muted",
+      "hint": "a chunky handheld microphone standing at a slight tilt",
+      "category": "voice-and-audio",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-microphone-array-puck",
+      "hint": "a tabletop model of a low flat round puck resting",
+      "category": "voice-and-audio",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-pop-filter",
+      "hint": "a round studio pop filter seen at a three-quarter angle",
+      "category": "voice-and-audio",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-boom-arm",
+      "hint": "a folding desk microphone boom arm seen at a three-quarter",
+      "category": "voice-and-audio",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-speaker-cone",
+      "hint": "a single loudspeaker driver seen at a three-quarter angle from",
+      "category": "voice-and-audio",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-speaker-bookshelf",
+      "hint": "a chunky two-way bookshelf speaker box seen at a three-quarter",
+      "category": "voice-and-audio",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-speaker-smart-cylinder",
+      "hint": "a short upright cylindrical smart speaker seen from slightly above",
+      "category": "voice-and-audio",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-speaker-mute-plug",
+      "hint": "a single loudspeaker driver seen at a three-quarter angle from",
+      "category": "voice-and-audio",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-headphones-over-ear",
+      "hint": "a pair of over-ear headphones standing upright",
+      "category": "voice-and-audio",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-headset-boom-mic",
+      "hint": "a single-ear headset with a slim boom microphone",
+      "category": "voice-and-audio",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-earbuds-case",
+      "hint": "a small rounded pill-shaped charging case with its lid hinged",
+      "category": "voice-and-audio",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-ear-trumpet-horn",
+      "hint": "a small curved listening horn",
+      "category": "voice-and-audio",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-soundwave-ribbon",
+      "hint": "a thick rounded base slab carrying one wide flat ribbon",
+      "category": "voice-and-audio",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-soundwave-bars",
+      "hint": "a thick low base slab carrying a row of about",
+      "category": "voice-and-audio",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-frequency-tuning-fork",
+      "hint": "a tuning fork standing upright with its stem set in",
+      "category": "voice-and-audio",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-sound-ripple-rings",
+      "hint": "a tabletop model resting flat on the ground like a",
+      "category": "voice-and-audio",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-echo-twin-domes",
+      "hint": "a thick low rectangular base slab carrying two shallow dish-shaped",
+      "category": "voice-and-audio",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-noise-gate-shutter",
+      "hint": "a short straight open channel trough made of thick dark",
+      "category": "voice-and-audio",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-pitch-slider-rail",
+      "hint": "a thick low rectangular base plate about three times as",
+      "category": "voice-and-audio",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-volume-knob",
+      "hint": "one large round rotary knob with a ribbed side wall",
+      "category": "voice-and-audio",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-equaliser-faders",
+      "hint": "a thick rounded rectangular panel tilted back slightly like a",
+      "category": "voice-and-audio",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-phone-handset",
+      "hint": "a classic curved telephone handset lying on its side",
+      "category": "calls-and-contact-centre",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-shield-check",
+      "hint": "a thick rounded shield with a raised check mark on",
+      "category": "security-and-identity",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-padlock-closed",
+      "hint": "a chunky closed padlock",
+      "category": "security-and-identity",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-balance-scale",
+      "hint": "a classic two-pan balance scale on a stand",
+      "category": "compliance-and-governance",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-gavel-block",
+      "hint": "a judge-style mallet with a short sturdy handle resting on",
+      "category": "compliance-and-governance",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-rule-book-thick",
+      "hint": "a thick closed hardcover book with small corner guards on",
+      "category": "compliance-and-governance",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-policy-board-cord-seal",
+      "hint": "a thick framed notice board standing on a small base",
+      "category": "compliance-and-governance",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-charter-stone-tablet",
+      "hint": "a rounded-top upright stone slab on a low base with",
+      "category": "compliance-and-governance",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-governance-pillars",
+      "hint": "a small portico with exactly three short sturdy columns on",
+      "category": "compliance-and-governance",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-board-table-oval",
+      "hint": "a tabletop model of an oval meeting table with six",
+      "category": "compliance-and-governance",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-ballot-box",
+      "hint": "a sturdy box with a slot in its lid and",
+      "category": "compliance-and-governance",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-audit-clipboard-magnifier",
+      "hint": "a thick clipboard holding one blank sheet",
+      "category": "compliance-and-governance",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-audit-trail-footpath",
+      "hint": "a tabletop model of a row of five thick round",
+      "category": "compliance-and-governance",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-evidence-drawer-seal",
+      "hint": "a sturdy metal drawer unit with one closed drawer and",
+      "category": "compliance-and-governance",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-evidence-bag-tag",
+      "hint": "a smoked dark grey tinted zip bag standing upright with",
+      "category": "compliance-and-governance",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-sample-test-vial",
+      "hint": "a short capped sample vial standing in a small chunky",
+      "category": "compliance-and-governance",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-checklist-tick-column",
+      "hint": "a tall narrow upright board on a small base with",
+      "category": "compliance-and-governance",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-inspection-torch",
+      "hint": "a compact chunky hand torch lying at a slight angle",
+      "category": "compliance-and-governance",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-control-test-switches",
+      "hint": "a thick switch plate with a row of four small",
+      "category": "compliance-and-governance",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-finding-flag-pin",
+      "hint": "a teardrop map location pin",
+      "category": "compliance-and-governance",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-compliance-stamp-approved",
+      "hint": "a chunky rubber stamp with a round knob handle standing",
+      "category": "compliance-and-governance",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-certified-foil-sticker",
+      "hint": "a thick round sticker disc with a scalloped edge lying",
+      "category": "compliance-and-governance",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-seal-wax-press",
+      "hint": "a round wax seal blob lying flat on the ground",
+      "category": "compliance-and-governance",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-quality-mark-medallion",
+      "hint": "a thick round medallion standing on a small base",
+      "category": "compliance-and-governance",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-standard-ruler-gauge",
+      "hint": "a thick solid gauge block standing upright with two open",
+      "category": "compliance-and-governance",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-licence-plaque-wall",
+      "hint": "a thick small rectangular plaque held just in front of",
+      "category": "compliance-and-governance",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-accreditation-ribbon-bar",
+      "hint": "a wide chunky dark graphite bar pin with one short",
+      "category": "compliance-and-governance",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-consent-toggle-pair",
+      "hint": "one thick rectangular plate carrying two chunky pill-shaped slider toggle",
+      "category": "compliance-and-governance",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-privacy-curtain",
+      "hint": "a thick sturdy rectangular frame standing on a base with",
+      "category": "compliance-and-governance",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-data-subject-folder-lock",
+      "hint": "a thick closed file folder standing upright with a tab",
+      "category": "compliance-and-governance",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-redaction-bar-sheet",
+      "hint": "a thick dark graphite sheet slab standing upright on a",
+      "category": "compliance-and-governance",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-anonymise-blank-mask-tile",
+      "hint": "a thick dark graphite square tile with one frosted glass",
+      "category": "compliance-and-governance",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-retention-hourglass-box",
+      "hint": "a sturdy lidded storage box with one small hourglass standing",
+      "category": "compliance-and-governance",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-right-to-erase-eraser",
+      "hint": "a thick dark graphite sheet slab lying flat on the",
+      "category": "compliance-and-governance",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-cookie-jar",
+      "hint": "a lidded storage jar with a dark graphite lid that",
+      "category": "compliance-and-governance",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-risk-warning-cone",
+      "hint": "a chunky road cone on a square base",
+      "category": "compliance-and-governance",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-risk-matrix-tray",
+      "hint": "a shallow square tray lying flat on the ground holding",
+      "category": "compliance-and-governance",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-risk-dice-pair",
+      "hint": "two chunky rounded dark graphite dice",
+      "category": "compliance-and-governance",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-tightrope-balance-pole",
+      "hint": "a tabletop model of one thick taut rope stretched between",
+      "category": "compliance-and-governance",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-safety-net",
+      "hint": "a tabletop model of a square net with a thick",
+      "category": "compliance-and-governance",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-incident-report-siren-sheet",
+      "hint": "a thick dark graphite sheet slab lying flat on the",
+      "category": "compliance-and-governance",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-whistle",
+      "hint": "a chunky referee-style pea whistle with a rounded barrel body",
+      "category": "compliance-and-governance",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-red-tape-spool",
+      "hint": "a spool with two wide thick dark graphite flanges standing",
+      "category": "compliance-and-governance",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-regulator-valve",
+      "hint": "a short straight run of thick pipe with a flange",
+      "category": "compliance-and-governance",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-plug-socket-pair",
+      "hint": "a compact two-pin plug with only a very short stub",
+      "category": "integrations-and-connectors",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-cable-reel-drum",
+      "hint": "a chunky cable reel drum standing upright on its two",
+      "category": "integrations-and-connectors",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-cable-data-flat",
+      "hint": "a thick flat data cable wound into one compact round",
+      "category": "integrations-and-connectors",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-cable-network-clip",
+      "hint": "one chunky network cable connector plug with a small springy",
+      "category": "integrations-and-connectors",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-adapter-block",
+      "hint": "a chunky travel adapter block with two short flat metal",
+      "category": "integrations-and-connectors",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-splitter-three-way",
+      "hint": "a chunky socket splitter cube with one plain round recessed",
+      "category": "integrations-and-connectors",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-extension-strip",
+      "hint": "a chunky power strip bar lying flat on the ground",
+      "category": "integrations-and-connectors",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-magnetic-connector",
+      "hint": "two chunky round puck-shaped magnetic connector halves facing each other",
+      "category": "integrations-and-connectors",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-jumper-wire-bundle",
+      "hint": "a small bundle of five short thick jumper wires lying",
+      "category": "integrations-and-connectors",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-terminal-block-screw",
+      "hint": "a chunky screw terminal block with three square wire ports",
+      "category": "integrations-and-connectors",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-api-gateway-arch",
+      "hint": "a chunky gateway made of two thick square pillars joined",
+      "category": "integrations-and-connectors",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-api-socket-panel",
+      "hint": "a thick wall panel plate with four recessed sockets of",
+      "category": "integrations-and-connectors",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-api-key-tag",
+      "hint": "a chunky key with a large round bow",
+      "category": "integrations-and-connectors",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-endpoint-post",
+      "hint": "a short sturdy cylindrical bollard post standing on a low",
+      "category": "integrations-and-connectors",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-request-response-shuttle",
+      "hint": "a short thick straight horizontal pneumatic tube resting on two",
+      "category": "integrations-and-connectors",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-rate-limit-turnstile",
+      "hint": "a turnstile gate",
+      "category": "integrations-and-connectors",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-payload-parcel-tube",
+      "hint": "a short thick mailing tube lying on its side on",
+      "category": "integrations-and-connectors",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-schema-mould-tray",
+      "hint": "a thick rectangular silicone-style mould tray lying flat on the",
+      "category": "integrations-and-connectors",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-link-chain-pair",
+      "hint": "two thick chunky oval chain links interlocked at right angles",
+      "category": "integrations-and-connectors",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-terminal-window-slab",
+      "hint": "a thick slab shaped like a command-line console window with",
+      "category": "developer-and-infrastructure",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-deploy-rocket",
+      "hint": "a short rounded rocket on a launch pad",
+      "category": "developer-and-infrastructure",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-cloud-upload-arrow",
+      "hint": "a soft rounded cloud with an arrow rising into it",
+      "category": "cloud-and-devices",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-laptop-open",
+      "hint": "an open laptop with a blank screen",
+      "category": "cloud-and-devices",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-wallet-card",
+      "hint": "a folded wallet with a blank card sliding out of",
+      "category": "finance-and-billing",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-coin-stack",
+      "hint": "three stacks of coins rising in height",
+      "category": "finance-and-billing",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-shopping-cart",
+      "hint": "a small wire shopping cart",
+      "category": "commerce-and-orders",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-pallet-stacked",
+      "hint": "a wooden-style pallet with four boxes strapped on",
+      "category": "logistics-and-fleet",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-delivery-van-box",
+      "hint": "a delivery van seen three-quarter with a plain cargo box",
+      "category": "logistics-and-fleet",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-steering-wheel",
+      "hint": "a three-spoke steering wheel",
+      "category": "vehicles-and-ev",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-ev-charger-post",
+      "hint": "a slim charging post with a coiled cable and connector",
+      "category": "vehicles-and-ev",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-route-pin-path",
+      "hint": "a teardrop map pin standing at the far end of",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-map-pin",
+      "hint": "a single teardrop map pin with a round hole",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-map-pin-pair",
+      "hint": "two map pins of different sizes side by side",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-map-pin-cluster",
+      "hint": "five small teardrop map location pins standing upright close together",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-map-pin-dropped-ripple",
+      "hint": "a map pin landing in the centre of two ripple",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-push-pin-thumbtack",
+      "hint": "a round-headed push pin stuck in a small board",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-pennant-pin-cup",
+      "hint": "a short sturdy pole with a large thick plain triangular",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-saved-place-star-pin",
+      "hint": "a map pin with a five-pointed star head",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-home-pin",
+      "hint": "a small house shape on top of a pin stem",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-map-folded",
+      "hint": "a folded paper map standing in a zig-zag with raised",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-map-rolled",
+      "hint": "a partly unrolled map with raised terrain bumps",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-map-tile-layers",
+      "hint": "three square terrain tiles floating in a stack",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-globe-stand",
+      "hint": "a desk globe with grooves on an arc stand",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-globe-grid-wire",
+      "hint": "a wire-frame globe made of meridian and parallel rings",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-atlas-book",
+      "hint": "a thick open atlas with a raised terrain page",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-terrain-contour-stack",
+      "hint": "five stacked contour layers forming a hill",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-city-block-model",
+      "hint": "a small tray with nine low blocks and street gaps",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-geofence-ring-posts",
+      "hint": "a low round base plate lying flat on the ground",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-heatmap-terrain-tile",
+      "hint": "a square tile with smooth bumps of different heights",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-compass",
+      "hint": "a pocket compass with a blank dial and needle",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-compass-rose-disc",
+      "hint": "a flat disc with an eight-point star raised on it",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-signpost-crossroads",
+      "hint": "a pole with four blank arrow boards pointing different ways",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-milestone-marker-stone",
+      "hint": "a rounded roadside marker stone",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-roundabout",
+      "hint": "a tabletop model of a roundabout traffic junction lying flat",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-turn-arrow-road",
+      "hint": "a road slab curving to the right with a raised",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-u-turn-loop",
+      "hint": "a thick road slab lying flat on the ground shaped",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-detour-barrier-arrow",
+      "hint": "a striped barrier board on two feet with a blank",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-waypoint-beads-string",
+      "hint": "a curved string with five beads along it",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-breadcrumb-trail-stones",
+      "hint": "a trail of small pebbles curving away",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-gps-satellite",
+      "hint": "a small satellite with two solar wings",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-gps-receiver-puck",
+      "hint": "a thick round magnetic receiver puck lying flat on the",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-location-crosshair-ring",
+      "hint": "a ring with four inward ticks and a ball in",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-radar-ping-dome",
+      "hint": "a low dome with two raised ping rings on a",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-beacon-buoy",
+      "hint": "a floating marker buoy with a lamp",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-lighthouse-beam",
+      "hint": "a plain lighthouse with a wedge-shaped beam",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-binoculars",
+      "hint": "a pair of binoculars",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-spyglass",
+      "hint": "a brass-style extending spyglass",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-sextant",
+      "hint": "a navigation sextant with an arc and sighting arm",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-distance-measuring-wheel",
+      "hint": "a walking measuring wheel with a handle",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-tape-measure",
+      "hint": "a retractable tape measure with a blank tape extended",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-odometer-roller",
+      "hint": "a row of four blank rolling drums in a window",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-eta-pin-clock",
+      "hint": "a map pin with a small blank clock face as",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-toll-gate",
+      "hint": "a toll booth with a raised boom",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-level-crossing-gates",
+      "hint": "a short rail track crossing a road with two raised",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-tunnel-entrance",
+      "hint": "a rounded tunnel mouth in a hillside with a road",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-ferry-crossing",
+      "hint": "a small flat ferry carrying one car",
+      "category": "maps-and-navigation",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-calendar-clock",
+      "hint": "a desk calendar block with a blank grid and a",
+      "category": "scheduling-and-time",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-calendar-blank-block",
+      "hint": "a desk calendar block with two rings and a blank",
+      "category": "scheduling-and-time",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-calendar-day-marked",
+      "hint": "a desk calendar block with a blank grid and one",
+      "category": "scheduling-and-time",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-calendar-flip-pages",
+      "hint": "a tear-off calendar pad with the top blank page curling",
+      "category": "scheduling-and-time",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-calendar-month-wall",
+      "hint": "a wall planner sheet with a blank grid hanging from",
+      "category": "scheduling-and-time",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-calendar-check",
+      "hint": "a desk calendar block with a raised check mark on",
+      "category": "scheduling-and-time",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-calendar-cross-cancel",
+      "hint": "a desk calendar block with a raised diagonal cross on",
+      "category": "scheduling-and-time",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-calendar-plus-add",
+      "hint": "a desk calendar block with a small plus-shaped token on",
+      "category": "scheduling-and-time",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-calendar-recurring-loop",
+      "hint": "a desk calendar block encircled by a ring with one",
+      "category": "scheduling-and-time",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-calendar-range-bracket",
+      "hint": "a blank grid slab with a bracket bar spanning four",
+      "category": "scheduling-and-time",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-planner-diary-band",
+      "hint": "a closed diary with an elastic band and ribbon",
+      "category": "scheduling-and-time",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-clock-wall",
+      "hint": "a round wall clock with a blank dial and two",
+      "category": "scheduling-and-time",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-clock-alarm-twin-bell",
+      "hint": "a twin-bell alarm clock with a blank dial",
+      "category": "scheduling-and-time",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-clock-desk-flip",
+      "hint": "a flip clock with two blank flaps",
+      "category": "scheduling-and-time",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-clock-pocket-watch",
+      "hint": "a pocket watch with an empty dial that has only",
+      "category": "scheduling-and-time",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-clock-wristwatch",
+      "hint": "a wristwatch with an empty dial that has only two",
+      "category": "scheduling-and-time",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-clock-world-trio",
+      "hint": "three small round clocks standing in a row on one",
+      "category": "scheduling-and-time",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-clock-cuckoo-house",
+      "hint": "a small chalet-shaped clock with a pendulum",
+      "category": "scheduling-and-time",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-clock-grandfather",
+      "hint": "a tall chunky case clock with an empty dial that",
+      "category": "scheduling-and-time",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-sundial",
+      "hint": "a round sundial lying flat on a low stone plinth",
+      "category": "scheduling-and-time",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-hourglass",
+      "hint": "an hourglass in a three-post frame with sand falling",
+      "category": "scheduling-and-time",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-stopwatch",
+      "hint": "a chunky round stopwatch with an empty dial that has",
+      "category": "scheduling-and-time",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-egg-timer-twist",
+      "hint": "a round twist kitchen timer with a ridged grip dial",
+      "category": "scheduling-and-time",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-countdown-fuse-spool",
+      "hint": "a short chunky spool of thick fuse cord with one",
+      "category": "scheduling-and-time",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-time-lapse-shutter-ring",
+      "hint": "a camera shutter ring with a blank clock pointer",
+      "category": "scheduling-and-time",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-pomodoro-tomato-timer",
+      "hint": "a tomato-shaped twist kitchen timer",
+      "category": "scheduling-and-time",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-deadline-burning-candle",
+      "hint": "a short candle burned low in a holder with a",
+      "category": "scheduling-and-time",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-snooze-pillow-clock",
+      "hint": "a small round clock sunk into a plump pillow",
+      "category": "scheduling-and-time",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-appointment-slot-card",
+      "hint": "a blank card slotted into a rack of five slots",
+      "category": "scheduling-and-time",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-booking-ticket-pair",
+      "hint": "two thick blank admission tickets overlapping at an angle",
+      "category": "scheduling-and-time",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-reservation-table-tent",
+      "hint": "a folded blank tent card standing on a round table",
+      "category": "scheduling-and-time",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-time-slot-pegboard",
+      "hint": "a thick upright pegboard panel on a small foot with",
+      "category": "scheduling-and-time",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-shift-roster-board",
+      "hint": "a thick board with three horizontal grooves",
+      "category": "scheduling-and-time",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-shift-handover-key-hook",
+      "hint": "a chunky wall key rack",
+      "category": "scheduling-and-time",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-time-clock-punch",
+      "hint": "a boxy wall time recorder with a small empty dial",
+      "category": "scheduling-and-time",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-availability-door-sign",
+      "hint": "a chunky door sign plate hanging from a short loop",
+      "category": "scheduling-and-time",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-waitlist-bench-row",
+      "hint": "a chunky low bench with four seat pads in a",
+      "category": "scheduling-and-time",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-timeline-bar-ruler",
+      "hint": "a short thick ruler-like bar with plain raised tick ridges",
+      "category": "scheduling-and-time",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-gantt-bars-board",
+      "hint": "a thick board with four staggered chunky horizontal bars raised",
+      "category": "scheduling-and-time",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-milestone-diamond-rail",
+      "hint": "a short thick horizontal rail on two small feet with",
+      "category": "scheduling-and-time",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-roadmap-road-flags",
+      "hint": "a thick zig-zag road slab lying flat on the ground",
+      "category": "scheduling-and-time",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-sprint-loop-track",
+      "hint": "an oval running track slab lying flat on the ground",
+      "category": "scheduling-and-time",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-time-zone-globe-band",
+      "hint": "a grooved globe ball on a small base with one",
+      "category": "scheduling-and-time",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-season-wheel",
+      "hint": "a thick round disc lying flat on a low base",
+      "category": "scheduling-and-time",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-team-token-trio",
+      "hint": "three abstract board-game pawn pieces of different heights standing close",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-team-token-circle",
+      "hint": "six featureless board-game pawn pieces",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-team-token-pair",
+      "hint": "two featureless board-game pawn pieces",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-team-lead-token-plinth",
+      "hint": "one featureless board-game pawn piece",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-org-chart-blocks",
+      "hint": "a chunky tree of blocks",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-department-building-blocks",
+      "hint": "three connected blocks of different heights like a small campus",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-squad-puzzle-four",
+      "hint": "four thick chunky jigsaw puzzle pieces joined into one square",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-huddle-stools-ring",
+      "hint": "five short chunky round stools arranged in a ring",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-remote-team-globe-pegs",
+      "hint": "a grooved globe ball with three small featureless board-game pawn",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-cross-team-venn-rings",
+      "hint": "two thick chunky rings interlocked like chain links",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-badge-name-clip",
+      "hint": "a thick blank name badge card",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-badge-star-pin",
+      "hint": "a round pin badge with a raised five-pointed star",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-foreman-clipboard-whistle",
+      "hint": "a chunky clipboard with a plain blank sheet and a",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-captain-armband",
+      "hint": "a wide plain elastic armband loop standing on its edge",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-conductor-baton",
+      "hint": "a short chunky conductor baton with a bulb handle resting",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-key-holder-admin",
+      "hint": "a featureless board-game pawn piece",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-visitor-sticker-roll",
+      "hint": "a chunky roll of plain blank round stickers on a",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-uniform-vest-hi-vis",
+      "hint": "a chunky sleeveless safety vest on a short hanger with",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-toolbelt-pouch",
+      "hint": "a chunky tool belt laid in a short curve with",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-apron-pocket",
+      "hint": "a chunky work apron with a front pocket hanging from",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-office-chair",
+      "hint": "a chunky swivel office chair with a thick seat cushion",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-shelf-divider-plants",
+      "hint": "a low open shelf unit with two small potted plants",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-hot-desk-locker",
+      "hint": "a chunky bank of four small lockers in a two",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-meeting-pod",
+      "hint": "a small enclosed meeting pod",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-coffee-machine",
+      "hint": "a compact chunky espresso machine with a small plain cup",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-water-cooler",
+      "hint": "a chunky water cooler with an inverted bottle on top",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-coat-rack",
+      "hint": "a short sturdy coat stand with a thick pole",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-door-open-welcome",
+      "hint": "a chunky door standing ajar in its thick frame with",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-welcome-mat",
+      "hint": "a thick plain blank doormat with a raised border lying",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-idea-jar-slips",
+      "hint": "a chunky glass jar with a lid filled with folded",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-onboarding-starter-kit",
+      "hint": "an open chunky box holding a rolled lanyard",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-offer-letter-envelope-ribbon",
+      "hint": "a thick plain envelope tied with a ribbon and a",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-resume-sheet-clip",
+      "hint": "a thick sheet with a few raised plain blank bars",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-interview-two-chairs",
+      "hint": "two chunky chairs facing each other across a small round",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-probation-training-wheels",
+      "hint": "a small chunky toy bicycle with thick tyres and two",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-promotion-ladder",
+      "hint": "a short chunky ladder with thick rungs leaning on a",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-leave-suitcase",
+      "hint": "a small hard-shell suitcase with a handle",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-farewell-cardboard-box-plant",
+      "hint": "an open chunky plain box holding a small potted plant",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-payroll-envelope-coin",
+      "hint": "a thick plain pay envelope lying at a three-quarter angle",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-timesheet-card-clock",
+      "hint": "a thick plain blank punch card leaning against a small",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-feedback-two-arrows-loop",
+      "hint": "two thick chunky curved arrows chasing each other in a",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-recognition-ribbon-pin",
+      "hint": "a chunky awareness-style ribbon loop pin",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-mentoring-big-small-pegs",
+      "hint": "a tall featureless board-game pawn piece beside a small featureless",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-pulse-survey-buttons",
+      "hint": "a chunky sloped stand with three large round push buttons",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-town-hall-lectern",
+      "hint": "a chunky lectern with a sloped top and a short",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-culture-campfire",
+      "hint": "a small campfire of three chunky logs with one flame",
+      "category": "people-and-teams",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-book-open",
+      "hint": "an open hardcover book with thick pages",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-book-closed",
+      "hint": "a thick closed hardcover book lying flat at a three-quarter",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-book-stack",
+      "hint": "three thick hardcover books stacked at slightly different angles",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-book-standing-row",
+      "hint": "four thick books standing upright in a row between two",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-book-with-magnifier",
+      "hint": "a thick closed book with a plain unmarked cover and",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-notebook-spiral",
+      "hint": "a thick spiral-bound notebook with a plain unmarked cover and",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-textbook-tabs",
+      "hint": "a thick closed book with a row of plain blank",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-encyclopedia-set",
+      "hint": "a chunky slipcase holding three matching thick volumes with plain",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-pocket-guide-flip",
+      "hint": "a small chunky top-bound flip guide standing half open like",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-library-shelf",
+      "hint": "a chunky two-tier bookshelf with a few very thick books",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-library-card-drawer",
+      "hint": "a long chunky index card drawer pulled half out of",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-reading-lamp-book",
+      "hint": "a small chunky bent-arm desk lamp shining down on a",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-graduation-cap",
+      "hint": "a mortarboard graduation cap with a flat square top and",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-diploma-scroll-ribbon",
+      "hint": "a thick rolled diploma scroll lying at a three-quarter angle",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-school-desk",
+      "hint": "a small chunky lift-lid school desk with an attached seat",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-chalkboard-easel",
+      "hint": "a thick blank chalkboard on a short sturdy easel with",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-pencil",
+      "hint": "a short thick hexagonal pencil with a sharpened point",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-pencil-sharpener",
+      "hint": "a small chunky block pencil sharpener with one round hole",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-crayon-box",
+      "hint": "a small open plain box with four thick crayons sticking",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-ruler-set-square",
+      "hint": "a thick straight ruler lying flat on the ground with",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-protractor-compass-set",
+      "hint": "a short sturdy drawing compass with two thick legs standing",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-school-bag",
+      "hint": "a rounded backpack with a front pocket and a top",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-lunch-box",
+      "hint": "a rounded lunch box with a carry handle on top",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-school-bell-hand",
+      "hint": "a hand bell standing upright with a flared bell body",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-apple-on-books",
+      "hint": "an apple with a short stalk sitting on two thick",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-flash-cards-ring",
+      "hint": "a stack of thick plain blank cards held together by",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-puzzle-cube-blocks",
+      "hint": "a three by three puzzle cube with plain blank tiles",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-building-blocks-tower",
+      "hint": "a tower of four chunky toy blocks stacked slightly askew",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-quiz-buzzer",
+      "hint": "a large domed game-show push buzzer on a low round",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-learning-path-book-steps",
+      "hint": "four thick hardcover books laid as rising steps like a",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-microscope",
+      "hint": "a compact chunky laboratory microscope with a thick curved arm",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-telescope-refractor",
+      "hint": "a short thick refractor telescope tube on a short sturdy",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-specimen-jar",
+      "hint": "a lidded specimen jar on a solid dark graphite base",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-light-bulb-idea",
+      "hint": "a light bulb with a dark ribbed screw base and",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-atom-model",
+      "hint": "a ball-and-ring atom model with three thick crossed orbit rings",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-dna-helix-model",
+      "hint": "a short chunky double-helix model standing upright on a round",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-molecule-model",
+      "hint": "a chunky ball-and-stick molecule model with four balls joined by",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-petri-dish",
+      "hint": "a shallow round lidded laboratory dish lying flat on the",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-beaker-measuring",
+      "hint": "a laboratory beaker with a pouring lip standing on a",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-bunsen-burner",
+      "hint": "a chunky laboratory gas burner with a short thick upright",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-fossil-ammonite",
+      "hint": "an ammonite fossil",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-orrery-planets",
+      "hint": "a tabletop orrery model on a short sturdy stand",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-knowledge-base-cabinet",
+      "hint": "a chunky cabinet of six open cube shelves in two",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-faq-card-carousel",
+      "hint": "a rotating desktop card carousel",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-how-to-step-blocks",
+      "hint": "three chunky blocks forming a small rising staircase with one",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-glossary-index-wheel",
+      "hint": "a rotary card index wheel on a chunky stand",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-lesson-plan-binder-tabs",
+      "hint": "an open thick ring binder lying at a three-quarter angle",
+      "category": "education-and-knowledge",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-first-aid-kit",
+      "hint": "a rounded first-aid case with a plus-shaped emblem and a",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-stethoscope",
+      "hint": "a stethoscope with thick tubing coiled in one loop",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-thermometer-clinical",
+      "hint": "a short thick clinical thermometer with a rounded tip and",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-pill-capsule",
+      "hint": "a chunky two-part capsule pill lying at a three-quarter angle",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-pill-bottle",
+      "hint": "a chunky pill bottle with a ribbed screw cap and",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-blister-pack",
+      "hint": "a thick blister strip with two rows of round domed",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-syringe",
+      "hint": "a capped medical syringe lying at a three-quarter angle",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-adhesive-plaster",
+      "hint": "a single thick adhesive plaster strip with rounded ends and",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-bandage-roll",
+      "hint": "a thick roll of gauze bandage with a short loose",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-medicine-dropper",
+      "hint": "a small chunky dropper bottle with a rubber squeeze bulb",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-inhaler",
+      "hint": "a metered inhaler",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-blood-pressure-cuff",
+      "hint": "a rolled blood pressure cuff joined by a very short",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-pulse-oximeter-clip",
+      "hint": "a chunky fingertip clip sensor shaped like a rounded clothes-peg",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-heart-pulse-token",
+      "hint": "a thick heart-shaped token standing at a three-quarter angle with",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-weighing-scale-floor",
+      "hint": "a round floor weighing scale lying flat on the ground",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-wheelchair",
+      "hint": "a chunky wheelchair with two large thick-tyred wheels",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-crutch-pair",
+      "hint": "a pair of short sturdy elbow crutches standing side by",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-hospital-bed",
+      "hint": "a chunky hospital bed with a raised head section",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-ambulance",
+      "hint": "a rounded chunky ambulance van with exactly one beacon bar",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-clinic-building",
+      "hint": "a small chunky clinic building with a flat roof",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-medical-clipboard-chart",
+      "hint": "a thick clipboard with a chunky clip at the top",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-lab-vial-rack",
+      "hint": "a chunky dark rack holding four capped vials in a",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-safety-helmet",
+      "hint": "a rounded safety hard hat with a short brim",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-safety-goggles",
+      "hint": "a pair of wrap-around safety goggles with a thick dark",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-ear-defenders",
+      "hint": "a pair of ear defenders",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-respirator-mask",
+      "hint": "a half-mask respirator with a rounded face piece",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-safety-gloves",
+      "hint": "a pair of empty thick work gloves lying flat and",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-safety-boots",
+      "hint": "a pair of chunky ankle work boots with thick soles",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-harness-lanyard-hook",
+      "hint": "a short safety lanyard",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-knee-pads",
+      "hint": "a pair of chunky strap-on knee pads lying side by",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-fire-extinguisher",
+      "hint": "a chunky fire extinguisher cylinder with a squeeze handle",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-fire-alarm-call-point",
+      "hint": "a square wall-mounted call point box with a thick frame",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-smoke-detector",
+      "hint": "a round ceiling smoke detector",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-fire-hose-reel",
+      "hint": "a wall-mounted fire hose reel",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-fire-blanket-pouch",
+      "hint": "a thick rectangular wall pouch with two short pull tabs",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-emergency-exit-door",
+      "hint": "a thick door in its frame with one horizontal push",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-emergency-stop-button",
+      "hint": "a large mushroom-head emergency stop push button on a chunky",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-eyewash-station",
+      "hint": "a pedestal eyewash station",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-defibrillator-case",
+      "hint": "a chunky wall cabinet with an open front holding a",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-lifebuoy-ring",
+      "hint": "a thick life ring standing tilted at a three-quarter angle",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-assembly-point-post",
+      "hint": "a short sturdy post carrying a thick blank square board",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-spill-kit-bin",
+      "hint": "a chunky wheeled bin with a hinged lid propped open",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-wet-floor-stand",
+      "hint": "a chunky folding A-frame floor stand made of two thick",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-safety-barrier-tape-posts",
+      "hint": "two short sturdy posts on round weighted bases with one",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-lockout-tag-padlock",
+      "hint": "a chunky padlock locked through a thick hasp plate",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-hazard-diamond-plate",
+      "hint": "a thick diamond-shaped warning plate",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-gas-detector-handheld",
+      "hint": "a compact handheld gas detector box with a small frosted",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-safety-shower-pull",
+      "hint": "an emergency safety shower",
+      "category": "healthcare-and-safety",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-factory-building",
+      "hint": "a small factory with a saw-tooth roof and one chimney",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-factory-chimney-pair",
+      "hint": "two short sturdy factory chimneys of different heights standing on",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-assembly-line-arms",
+      "hint": "a short conveyor belt on sturdy legs with two small",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-industrial-robot-arm",
+      "hint": "a six-axis industrial robot arm on a round base",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-control-room-console",
+      "hint": "a curved control desk console with two blank dark frosted",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-storage-silo",
+      "hint": "a short sturdy grain silo",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-cooling-tower",
+      "hint": "a wide hyperboloid power station cooling tower with a narrow",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-pipe-rack-valves",
+      "hint": "three thick parallel horizontal pipes held side by side in",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-tank-pressure-vessel",
+      "hint": "a horizontal pressure tank with rounded domed ends resting on",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-boiler-drum",
+      "hint": "a short sturdy upright boiler drum with a domed top",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-warehouse-crane-gantry",
+      "hint": "an overhead gantry crane seen at a three-quarter angle",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-clean-room-airlock",
+      "hint": "a compact airlock booth",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-cnc-mill",
+      "hint": "a compact enclosed milling machine",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-lathe",
+      "hint": "a small bench lathe on a low bed",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-drill-press",
+      "hint": "a bench drill press",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-printer-additive",
+      "hint": "an open-frame desktop additive printer",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-laser-cutter-bed",
+      "hint": "a flat-bed cutting machine",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-injection-mould-press",
+      "hint": "an injection mould press on a low bed",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-welding-torch",
+      "hint": "a welding torch lying beside its hose",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-soldering-iron-stand",
+      "hint": "a soldering iron resting at an angle in a coiled",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-band-saw",
+      "hint": "a bench band saw",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-hydraulic-press",
+      "hint": "a hydraulic press",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-sewing-machine",
+      "hint": "a rounded domestic sewing machine seen at a three-quarter angle",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-loom-shuttle",
+      "hint": "a small table loom",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-bottling-filler",
+      "hint": "a rotary bottling filler",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-packaging-sealer",
+      "hint": "a tray sealing machine",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-wrench-spanner",
+      "hint": "a combination spanner lying flat on the ground",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-adjustable-wrench",
+      "hint": "an adjustable wrench lying flat on the ground",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-screwdriver",
+      "hint": "a screwdriver lying at a slight angle",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-hammer-claw",
+      "hint": "a claw hammer lying at a slight angle",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-pliers",
+      "hint": "a pair of combination pliers lying flat on the ground",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-hand-drill-cordless",
+      "hint": "a cordless drill",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-spirit-level",
+      "hint": "a spirit level",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-calliper-vernier",
+      "hint": "a sliding calliper lying flat on the ground",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-micrometer",
+      "hint": "a micrometer screw gauge",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-toolbox",
+      "hint": "a cantilever toolbox half open",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-socket-set-case",
+      "hint": "an open flat case lying on the ground with its",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-utility-knife",
+      "hint": "a retractable box cutter tool with its blade fully retracted",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-nut-and-bolt",
+      "hint": "a hex bolt standing upright on its hexagonal head with",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-gear-worm-drive",
+      "hint": "a worm drive on a small base plate",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-bearing-ring",
+      "hint": "a ball bearing standing upright and turned to a three-quarter",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-spring-compression",
+      "hint": "a thick compression coil spring lying on its side on",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-chain-sprocket",
+      "hint": "a large chunky toothed sprocket wheel lying nearly flat on",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-belt-pulley-pair",
+      "hint": "two chunky round pulley wheels with deep grooved rims standing",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-circuit-board-chip",
+      "hint": "a small square circuit board lying flat on the ground",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-quality-inspection-gauge-block",
+      "hint": "a small machined steel block standing on a thick dark",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-spare-part-tag-bin",
+      "hint": "an open-top parts bin with thick walls seen from slightly",
+      "category": "manufacturing-and-industry",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-solar-panel-leaf",
+      "hint": "a tilted solar panel on a short stand with a",
+      "category": "energy-and-sustainability",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-search-magnifier",
+      "hint": "a chunky magnifying glass with a thick rim",
+      "category": "interface-actions",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-crown-lightning-bolt",
+      "hint": "a classic royal crown",
+      "category": "rewards-and-milestones",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-trophy-cup",
+      "hint": "a two-handled trophy cup on a plinth",
+      "category": "rewards-and-milestones",
+      "source": "icon3d"
+    },
+    {
+      "id": "icon3d-sun-behind-cloud",
+      "hint": "a sun disc partly hidden behind a rounded cloud",
+      "category": "weather-and-environment",
+      "source": "icon3d"
+    },
+    {
+      "id": "manthan-blueprint-autonomy",
+      "hint": "Blueprint autonomy icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-blueprint-barrier",
+      "hint": "Blueprint barrier icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-blueprint-focus",
+      "hint": "Blueprint focus icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-blueprint-gate-open",
+      "hint": "Blueprint gate open icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-blueprint-leave-behind",
+      "hint": "Blueprint leave behind icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-blueprint-problem",
+      "hint": "Blueprint problem icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-blueprint-scroll",
+      "hint": "Blueprint scroll icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-blueprint-share-link",
+      "hint": "Blueprint share link icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-blueprint-shield",
+      "hint": "Blueprint shield icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-blueprint-systems",
+      "hint": "Blueprint systems icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-engage-discovery",
+      "hint": "Engage discovery icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-engage-launch",
+      "hint": "Engage launch icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-engage-pilot",
+      "hint": "Engage pilot icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-engage-scale",
+      "hint": "Engage scale icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-hub-customer-voice",
+      "hint": "Hub customer voice icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-hub-engineering-quality",
+      "hint": "Hub engineering quality icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-hub-manufacturing-energy",
+      "hint": "Hub manufacturing energy icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-hub-software-it-ops",
+      "hint": "Hub software it ops icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-loop-act",
+      "hint": "Loop act icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-loop-gate",
+      "hint": "Loop gate icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-loop-govern",
+      "hint": "Loop govern icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-loop-ingest",
+      "hint": "Loop ingest icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-loop-reason",
+      "hint": "Loop reason icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-sec-audit-ledger",
+      "hint": "Sec audit ledger icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-sec-byok-keys",
+      "hint": "Sec byok keys icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-sec-dual-custody",
+      "hint": "Sec dual custody icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-sec-framework-grid",
+      "hint": "Sec framework grid icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-sec-tenant-vault",
+      "hint": "Sec tenant vault icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-sec-zero-retention",
+      "hint": "Sec zero retention icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-shell-command-palette",
+      "hint": "Shell command palette icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-shell-compare",
+      "hint": "Shell compare icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-shell-empty-state",
+      "hint": "Shell empty state icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-shell-shortlist",
+      "hint": "Shell shortlist icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-shell-unlit-lantern",
+      "hint": "Shell unlit lantern icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-sol-alert-compression",
+      "hint": "Sol alert compression icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-sol-auto-testing",
+      "hint": "Sol auto testing icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-sol-bearing-rul",
+      "hint": "Sol bearing rul icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-sol-cad-design",
+      "hint": "Sol cad design icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-sol-cloud-cost",
+      "hint": "Sol cloud cost icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-sol-compliance",
+      "hint": "Sol compliance icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-sol-conversational",
+      "hint": "Sol conversational icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-sol-dash-migration",
+      "hint": "Sol dash migration icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-sol-enterprise-voice",
+      "hint": "Sol enterprise voice icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-sol-fleet-telemetry",
+      "hint": "Sol fleet telemetry icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-sol-fmea-risk",
+      "hint": "Sol fmea risk icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-sol-inventory",
+      "hint": "Sol inventory icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-sol-plant-ops",
+      "hint": "Sol plant ops icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-sol-prod-planning",
+      "hint": "Sol prod planning icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-sol-regulatory",
+      "hint": "Sol regulatory icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-sol-replanning",
+      "hint": "Sol replanning icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-sol-software-delivery",
+      "hint": "Sol software delivery icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-sol-solar-yield",
+      "hint": "Sol solar yield icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-sol-supply-chain",
+      "hint": "Sol supply chain icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-sol-traceability",
+      "hint": "Sol traceability icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-sol-vision",
+      "hint": "Sol vision icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-tier-agrani-flag",
+      "hint": "Tier agrani flag icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-tier-t1-production",
+      "hint": "Tier t1 production icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-tier-t2-pilot",
+      "hint": "Tier t2 pilot icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-tier-t3-demonstrated",
+      "hint": "Tier t3 demonstrated icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-tier-t4-reference",
+      "hint": "Tier t4 reference icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-uc-citation-clip",
+      "hint": "Uc citation clip icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-uc-human-stop",
+      "hint": "Uc human stop icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-uc-run-replay",
+      "hint": "Uc run replay icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-uc-storyboard",
+      "hint": "Uc storyboard icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "manthan-uc-tool-key",
+      "hint": "Uc tool key icon, Manthan",
+      "category": "manthan",
+      "source": "manthan"
+    },
+    {
+      "id": "setu-complexity-complex",
+      "hint": "Complexity complex icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-complexity-moderate",
+      "hint": "Complexity moderate icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-complexity-simple",
+      "hint": "Complexity simple icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-confidence-failed",
+      "hint": "Confidence failed icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-confidence-high",
+      "hint": "Confidence high icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-confidence-low",
+      "hint": "Confidence low icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-confidence-medium",
+      "hint": "Confidence medium icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-connection-auto",
+      "hint": "Connection auto icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-connection-manual",
+      "hint": "Connection manual icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-conversion-failed",
+      "hint": "Conversion failed icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-conversion-queued",
+      "hint": "Conversion queued icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-conversion-running",
+      "hint": "Conversion running icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-conversion-succeeded",
+      "hint": "Conversion succeeded icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-docsection-completed",
+      "hint": "Docsection completed icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-docsection-error",
+      "hint": "Docsection error icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-docsection-generating",
+      "hint": "Docsection generating icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-docsection-pending",
+      "hint": "Docsection pending icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-dropzone-active",
+      "hint": "Dropzone active icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-effort-automated",
+      "hint": "Effort automated icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-effort-manual",
+      "hint": "Effort manual icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-empty-activity",
+      "hint": "Empty activity icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-empty-apps",
+      "hint": "Empty apps icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-empty-assessment",
+      "hint": "Empty assessment icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-empty-complexity",
+      "hint": "Empty complexity icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-empty-conversions",
+      "hint": "Empty conversions icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-empty-data-preview",
+      "hint": "Empty data preview icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-empty-expressions",
+      "hint": "Empty expressions icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-empty-filter",
+      "hint": "Empty filter icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-empty-projects",
+      "hint": "Empty projects icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-empty-ready-to-convert",
+      "hint": "Empty ready to convert icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-empty-relationships",
+      "hint": "Empty relationships icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-empty-sheet",
+      "hint": "Empty sheet icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-empty-validation",
+      "hint": "Empty validation icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-empty-variables",
+      "hint": "Empty variables icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-empty-visuals",
+      "hint": "Empty visuals icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-kpi-activity",
+      "hint": "Kpi activity icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-kpi-checks",
+      "hint": "Kpi checks icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-kpi-complexity-distribution",
+      "hint": "Kpi complexity distribution icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-kpi-complexity",
+      "hint": "Kpi complexity icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-kpi-confidence",
+      "hint": "Kpi confidence icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-kpi-dax-measures",
+      "hint": "Kpi dax measures icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-kpi-report-pages",
+      "hint": "Kpi report pages icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-kpi-rows-extracted",
+      "hint": "Kpi rows extracted icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-kpi-tables-modelled",
+      "hint": "Kpi tables modelled icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-kpi-validated",
+      "hint": "Kpi validated icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-kpi-visuals-mapped",
+      "hint": "Kpi visuals mapped icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-mark-ai",
+      "hint": "Mark ai icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-mark-dashboard",
+      "hint": "Mark dashboard icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-mark-data-source",
+      "hint": "Mark data source icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-mark-dax",
+      "hint": "Mark dax icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-mark-dimension",
+      "hint": "Mark dimension icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-mark-export",
+      "hint": "Mark export icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-mark-field",
+      "hint": "Mark field icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-mark-measure",
+      "hint": "Mark measure icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-mark-package",
+      "hint": "Mark package icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-mark-project",
+      "hint": "Mark project icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-mark-relationship",
+      "hint": "Mark relationship icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-mark-report",
+      "hint": "Mark report icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-mark-schema-associative",
+      "hint": "Mark schema associative icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-mark-schema-star",
+      "hint": "Mark schema star icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-mark-set-analysis",
+      "hint": "Mark set analysis icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-mark-settings",
+      "hint": "Mark settings icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-mark-setu",
+      "hint": "Mark setu icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-mark-sheet",
+      "hint": "Mark sheet icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-mark-signoff",
+      "hint": "Mark signoff icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-mark-source-app",
+      "hint": "Mark source app icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-mark-source-to-target",
+      "hint": "Mark source to target icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-mark-source-workbook",
+      "hint": "Mark source workbook icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-mark-table-dimension",
+      "hint": "Mark table dimension icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-mark-table-fact",
+      "hint": "Mark table fact icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-mark-table-isolated",
+      "hint": "Mark table isolated icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-mark-table",
+      "hint": "Mark table icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-mark-target-report",
+      "hint": "Mark target report icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-mark-translation",
+      "hint": "Mark translation icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-mark-visual",
+      "hint": "Mark visual icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-readiness-blocked",
+      "hint": "Readiness blocked icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-readiness-none",
+      "hint": "Readiness none icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-readiness-ready",
+      "hint": "Readiness ready icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-readiness-review",
+      "hint": "Readiness review icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-risk-high",
+      "hint": "Risk high icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-risk-info",
+      "hint": "Risk info icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-risk-medium",
+      "hint": "Risk medium icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-settings-ai",
+      "hint": "Settings ai icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-settings-source-cloud",
+      "hint": "Settings source cloud icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-settings-target-workspace",
+      "hint": "Settings target workspace icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-stage-analysis",
+      "hint": "Stage analysis icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-stage-assessment",
+      "hint": "Stage assessment icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-stage-conversion",
+      "hint": "Stage conversion icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-stage-discovery",
+      "hint": "Stage discovery icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-stage-documentation",
+      "hint": "Stage documentation icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-stage-validation",
+      "hint": "Stage validation icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-state-404",
+      "hint": "State 404 icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-state-ai-not-configured",
+      "hint": "State ai not configured icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-state-coming-soon",
+      "hint": "State coming soon icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-state-error",
+      "hint": "State error icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-state-loading-analysis",
+      "hint": "State loading analysis icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-state-loading-validation",
+      "hint": "State loading validation icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-state-offline",
+      "hint": "State offline icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-status-ai-assisted",
+      "hint": "Status ai assisted icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-status-ai-enhancing",
+      "hint": "Status ai enhancing icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-status-analyzed",
+      "hint": "Status analyzed icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-status-connected",
+      "hint": "Status connected icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-status-converted",
+      "hint": "Status converted icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-status-discovered",
+      "hint": "Status discovered icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-status-edited",
+      "hint": "Status edited icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-status-error",
+      "hint": "Status error icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-status-not-configured",
+      "hint": "Status not configured icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-status-validated",
+      "hint": "Status validated icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-step-complete",
+      "hint": "Step complete icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-step-extracting",
+      "hint": "Step extracting icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-step-generating",
+      "hint": "Step generating icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-step-packaging",
+      "hint": "Step packaging icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-step-parsing",
+      "hint": "Step parsing icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-step-translating",
+      "hint": "Step translating icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-tab-connections",
+      "hint": "Tab connections icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-tab-data-model",
+      "hint": "Tab data model icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-tab-data-preview",
+      "hint": "Tab data preview icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-tab-expressions",
+      "hint": "Tab expressions icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-tab-load-script",
+      "hint": "Tab load script icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-tab-overview",
+      "hint": "Tab overview icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-tab-schema",
+      "hint": "Tab schema icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-tab-sheets",
+      "hint": "Tab sheets icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-tab-variables",
+      "hint": "Tab variables icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-tab-visual-map",
+      "hint": "Tab visual map icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-validation-fail",
+      "hint": "Validation fail icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-validation-pass",
+      "hint": "Validation pass icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-validation-warning",
+      "hint": "Validation warning icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-visual-bar",
+      "hint": "Visual bar icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-visual-combo",
+      "hint": "Visual combo icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-visual-container",
+      "hint": "Visual container icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-visual-funnel",
+      "hint": "Visual funnel icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-visual-gauge",
+      "hint": "Visual gauge icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-visual-kpi",
+      "hint": "Visual kpi icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-visual-line",
+      "hint": "Visual line icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-visual-map",
+      "hint": "Visual map icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-visual-pie",
+      "hint": "Visual pie icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-visual-pivot",
+      "hint": "Visual pivot icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-visual-scatter",
+      "hint": "Visual scatter icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-visual-sheet-link",
+      "hint": "Visual sheet link icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-visual-slicer",
+      "hint": "Visual slicer icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-visual-table",
+      "hint": "Visual table icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-visual-text-image",
+      "hint": "Visual text image icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-visual-treemap",
+      "hint": "Visual treemap icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "setu-visual-unknown",
+      "hint": "Visual unknown icon, Setu",
+      "category": "setu",
+      "source": "setu"
+    },
+    {
+      "id": "wayameye-analytics",
+      "hint": "Analytics icon, WayamEye",
+      "category": "wayameye",
+      "source": "wayameye"
+    },
+    {
+      "id": "wayameye-defect",
+      "hint": "Defect icon, WayamEye",
+      "category": "wayameye",
+      "source": "wayameye"
+    },
+    {
+      "id": "wayameye-drone",
+      "hint": "Drone icon, WayamEye",
+      "category": "wayameye",
+      "source": "wayameye"
+    },
+    {
+      "id": "wayameye-energy",
+      "hint": "Energy icon, WayamEye",
+      "category": "wayameye",
+      "source": "wayameye"
+    },
+    {
+      "id": "wayameye-map",
+      "hint": "Map icon, WayamEye",
+      "category": "wayameye",
+      "source": "wayameye"
+    },
+    {
+      "id": "wayameye-processing",
+      "hint": "Processing icon, WayamEye",
+      "category": "wayameye",
+      "source": "wayameye"
+    },
+    {
+      "id": "wayameye-quick-check",
+      "hint": "Quick check icon, WayamEye",
+      "category": "wayameye",
+      "source": "wayameye"
+    },
+    {
+      "id": "wayameye-report",
+      "hint": "Report icon, WayamEye",
+      "category": "wayameye",
+      "source": "wayameye"
+    },
+    {
+      "id": "wayameye-settings",
+      "hint": "Settings icon, WayamEye",
+      "category": "wayameye",
+      "source": "wayameye"
+    },
+    {
+      "id": "wayameye-site",
+      "hint": "Site icon, WayamEye",
+      "category": "wayameye",
+      "source": "wayameye"
+    },
+    {
+      "id": "wayameye-thermal",
+      "hint": "Thermal icon, WayamEye",
+      "category": "wayameye",
+      "source": "wayameye"
+    },
+    {
+      "id": "wayameye-upload",
+      "hint": "Upload icon, WayamEye",
+      "category": "wayameye",
+      "source": "wayameye"
+    }
+  ]
+}

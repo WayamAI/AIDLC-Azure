@@ -138,7 +138,7 @@ export default function ApiCosts() {
   return (
     <PageShell>
       <PageHeader
-        title="AI Usage"
+        title="Usage & Cost"
         description={`Calls and tokens used by ${BRAND_NAME}'s AI features, as reported by the model provider. The configured provider is not billed per token, so no cost is shown.`}
         actions={
           <Button

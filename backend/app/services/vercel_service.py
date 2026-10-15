@@ -288,14 +288,18 @@ async def trigger_deployment(
     target: str,
     repo_url: str | None = None,
     commit_sha: str | None = None,
+    repo_id: str | None = None,
 ) -> dict[str, Any]:
     resolved_repo_id = settings.GITHUB_REPO_ID
     resolved_repo_url = ""
 
     if repo_url:
         owner, repo = parse_github_repo(repo_url)
-        repo_info = await _fetch_repo_info(owner, repo)
-        resolved_repo_id = str(repo_info.get("id") or "")
+        if repo_id:
+            resolved_repo_id = str(repo_id)
+        else:
+            repo_info = await _fetch_repo_info(owner, repo)
+            resolved_repo_id = str(repo_info.get("id") or "")
         resolved_repo_url = f"https://github.com/{owner}/{repo}"
 
     ref = (commit_sha or branch).strip()

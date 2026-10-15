@@ -8,25 +8,49 @@ from bson import ObjectId
 from bson.errors import InvalidId
 
 from app.models.test_case import TestCaseOut
+from app.services.ai_service import AIResponseError
+
+# The allowed TestCase severities (app/models/test_case.py), keyed by lower-case input.
+_SEVERITIES = {"critical": "Critical", "high": "High", "medium": "Medium", "low": "Low"}
 
 
 async def create_test_cases_from_ai(db, org_id: str, requirement_id: str, ai_data: dict[str, list[dict[str, Any]]]) -> int:
+    """Persist the AI's test cases and return how many were stored.
+
+    Items that are not objects, lack a non-empty name or expected result, or have a
+    severity outside the allowed set are skipped. Raises AIResponseError when no
+    usable item remains, so the requirement is not marked processed.
+    """
     docs = []
     for category, tests in ai_data.items():
+        if not isinstance(tests, list):
+            continue
         for t in tests:
+            if not isinstance(t, dict):
+                continue
+            name = t.get("name")
+            expected = t.get("expected")
+            if not isinstance(name, str) or not name.strip():
+                continue
+            if not isinstance(expected, str) or not expected.strip():
+                continue
+            severity = _SEVERITIES.get(str(t.get("severity") or "").strip().lower())
+            if severity is None:
+                continue
             docs.append({
                 "org_id": org_id,
                 "requirement_id": requirement_id,
-                "tc_id": t.get("tc_id", ""),
-                "name": t.get("name", ""),
-                "description": t.get("description", ""),
-                "severity": t.get("severity", "Medium"),
-                "expected": t.get("expected", ""),
+                "tc_id": str(t.get("tc_id") or ""),
+                "name": name.strip(),
+                "description": str(t.get("description") or ""),
+                "severity": severity,
+                "expected": expected.strip(),
                 "category": category,
                 "created_at": datetime.utcnow(),
             })
-    if docs:
-        await db.test_cases.insert_many(docs)
+    if not docs:
+        raise AIResponseError("The AI model returned no usable test cases. Please try again.")
+    await db.test_cases.insert_many(docs)
     return len(docs)
 
 

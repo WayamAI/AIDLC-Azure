@@ -273,7 +273,7 @@ function layoutBranchTree(
     const onChain = chainEdges.has(`${edge.source}->${edge.target}`);
     const touchesFocus = edge.source === focusPath || edge.target === focusPath;
     const strong = onChain || touchesFocus;
-    const color = touchesFocus ? "#B45309" : onChain ? "#2563EB" : "hsl(var(--muted-foreground) / 0.45)";
+    const color = touchesFocus ? "hsl(var(--warning))" : onChain ? "hsl(var(--info))" : "hsl(var(--muted-foreground) / 0.45)";
 
     rfEdges.push({
       id,
@@ -454,10 +454,10 @@ function BranchFlowCanvas({
       <Panel position="top-right">
         <div className="rounded-md border border-stroke-muted bg-container px-2.5 py-1.5 text-[10px] space-y-1">
           <div className="flex items-center gap-1.5">
-            <span className="h-0.5 w-4 rounded bg-[#B45309]" /> touches selected file
+            <span className="h-0.5 w-4 rounded bg-warning" /> touches selected file
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="h-0.5 w-4 rounded bg-[#2563EB]" /> root &rarr; leaf chain
+            <span className="h-0.5 w-4 rounded bg-info" /> root &rarr; leaf chain
           </div>
           <div className="flex items-center gap-1.5">
             <span className="h-0.5 w-4 rounded bg-muted-foreground/45" /> other links

@@ -302,17 +302,27 @@ async def create_branch(
     org_id: str,
     workspace_id: str,
     branch_name: str,
-    from_branch: str = "main",
+    from_branch: str | None = None,
 ) -> dict:
     def _do():
         repo, _ = _get_repo(org_id, workspace_id)
+        new_name = _validate_branch(branch_name)
+        if not from_branch:
+            # Repos default to main, master or anything else: use what is checked out.
+            base = repo.active_branch.name
+        else:
+            base = _validate_branch(from_branch)
         try:
-            repo.git.checkout(from_branch)
-        except Exception:
-            pass
-        new_branch = repo.create_head(branch_name)
+            repo.git.checkout(base)
+        except git.GitCommandError as exc:
+            raise ValueError(
+                f"Could not check out base branch {base!r}: {safe_error_text(exc)}"
+            ) from exc
+        if new_name in [h.name for h in repo.heads]:
+            raise ValueError(f"Branch {new_name!r} already exists in this workspace.")
+        new_branch = repo.create_head(new_name)
         new_branch.checkout()
-        return {"branch": branch_name, "from": from_branch}
+        return {"branch": new_name, "from": base}
     return await asyncio.to_thread(_do)
 
 

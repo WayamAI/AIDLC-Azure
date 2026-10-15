@@ -21,9 +21,21 @@ function getWsBase(): string {
   return `${proto}//${window.location.host}/api`;
 }
 
+const RECONNECT_DELAY_MS = 1500;
+
+/**
+ * Streams a generation run into the IDE state.
+ *
+ * The run is a server-side task, so this socket is only a view of it:
+ * `startGeneration` sends the idea, `attachToRun` joins whatever run the
+ * workspace already has (after a reload), and a dropped connection mid-run
+ * re-attaches once before reporting the loss.
+ */
 export function useAiGenerationWS(workspaceId: string | null) {
   const { dispatch } = useAiIde();
   const wsRef = useRef<WebSocket | null>(null);
+  const finishedRef = useRef(false);
+  const reconnectedRef = useRef(false);
 
   // Token batching: flush every 50 ms to prevent React re-render storms
   const bufferRef = useRef<Record<string, string>>({});
@@ -38,20 +50,36 @@ export function useAiGenerationWS(workspaceId: string | null) {
     timerRef.current = null;
   }, [dispatch]);
 
-  const startGeneration = useCallback(
-    (idea: string) => {
+  const flushNow = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      flushBuffer();
+    }
+  }, [flushBuffer]);
+
+  const open = useCallback(
+    (firstMessage: string, mode: "start" | "attach" | "reattach") => {
       if (!workspaceId) return;
-      if (wsRef.current) wsRef.current.close();
+      if (wsRef.current) {
+        wsRef.current.onclose = null;
+        wsRef.current.close();
+      }
+      finishedRef.current = false;
 
       const url = `${getWsBase()}/ai-ide/ws/generate/${workspaceId}`;
       const ws = new WebSocket(url);
       wsRef.current = ws;
+      let sawEvent = false;
 
-      dispatch({ type: "SET_STATUS", status: "planning", message: "Connecting…" });
+      if (mode === "start") {
+        dispatch({ type: "SET_STATUS", status: "planning", message: "Connecting…" });
+      }
 
       ws.onopen = () => {
-        ws.send(idea);
-        dispatch({ type: "SET_STATUS", status: "planning", message: "Planning your app…" });
+        ws.send(firstMessage);
+        if (mode === "start") {
+          dispatch({ type: "SET_STATUS", status: "planning", message: "Planning your app…" });
+        }
       };
 
       ws.onmessage = (ev) => {
@@ -63,12 +91,41 @@ export function useAiGenerationWS(workspaceId: string | null) {
         }
 
         switch (data.type) {
+          case "NO_RUN":
+            // Nothing to attach to: the workspace is simply at rest.
+            finishedRef.current = true;
+            if (mode === "reattach") {
+              dispatch({
+                type: "SET_STATUS",
+                status: "error",
+                message: "The connection to the generator was lost and the run is no longer on the server.",
+              });
+            }
+            ws.close();
+            break;
+
           case "STATUS":
+            sawEvent = true;
             dispatch({ type: "SET_STATUS", status: "generating", message: data.message });
             dispatch({ type: "ADD_LOG", message: data.message });
             break;
 
+          case "PLAN": {
+            sawEvent = true;
+            const files = Array.isArray(data.files) ? data.files.filter((p: unknown) => typeof p === "string") : [];
+            dispatch({
+              type: "SET_PLAN",
+              files,
+              appName: typeof data.app_name === "string" ? data.app_name : "",
+              description: typeof data.description === "string" ? data.description : "",
+            });
+            dispatch({ type: "SET_STATUS", status: "generating", message: `Plan ready: ${files.length} files` });
+            dispatch({ type: "ADD_LOG", message: `Plan: ${files.join(", ")}` });
+            break;
+          }
+
           case "FILE_CREATE":
+            sawEvent = true;
             dispatch({ type: "START_FILE_STREAM", path: data.path });
             dispatch({ type: "ADD_LOG", message: `Creating ${data.path}…` });
             break;
@@ -84,25 +141,35 @@ export function useAiGenerationWS(workspaceId: string | null) {
           }
 
           case "FILE_UPDATE":
-            // Flush any buffered tokens first
-            if (timerRef.current) {
-              clearTimeout(timerRef.current);
-              flushBuffer();
-            }
-            dispatch({ type: "UPDATE_FILE", path: data.path, content: data.content });
+            flushNow();
+            dispatch({ type: "UPDATE_FILE", path: data.path, content: data.content, origin: "server" });
             dispatch({ type: "ADD_LOG", message: `Updated ${data.path}` });
             break;
 
+          case "FILE_RENAMED": {
+            // The server saved the streamed file under another name (JSX in a .ts file -> .tsx).
+            flushNow();
+            const from = String(data.from ?? "");
+            const to = String(data.to ?? "");
+            if (from && to) {
+              dispatch({ type: "RENAME_PATH", fromPath: from, toPath: to });
+              dispatch({ type: "UPDATE_FILE", path: to, content: String(data.content ?? ""), origin: "server" });
+              dispatch({ type: "FILE_STREAM_DONE", path: from });
+              dispatch({ type: "ADD_LOG", message: `Saved ${from} as ${to} (it contains JSX)` });
+            }
+            break;
+          }
+
           case "FILE_DONE":
+            // Tokens for this file may still be buffered; the file is only complete once they are in.
+            flushNow();
+            dispatch({ type: "FILE_STREAM_DONE", path: data.path });
             dispatch({ type: "ADD_LOG", message: `✓ ${data.path}` });
             break;
 
           case "FILE_ERROR":
             // The server wrote nothing for this file; drop the partial tokens shown while streaming.
-            if (timerRef.current) {
-              clearTimeout(timerRef.current);
-              flushBuffer();
-            }
+            flushNow();
             dispatch({ type: "DELETE_PATH", path: data.path });
             dispatch({
               type: "ADD_FAILED_FILE",
@@ -112,10 +179,8 @@ export function useAiGenerationWS(workspaceId: string | null) {
             break;
 
           case "GENERATION_DONE":
-            if (timerRef.current) {
-              clearTimeout(timerRef.current);
-              flushBuffer();
-            }
+            flushNow();
+            finishedRef.current = true;
             // The server's list is the record of what is missing; it replaces
             // whatever was collected from FILE_ERROR events while streaming.
             if (Array.isArray(data.failed_files)) {
@@ -133,6 +198,7 @@ export function useAiGenerationWS(workspaceId: string | null) {
             break;
 
           case "ERROR":
+            finishedRef.current = true;
             dispatch({ type: "SET_STATUS", status: "error", message: data.message });
             dispatch({ type: "ADD_LOG", message: `Error: ${data.message}` });
             break;
@@ -140,27 +206,54 @@ export function useAiGenerationWS(workspaceId: string | null) {
       };
 
       ws.onerror = () => {
+        /* onclose follows and decides what to do */
+      };
+
+      ws.onclose = () => {
+        if (wsRef.current === ws) wsRef.current = null;
+        if (finishedRef.current) return;
+        // The run is still going on the server; pick it up again once.
+        if (mode !== "reattach" && !reconnectedRef.current && (sawEvent || mode === "start")) {
+          reconnectedRef.current = true;
+          dispatch({ type: "ADD_LOG", message: "Connection lost; reconnecting to the run…" });
+          setTimeout(() => open(JSON.stringify({ attach: true }), "reattach"), RECONNECT_DELAY_MS);
+          return;
+        }
+        if (mode === "attach" && !sawEvent) return;
         dispatch({
           type: "SET_STATUS",
           status: "error",
           message: "The connection to the generator was lost. Check that the backend is running and try again.",
         });
       };
-
-      ws.onclose = () => {
-        wsRef.current = null;
-      };
     },
-    [workspaceId, dispatch, flushBuffer]
+    [workspaceId, dispatch, flushBuffer, flushNow],
   );
+
+  const startGeneration = useCallback(
+    (idea: string) => {
+      reconnectedRef.current = false;
+      open(idea, "start");
+    },
+    [open],
+  );
+
+  /** Join the run the workspace already has, if any; nothing changes when there is none. */
+  const attachToRun = useCallback(() => {
+    reconnectedRef.current = false;
+    open(JSON.stringify({ attach: true }), "attach");
+  }, [open]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      wsRef.current?.close();
+      if (wsRef.current) {
+        wsRef.current.onclose = null;
+        wsRef.current.close();
+      }
       if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, []);
 
-  return { startGeneration };
+  return { startGeneration, attachToRun };
 }

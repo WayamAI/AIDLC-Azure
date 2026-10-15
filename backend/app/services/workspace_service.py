@@ -143,15 +143,24 @@ def _sanitize_git_error(exc: Exception, repo_url: str, clone_dir: str) -> str:
     return f"Could not clone {repo_url}: {reason}"
 
 
+def validate_repo_url(repo_url: str) -> str:
+    """Only https repository URLs are cloned: no file://, local paths or git options."""
+    url = (repo_url or "").strip()
+    if url.startswith("-") or not url.lower().startswith("https://") or any(c.isspace() for c in url):
+        raise ValueError("Repository URL must be an https:// URL, e.g. https://github.com/owner/repo")
+    return url
+
+
 def _clone_with_pat(repo_url: str, clone_dir: str, branch: str, pat: Optional[str]) -> None:
-    """Clone repo (shallow depth=1). Injects PAT into URL if provided."""
+    """Clone repo (shallow depth=1). The PAT is used for the clone only and not left in .git/config."""
+    repo_url = validate_repo_url(repo_url)
     url = repo_url.rstrip("/")
     if pat:
         # Inject PAT: https://PAT@github.com/owner/repo
         if url.startswith("https://"):
             url = url.replace("https://", f"https://{pat}@")
     try:
-        git.Repo.clone_from(
+        repo = git.Repo.clone_from(
             url,
             clone_dir,
             depth=1,
@@ -160,6 +169,9 @@ def _clone_with_pat(repo_url: str, clone_dir: str, branch: str, pat: Optional[st
         )
     except git.GitCommandError as exc:
         raise ValueError(_sanitize_git_error(exc, repo_url, clone_dir)) from exc
+    if pat:
+        # clone_from stores the URL it was given as origin; keep the token out of it.
+        repo.git.remote("set-url", "origin", repo_url.rstrip("/"))
 
 
 async def connect_repo(
@@ -262,15 +274,19 @@ def require_workspace(org_id: str, workspace_id: str) -> dict:
     return ws
 
 
+def _workspace_file(clone_dir: str, file_path: str) -> Path:
+    """A path inside the clone and outside .git (which holds config git executes)."""
+    from app.services.git_service import _safe_workspace_path
+
+    try:
+        return _safe_workspace_path(Path(clone_dir), file_path)
+    except ValueError as exc:
+        raise PermissionError(str(exc)) from None
+
+
 def get_file_content(org_id: str, workspace_id: str, file_path: str) -> dict:
     ws = require_workspace(org_id, workspace_id)
-    abs_path = Path(ws["clone_dir"]) / file_path
-
-    # Security: ensure path stays inside the workspace
-    try:
-        abs_path.resolve().relative_to(Path(ws["clone_dir"]).resolve())
-    except ValueError:
-        raise PermissionError("Path traversal attempt detected")
+    abs_path = _workspace_file(ws["clone_dir"], file_path)
 
     if not abs_path.exists() or not abs_path.is_file():
         raise FileNotFoundError(f"File not found: {file_path}")
@@ -288,12 +304,7 @@ def save_file_content(org_id: str, workspace_id: str, file_path: str, content: s
     ws = get_workspace(org_id, workspace_id)
     if ws is None:
         raise KeyError(f"Workspace {workspace_id} not found")
-    abs_path = Path(ws["clone_dir"]) / file_path
-
-    try:
-        abs_path.resolve().relative_to(Path(ws["clone_dir"]).resolve())
-    except ValueError:
-        raise PermissionError("Path traversal attempt detected")
+    abs_path = _workspace_file(ws["clone_dir"], file_path)
 
     abs_path.parent.mkdir(parents=True, exist_ok=True)
     abs_path.write_text(content, encoding="utf-8")

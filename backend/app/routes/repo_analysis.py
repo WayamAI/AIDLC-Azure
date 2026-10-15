@@ -24,28 +24,40 @@ from app.models.organization import OrganizationOut
 from app.models.repo_analysis import RepoAnalysisRequest
 from app.services import playwright_service, repo_service
 from app.services.analysis_runner import create_job, get_job, run_analysis, run_commit_analysis
+from app.services.execution_service import InvalidTargetError, validate_target_url
 
 log = logging.getLogger("repo_analysis")
 
 _ALLOWED_TEST_FIELDS = {"name", "description", "severity", "steps", "page_name"}
 
+_UNREACHABLE_MESSAGE = "The target URL could not be reached"
+
+
+async def _require_fetchable_target(url: str) -> None:
+    """Refuse targets this server must not fetch (private, loopback or link-local in production).
+
+    validate_target_url resolves the host, which blocks, so it runs in a worker thread.
+    """
+    try:
+        await asyncio.to_thread(validate_target_url, url)
+    except InvalidTargetError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
 
 async def _check_url_reachable(url: str) -> str | None:
     """
-    Try a GET request to url. Returns None if reachable, or an error string if not.
-    Times out after 8 seconds so we don't stall the request.
+    Try a GET request to url. Returns None if reachable, or a generic message if not.
+    Times out after 8 seconds so we don't stall the request. The exception detail
+    goes to the server log only.
     """
     try:
         async with httpx.AsyncClient(verify=False, follow_redirects=True) as client:
             resp = await client.get(url, timeout=8.0)
         log.info("Pre-flight check %s → HTTP %d", url, resp.status_code)
         return None  # reachable (even 4xx counts the server is up)
-    except httpx.ConnectError:
-        return f"Connection refused nothing is running at {url}"
-    except httpx.TimeoutException:
-        return f"Connection timed out after 8 s {url} did not respond"
     except Exception as exc:
-        return f"Could not reach {url}: {exc}"
+        log.warning("Pre-flight check for %s failed: %s: %s", url, type(exc).__name__, exc)
+        return _UNREACHABLE_MESSAGE
 
 router = APIRouter(prefix="/repo", tags=["Repo Analysis"])
 
@@ -105,6 +117,7 @@ async def start_analyze(
     mode="commit" → diff-based analysis for a specific commit (commit_sha required).
     Poll GET /repo/jobs/{job_id} for progress + result.
     """
+    await _require_fetchable_target(body.target_url)
     reach_err = await _check_url_reachable(body.target_url)
     if reach_err:
         log.warning(
@@ -210,13 +223,14 @@ async def execute_tests(
 
     # ── Pre-flight: verify the target URL is actually reachable ───────────────
     target_url: str = analysis["target_url"]
+    await _require_fetchable_target(target_url)
     reach_err = await _check_url_reachable(target_url)
     if reach_err:
         log.error("Pre-flight failed for %s: %s", target_url, reach_err)
         raise HTTPException(
             status_code=400,
             detail=(
-                f"Target URL is not reachable: {reach_err}. "
+                f"{reach_err}. "
                 f"Make sure your app is running at {target_url} and is accessible "
                 f"from this server before running tests."
             ),
@@ -340,12 +354,13 @@ async def execute_tests_direct(
             detail="Playwright is not installed on this server. Run: pip install playwright && playwright install chromium",
         )
 
+    await _require_fetchable_target(target_url)
     reach_err = await _check_url_reachable(target_url)
     if reach_err:
         raise HTTPException(
             status_code=400,
             detail=(
-                f"Target URL is not reachable: {reach_err}. "
+                f"{reach_err}. "
                 f"Make sure your app is running at {target_url} and is accessible from this server."
             ),
         )

@@ -84,7 +84,7 @@ function PushToJiraButton({ item }: { item: StoryItem }) {
       return api.pushACToJira(story.key, acText || "");
     },
     onSuccess: () =>
-      toast.success("Posted to Jira", { description: `AI-generated acceptance criteria added to ${story.key} as a comment.` }),
+      toast.success("Posted to Jira", { description: `Generated acceptance criteria added to ${story.key} as a comment.` }),
     onError: (err: unknown) =>
       toast.error("The comment was not added in Jira", {
         description: apiErrorMessage(err, "Check the Jira connection under Settings → Connectors."),
@@ -319,7 +319,7 @@ export default function RequirementsIntelligence() {
   return (
     <PageShell>
       <PageHeader
-        title="Requirements Intelligence"
+        title="Requirement Insights"
         description="For a user story, the model writes Given/When/Then acceptance criteria, lists vague terms to clarify, and gives a 0–100 risk score. Analyse one story you paste, or every story in the active Jira sprint."
         actions={
           <>

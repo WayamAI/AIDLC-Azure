@@ -1,4 +1,5 @@
 """Git operation routes status, log, branch, commit+push, diff."""
+import logging
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -16,6 +17,21 @@ from app.services.git_service import WorkspaceNotFound
 
 router = APIRouter(prefix="/git", tags=["Git Operations"], dependencies=[Depends(attach_workspace)])
 
+log = logging.getLogger(__name__)
+
+
+def _git_failure(exc: Exception) -> HTTPException:
+    """Status for an unexpected git-route failure: bad input 400, missing path 404, else 500.
+
+    Only bad-input errors carry their text to the client, scrubbed by safe_error_text.
+    """
+    if isinstance(exc, FileNotFoundError):
+        return HTTPException(status_code=404, detail=git_service.safe_error_text(exc))
+    if isinstance(exc, (ValueError, KeyError)):
+        return HTTPException(status_code=400, detail=git_service.safe_error_text(exc))
+    log.exception("Git operation failed")
+    return HTTPException(status_code=500, detail="The git operation failed. Check the server log.")
+
 
 @router.get("/status", response_model=GitStatusResponse)
 async def git_status(workspace_id: str, org: OrganizationOut = Depends(get_current_org)):
@@ -24,7 +40,7 @@ async def git_status(workspace_id: str, org: OrganizationOut = Depends(get_curre
     except WorkspaceNotFound:
         raise HTTPException(status_code=404, detail="Workspace not found")
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
+        raise _git_failure(exc) from exc
 
 
 @router.get("/log")
@@ -39,7 +55,7 @@ async def git_log(
     except WorkspaceNotFound:
         raise HTTPException(status_code=404, detail="Workspace not found")
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
+        raise _git_failure(exc) from exc
 
 
 @router.get("/diff")
@@ -50,7 +66,7 @@ async def git_diff(workspace_id: str, file_path: str, org: OrganizationOut = Dep
     except WorkspaceNotFound:
         raise HTTPException(status_code=404, detail="Workspace not found")
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
+        raise _git_failure(exc) from exc
 
 
 @router.post("/branch")
@@ -65,7 +81,7 @@ async def create_branch(req: BranchRequest, org: OrganizationOut = Depends(get_c
     except WorkspaceNotFound:
         raise HTTPException(status_code=404, detail="Workspace not found")
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
+        raise _git_failure(exc) from exc
 
 
 @router.post("/commit", response_model=CommitResponse)

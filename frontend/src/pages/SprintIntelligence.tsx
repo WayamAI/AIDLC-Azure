@@ -124,7 +124,7 @@ export default function SprintIntelligence() {
   return (
     <PageShell>
       <PageHeader
-        title="Sprint Intelligence"
+        title="Sprint Health"
         description="GitHub Actions run metrics for the last 14 days, the issues in the current Jira sprint if a project key is given, and a model-written summary of both."
       />
 

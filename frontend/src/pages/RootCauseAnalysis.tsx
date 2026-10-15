@@ -59,7 +59,7 @@ export default function RootCauseAnalysis() {
       {/* Unanalyzed failures: pulled live from playwright_runs */}
       <PageCard
         title="Failures awaiting analysis"
-        description="Failed results from recent Live Test Runner runs that have not been analysed yet."
+        description="Failed results from recent Live Test Run executions that have not been analysed yet."
         padding={false}
       >
         <DataTable

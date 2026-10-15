@@ -161,7 +161,7 @@ export default function RootCauseDetailPage() {
         <p className="text-sm text-ink-secondary">{data.recommendation ?? "No recommendation available."}</p>
         {rerunMutation.isSuccess && (
           <p className="mt-3 text-xs text-ink-secondary">
-            Re-run started (run <span className="font-mono">{rerunMutation.data.run_id.slice(0, 8)}</span>). Check Live Test Runner for progress.
+            Re-run started (run <span className="font-mono">{rerunMutation.data.run_id.slice(0, 8)}</span>). Check Live Test Run for progress.
           </p>
         )}
         {rerunMutation.isError && (

@@ -394,9 +394,15 @@ async def analyze_chain_for_tests(
     file_blocks: list[str] = []
     valid_paths: list[str] = []
 
+    from app.services.git_service import _safe_workspace_path
+
     for path in chain:
-        full = clone_dir / path
-        if not full.exists():
+        # Chain entries come from the client: only files inside the clone, never .git.
+        try:
+            full = _safe_workspace_path(clone_dir, str(path))
+        except ValueError:
+            continue
+        if not full.is_file():
             continue
         try:
             content = full.read_text(encoding="utf-8", errors="replace")

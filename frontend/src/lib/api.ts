@@ -1,6 +1,7 @@
 import axios from "axios";
 import { apiErrorMessage } from "./api-error";
 import { markServerDatesUtc } from "./server-dates";
+import { repoIdFromUrl } from "./sha256";
 
 // In production, VITE_API_URL points to the deployed backend (e.g. https://your-backend.vercel.app/api)
 // In development, requests go to /api which Vite proxies to localhost:8000
@@ -1617,13 +1618,7 @@ export const api = {
     apiClient.post<PRDGenerateResponse>("/prd/generate", payload).then((r) => r.data),
 
   /** Normalise a GitHub URL into a 16-char repo_id matching backend logic. */
-  getRepoId: async (url: string) => {
-    const normalised = url.toLowerCase().trim().replace(/\/$/, "").replace(".git", "");
-    const msgBuffer = new TextEncoder().encode(normalised);
-    const hashBuffer = await window.crypto.subtle.digest("SHA-256", msgBuffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 16);
-  },
+  getRepoId: repoIdFromUrl,
 };
 
 // ─── Code Impact + Test Intelligence Types ────────────────────────────────────
@@ -1869,12 +1864,6 @@ export const baselineApi = {
       .then((r) => r.data),
 
   /** Normalise a GitHub URL into a 16-char repo_id matching backend logic. */
-  getRepoId: async (url: string) => {
-    const normalised = url.toLowerCase().trim().replace(/\/$/, "").replace(".git", "");
-    const msgBuffer = new TextEncoder().encode(normalised);
-    const hashBuffer = await window.crypto.subtle.digest("SHA-256", msgBuffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 16);
-  },
+  getRepoId: repoIdFromUrl,
 };
 
